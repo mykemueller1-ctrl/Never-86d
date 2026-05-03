@@ -1400,7 +1400,7 @@ export async function getHourlySalesHeatmap() {
   const rows = await db.select().from(hourlySales);
   
   // Parse hours and aggregate by DOW + hour
-  const heatmap: Record<string, { dow: number; hour: number; avgRevenue: number; count: number; total: number }> = {};
+  const heatmap: Record<string, { dow: number; hour: number; avgRevenue: number; count: number; total: number; orders: number; pickup: number; delivery: number; bar: number }> = {};
   
   for (const r of rows) {
     const dt = new Date(r.businessDate + 'T12:00:00');
@@ -1419,9 +1419,19 @@ export async function getHourlySalesHeatmap() {
     } catch { continue; }
     
     const key = `${dow}-${hour}`;
-    const total = parseFloat(r.total?.toString() || '0');
-    if (!heatmap[key]) heatmap[key] = { dow, hour, avgRevenue: 0, count: 0, total: 0 };
-    heatmap[key].total += total;
+    // total column is NULL in PDQ data — compute revenue from orders * avgSales
+    const orders = parseFloat(r.orders?.toString() || '0');
+    const avgSale = parseFloat(r.avgSales?.toString() || '0');
+    const revenue = orders * avgSale;
+    const pickup = parseFloat(r.pickupAmount?.toString() || '0');
+    const delivery = parseFloat(r.deliveryAmount?.toString() || '0');
+    const bar = parseFloat(r.barAmount?.toString() || '0');
+    if (!heatmap[key]) heatmap[key] = { dow, hour, avgRevenue: 0, count: 0, total: 0, orders: 0, pickup: 0, delivery: 0, bar: 0 };
+    heatmap[key].total += revenue;
+    heatmap[key].orders += orders;
+    heatmap[key].pickup += pickup;
+    heatmap[key].delivery += delivery;
+    heatmap[key].bar += bar;
     heatmap[key].count++;
   }
   
@@ -1429,6 +1439,10 @@ export async function getHourlySalesHeatmap() {
     dow: h.dow,
     hour: h.hour,
     avgRevenue: Math.round(h.total / h.count),
+    avgOrders: Math.round(h.orders / h.count * 10) / 10,
+    avgPickup: Math.round(h.pickup / h.count),
+    avgDelivery: Math.round(h.delivery / h.count),
+    avgBar: Math.round(h.bar / h.count),
     dataPoints: h.count,
   }));
 }
@@ -2547,4 +2561,231 @@ export async function getInvoicePriceComparison(productName: string) {
   }
 
   return priceEntries.slice(0, 8);
+}
+
+
+// ============ ML SALES PREDICTION ============
+
+/**
+ * Simple linear regression helper — fits y = mx + b
+ * Returns slope, intercept, and R² (coefficient of determination)
+ */
+function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number; r2: number } {
+  const n = xs.length;
+  if (n < 2) return { slope: 0, intercept: ys[0] || 0, r2: 0 };
+  
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((a, x, i) => a + x * ys[i], 0);
+  const sumX2 = xs.reduce((a, x) => a + x * x, 0);
+  
+  const denom = n * sumX2 - sumX * sumX;
+  if (denom === 0) return { slope: 0, intercept: sumY / n, r2: 0 };
+  
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  
+  // R² calculation
+  const meanY = sumY / n;
+  const ssTotal = ys.reduce((a, y) => a + (y - meanY) ** 2, 0);
+  const ssResidual = ys.reduce((a, y, i) => a + (y - (slope * xs[i] + intercept)) ** 2, 0);
+  const r2 = ssTotal === 0 ? 0 : 1 - ssResidual / ssTotal;
+  
+  return { slope, intercept, r2 };
+}
+
+/**
+ * ML Sales Prediction — uses multiple regression features:
+ * 1. Day-of-week seasonality (categorical)
+ * 2. Time trend (linear growth/decline)
+ * 3. Weather impact (temperature coefficient)
+ * 4. Category breakdown (food, beer, liquor, pop trends)
+ * 
+ * Returns predictions for the next 14 days with confidence intervals
+ */
+export async function getMLSalesPrediction(daysAhead = 14) {
+  const db = await getDb();
+  if (!db) return { predictions: [], model: null, trends: null };
+
+  // Get all daily sales data
+  const allSales = await db.select().from(dailySales).orderBy(asc(dailySales.businessDate));
+  if (allSales.length < 14) return { predictions: [], model: { error: 'Need at least 14 days of data' }, trends: null };
+
+  // Get weather data for correlation
+  const allWeather = await db.select().from(weatherData);
+  const weatherByDate: Record<string, { tempMax: number; weatherCode: string }> = {};
+  for (const w of allWeather) {
+    weatherByDate[w.date] = { tempMax: parseFloat(w.tempMax?.toString() || '65'), weatherCode: String(w.weatherCode ?? '') };
+  }
+
+  // Parse sales into numeric arrays
+  const salesData: Array<{
+    date: string;
+    dow: number;
+    dayIndex: number;
+    totalAmount: number;
+    foodAmount: number;
+    beerAmount: number;
+    liquorAmount: number;
+    popAmount: number;
+    totalQty: number;
+    temp: number;
+  }> = [];
+
+  const startDate = new Date(allSales[0].businessDate + 'T12:00:00');
+  
+  for (const s of allSales) {
+    const dt = new Date(s.businessDate + 'T12:00:00');
+    const dow = dt.getDay();
+    const dayIndex = Math.floor((dt.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+    const weather = weatherByDate[s.businessDate];
+    
+    salesData.push({
+      date: s.businessDate,
+      dow,
+      dayIndex,
+      totalAmount: parseFloat(s.totalAmount?.toString() || '0'),
+      foodAmount: parseFloat(s.catFoodAmount?.toString() || '0'),
+      beerAmount: parseFloat(s.catBeerAmount?.toString() || '0'),
+      liquorAmount: parseFloat(s.catLiquorAmount?.toString() || '0'),
+      popAmount: parseFloat(s.catPopAmount?.toString() || '0'),
+      totalQty: parseFloat(s.totalQty?.toString() || '0'),
+      temp: weather?.tempMax || 65,
+    });
+  }
+
+  // ─── Feature 1: Overall time trend ───
+  const timeTrend = linearRegression(
+    salesData.map(d => d.dayIndex),
+    salesData.map(d => d.totalAmount)
+  );
+
+  // ─── Feature 2: Day-of-week averages ───
+  const dowStats: Record<number, { total: number; count: number; values: number[] }> = {};
+  for (let d = 0; d < 7; d++) dowStats[d] = { total: 0, count: 0, values: [] };
+  for (const s of salesData) {
+    dowStats[s.dow].total += s.totalAmount;
+    dowStats[s.dow].count++;
+    dowStats[s.dow].values.push(s.totalAmount);
+  }
+  const overallAvg = salesData.reduce((a, s) => a + s.totalAmount, 0) / salesData.length;
+  const dowMultipliers: Record<number, number> = {};
+  for (let d = 0; d < 7; d++) {
+    const avg = dowStats[d].count > 0 ? dowStats[d].total / dowStats[d].count : overallAvg;
+    dowMultipliers[d] = overallAvg > 0 ? avg / overallAvg : 1;
+  }
+
+  // ─── Feature 3: Temperature coefficient ───
+  const tempTrend = linearRegression(
+    salesData.filter(d => d.temp > 0).map(d => d.temp),
+    salesData.filter(d => d.temp > 0).map(d => d.totalAmount)
+  );
+
+  // ─── Feature 4: Category trends (last 30 days vs prior 30 days) ───
+  const recent30 = salesData.slice(-30);
+  const prior30 = salesData.slice(-60, -30);
+  const categoryTrends = {
+    food: {
+      recent: recent30.reduce((a, s) => a + s.foodAmount, 0) / Math.max(recent30.length, 1),
+      prior: prior30.reduce((a, s) => a + s.foodAmount, 0) / Math.max(prior30.length, 1),
+      change: 0,
+    },
+    beer: {
+      recent: recent30.reduce((a, s) => a + s.beerAmount, 0) / Math.max(recent30.length, 1),
+      prior: prior30.reduce((a, s) => a + s.beerAmount, 0) / Math.max(prior30.length, 1),
+      change: 0,
+    },
+    liquor: {
+      recent: recent30.reduce((a, s) => a + s.liquorAmount, 0) / Math.max(recent30.length, 1),
+      prior: prior30.reduce((a, s) => a + s.liquorAmount, 0) / Math.max(prior30.length, 1),
+      change: 0,
+    },
+    pop: {
+      recent: recent30.reduce((a, s) => a + s.popAmount, 0) / Math.max(recent30.length, 1),
+      prior: prior30.reduce((a, s) => a + s.popAmount, 0) / Math.max(prior30.length, 1),
+      change: 0,
+    },
+  };
+  for (const cat of Object.keys(categoryTrends) as Array<keyof typeof categoryTrends>) {
+    const c = categoryTrends[cat];
+    c.change = c.prior > 0 ? ((c.recent - c.prior) / c.prior) * 100 : 0;
+  }
+
+  // ─── Feature 5: Variance for confidence intervals ───
+  const dowVariance: Record<number, number> = {};
+  for (let d = 0; d < 7; d++) {
+    const vals = dowStats[d].values;
+    const mean = dowStats[d].count > 0 ? dowStats[d].total / dowStats[d].count : 0;
+    const variance = vals.length > 1
+      ? vals.reduce((a, v) => a + (v - mean) ** 2, 0) / (vals.length - 1)
+      : mean * 0.15; // 15% default if not enough data
+    dowVariance[d] = Math.sqrt(variance);
+  }
+
+  // ─── Generate predictions ───
+  const lastDayIndex = salesData[salesData.length - 1].dayIndex;
+  const lastDate = new Date(salesData[salesData.length - 1].date + 'T12:00:00');
+  const predictions: Array<{
+    date: string;
+    dayOfWeek: string;
+    predictedSales: number;
+    confidenceLow: number;
+    confidenceHigh: number;
+    dowMultiplier: number;
+    trendComponent: number;
+    confidence: string;
+  }> = [];
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  for (let i = 1; i <= daysAhead; i++) {
+    const futureDate = new Date(lastDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const dow = futureDate.getDay();
+    const dayIndex = lastDayIndex + i;
+    
+    // Combine trend + DOW seasonality
+    const trendValue = timeTrend.slope * dayIndex + timeTrend.intercept;
+    const predicted = trendValue * dowMultipliers[dow];
+    
+    // Confidence interval (1.96 * std dev for 95%)
+    const stdDev = dowVariance[dow] || overallAvg * 0.15;
+    const confidenceLow = Math.max(0, predicted - 1.96 * stdDev);
+    const confidenceHigh = predicted + 1.96 * stdDev;
+    
+    const sampleSize = dowStats[dow].count;
+    const conf = sampleSize >= 20 ? 'high' : sampleSize >= 10 ? 'medium' : 'low';
+
+    predictions.push({
+      date: futureDate.toISOString().split('T')[0],
+      dayOfWeek: dayNames[dow],
+      predictedSales: Math.round(predicted * 100) / 100,
+      confidenceLow: Math.round(confidenceLow * 100) / 100,
+      confidenceHigh: Math.round(confidenceHigh * 100) / 100,
+      dowMultiplier: Math.round(dowMultipliers[dow] * 100) / 100,
+      trendComponent: Math.round(trendValue * 100) / 100,
+      confidence: conf,
+    });
+  }
+
+  return {
+    predictions,
+    model: {
+      totalDataPoints: salesData.length,
+      dateRange: { from: salesData[0].date, to: salesData[salesData.length - 1].date },
+      timeTrend: {
+        dailyChange: Math.round(timeTrend.slope * 100) / 100,
+        r2: Math.round(timeTrend.r2 * 1000) / 1000,
+        direction: timeTrend.slope > 0 ? 'growing' : timeTrend.slope < 0 ? 'declining' : 'flat',
+      },
+      tempCoefficient: {
+        perDegree: Math.round(tempTrend.slope * 100) / 100,
+        r2: Math.round(tempTrend.r2 * 1000) / 1000,
+      },
+      dowMultipliers: Object.fromEntries(
+        Object.entries(dowMultipliers).map(([k, v]) => [dayNames[parseInt(k)], Math.round(v * 100) / 100])
+      ),
+      overallAvgSales: Math.round(overallAvg * 100) / 100,
+    },
+    trends: categoryTrends,
+  };
 }

@@ -63,6 +63,8 @@ import {
   queueNotification, getUndeliveredNotifications, markNotificationDelivered, markNotificationRead, batchNotifications,
   // Sales Forecast Engine
   generateSalesForecast, getEventImpactHistory,
+  // ML Sales Prediction
+  getMLSalesPrediction,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -1189,6 +1191,9 @@ Respond in JSON with this exact structure:
     }),
     eventImpactHistory: protectedProcedure.query(async () => {
       return getEventImpactHistory();
+    }),
+    mlPrediction: protectedProcedure.input(z.object({ daysAhead: z.number().min(1).max(30).default(14) })).query(async ({ input }) => {
+      return getMLSalesPrediction(input.daysAhead);
     }),
   }),
 

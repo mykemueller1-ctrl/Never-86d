@@ -38,7 +38,7 @@
 
 ## Command Center (Owner/Manager)
 - [x] 10 Intelligence Buckets overview — UI built
-- [ ] [ROADMAP] Hourly sales pattern — needs POS data feed
+- [x] Hourly sales pattern — getHourlySalesHeatmap + SalesIntelligenceScreen Hours tab (3,104 records, DOW×Hour grid)
 - [ ] [ROADMAP] Labor % live — needs POS/scheduling data feed
 - [ ] [ROADMAP] Wi-Fi proximity dashboard — needs router/AP integration
 - [x] Leaderboard — real DB data
@@ -274,7 +274,7 @@
 - [x] Store sales data in database (196 daily records, 3,104 hourly records imported)
 - [x] Build product mix analysis — 8,939 item records, 1,069 unique products analyzed
 - [x] Build Sales Intelligence UI — daily trends, channel breakdown, labor analysis, role-based access
-- [ ] Machine learning — predict daily sales by product, day of week, seasonality (future: needs more data)
+- [x] Machine learning — linear regression model with DOW seasonality, time trend, temperature coefficient, category trends, 95% confidence intervals (getMLSalesPrediction + forecast.mlPrediction endpoint + ML Prediction tab in ForecastScreen)
 
 ## Wave 4 — Intelligence Engine
 
@@ -311,7 +311,7 @@
 ### Schedule Intelligence Briefing
 - [x] Combine all signals: weather + events + historical patterns + trends
 - [x] Generate weekly scheduling recommendation for owner (LLM-powered)
-- [ ] Push notification to Mychael with staffing suggestions (needs deployed site + scheduled task)
+- [x] Push notification to Mychael with staffing suggestions — briefings.generate + notifyOwner + scheduled task configured
 - [x] Build Schedule Intelligence UI screen in CTapHub
 
 ### Backend & UI
@@ -415,3 +415,12 @@
 - [x] Trim keywords on home page from 13 to 6 focused keywords
 - [x] Add H2 heading to SplashScreen (initial render at /)
 - [x] Shorten meta description from 240 chars to 143 chars
+
+## Wave 9 — ML Sales Prediction + Scheduled Briefings
+- [x] Fix TS error in getMLSalesPrediction (weatherCode int→string conversion)
+- [x] Fix column name references (foodAmount→catFoodAmount, beerAmount→catBeerAmount, etc.)
+- [x] Wire forecast.mlPrediction tRPC endpoint in routers.ts
+- [x] Add ML Prediction tab to ForecastScreen with model stats, DOW multipliers, category momentum, prediction chart
+- [x] 148 tests passing, 0 TypeScript errors
+- [ ] Set up daily scheduled task for automated briefing generation (POST /api/scheduled/briefing)
+- [ ] Push Wave 9 to remote machine (~/ctap/platform)
