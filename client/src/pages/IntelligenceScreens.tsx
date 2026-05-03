@@ -138,6 +138,7 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
   const missions = trpc.missions.active.useQuery();
   const myPhotos = trpc.photos.mySubmissions.useQuery({ staffId: staffUser.id });
   const analyzePhoto = trpc.photos.analyze.useMutation();
+  const uploadPhoto = trpc.upload.receiptPhoto.useMutation();
   const [selectedMission, setSelectedMission] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,22 +153,37 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
     if (!file || !selectedMission) return;
     setUploading(true);
     try {
-      // Upload to S3 via the existing upload endpoint
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/trpc/upload.receiptPhoto", {
-        method: "POST",
-        body: formData,
+      // Convert file to base64 for upload via tRPC
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // Strip data:image/...;base64, prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
-      // For now, create a blob URL as placeholder
-      const photoUrl = URL.createObjectURL(file);
+
+      // Upload to S3 via existing upload.receiptPhoto
+      const uploadResult = await uploadPhoto.mutateAsync({
+        base64,
+        filename: `mission-${selectedMission}-${Date.now()}.${file.name.split(".").pop() || "jpg"}`,
+        mimeType: file.type || "image/jpeg",
+        context: "issue" as const,
+      });
+
+      // Determine photo type from mission category
+      const mission = missions.data?.find((m: any) => m.id === selectedMission);
+      const photoType = (mission?.category || "station") as "invoice" | "shelf" | "station" | "equipment" | "plate" | "delivery" | "prep" | "other";
+
+      // Analyze the uploaded photo with LLM vision
       await analyzePhoto.mutateAsync({
-        photoUrl,
-        photoType: "station",
+        photoUrl: uploadResult.url,
+        photoType,
         staffId: staffUser.id,
         missionId: selectedMission,
       });
-      toast.success("Photo submitted! +5 pts");
+      toast.success("Photo submitted & analyzed! +5 pts");
       myPhotos.refetch();
     } catch {
       toast.error("Upload failed. Try again.");

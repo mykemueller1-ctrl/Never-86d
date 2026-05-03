@@ -151,6 +151,8 @@ export default function CTapHub() {
   const createPayout = trpc.payouts.create.useMutation();
   const staffLogout = trpc.staff.logout.useMutation();
   const uploadReceipt = trpc.upload.receiptPhoto.useMutation();
+  const analyzePhoto = trpc.photos.analyze.useMutation();
+  const COMMON_VENDORS_SET = new Set(["Sawyer's Meats", "Hughes Distributing", "Fort Dodge Distributing", "Confluence Brewing", "Hy-Vee", "Fareway", "Dollar General", "PFG/RFS", "Sysco"]);
   const createInvoice = trpc.invoices.create.useMutation();
 
   // ─── Derived data ──────────────────────────────────────────────────
@@ -726,8 +728,38 @@ export default function CTapHub() {
         mimeType: file.type || "image/jpeg",
         context,
       });
-      if (isInvoice) setInvoicePhotoUrl(url); else setReceiptPhotoUrl(url);
-      toast.success(context === "invoice" ? "Invoice photo uploaded" : "Receipt uploaded");
+      if (isInvoice) {
+        setInvoicePhotoUrl(url);
+        toast.success("Invoice photo uploaded — analyzing...");
+        // Auto-analyze invoice photo with AI vision
+        try {
+          const analysis = await analyzePhoto.mutateAsync({
+            photoUrl: url,
+            photoType: "invoice",
+            staffId: staffUser?.id || 0,
+          });
+          // Auto-fill form fields from AI extraction
+          if (analysis.extraction) {
+            const ext = analysis.extraction;
+            if (ext.vendor && !invoiceForm.vendorName) {
+              setInvoiceForm(f => ({ ...f, vendorName: ext.vendor, customVendor: !COMMON_VENDORS_SET.has(ext.vendor) }));
+            }
+            if (ext.total && !invoiceForm.totalAmount) {
+              setInvoiceForm(f => ({ ...f, totalAmount: String(ext.total) }));
+            }
+            if (ext.invoiceNumber && !invoiceForm.invoiceNumber) {
+              setInvoiceForm(f => ({ ...f, invoiceNumber: ext.invoiceNumber }));
+            }
+            toast.success("AI extracted invoice data — review and submit");
+          }
+        } catch {
+          // Analysis failed silently — user can still fill manually
+          toast.info("Photo saved. Fill in details manually.");
+        }
+      } else {
+        setReceiptPhotoUrl(url);
+        toast.success("Receipt uploaded");
+      }
     } catch {
       toast.error("Failed to upload photo");
     } finally {
