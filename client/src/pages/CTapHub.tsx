@@ -127,11 +127,11 @@ export default function CTapHub() {
   });
   // Self-only queries for non-managers
   const myVoidsQuery = trpc.voids.myVoids.useQuery(
-    { staffId: staffUser?.id || 0 },
+    undefined,
     { enabled: !isManager && !!staffUser && ["profile", "home"].includes(screen) }
   );
   const myPayoutsQuery = trpc.payouts.myPayouts.useQuery(
-    { staffId: staffUser?.id || 0 },
+    undefined,
     { enabled: !isManager && !!staffUser && ["profile", "home"].includes(screen) }
   );
 
@@ -141,6 +141,7 @@ export default function CTapHub() {
   const createDriverReport = trpc.driverReports.create.useMutation();
   const createIssue = trpc.issues.create.useMutation();
   const createPayout = trpc.payouts.create.useMutation();
+  const staffLogout = trpc.staff.logout.useMutation();
 
   // ─── Derived data ──────────────────────────────────────────────────
   const deptStaff = staffByDept.data || [];
@@ -1233,7 +1234,7 @@ export default function CTapHub() {
             <a href={getLoginUrl()} className="text-amber-500 text-xs underline mt-1 block">Sign In</a>
           </div>
         )}
-        <button onClick={() => { setStaffUser(null); setScreen("login"); setPin(""); setSelectedDept(null); setChecklistProgress({}); }} className="w-full py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-red-400 font-bold text-sm flex items-center justify-center gap-2">
+        <button onClick={() => { staffLogout.mutate(); setStaffUser(null); setScreen("login"); setPin(""); setSelectedDept(null); setChecklistProgress({}); }} className="w-full py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-red-400 font-bold text-sm flex items-center justify-center gap-2">
           <LogOut size={14} /> End Shift & Log Out
         </button>
       </div>

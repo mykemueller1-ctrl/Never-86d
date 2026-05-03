@@ -1,5 +1,6 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { signStaffSession, STAFF_COOKIE } from "./_core/context";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
@@ -15,6 +16,7 @@ import {
   createIssue, getOpenIssues,
   getLatestBriefing, createBriefing,
   seedStaffData,
+  archiveInactiveStaff, getPayoutTotalsByCategory, getInvoiceTotalsByVendor,
 } from "./db";
 
 export const appRouter = router({
@@ -31,12 +33,21 @@ export const appRouter = router({
   // ============ STAFF ============
   staff: router({
     list: publicProcedure.query(() => getAllStaff()),
-    loginByPin: publicProcedure.input(z.object({ pin: z.string() })).mutation(async ({ input }) => {
+    loginByPin: publicProcedure.input(z.object({ pin: z.string() })).mutation(async ({ input, ctx }) => {
       const found = await getStaffByPinInternal(input.pin);
       if (!found) return { success: false as const, staff: null };
+      // Set staff session cookie (signed JWT with staffId)
+      const staffToken = await signStaffSession(found.id);
+      const cookieOpts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
       // Strip sensitive fields before returning to client
       const { pin, phone, email, ...safeStaff } = found;
       return { success: true as const, staff: safeStaff };
+    }),
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      const cookieOpts = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(STAFF_COOKIE, cookieOpts);
+      return { success: true };
     }),
     active: publicProcedure.query(() => getActiveStaff()),
     byId: publicProcedure.input(z.object({ id: z.number() })).query(({ input }) => getStaffById(input.id)),
@@ -66,8 +77,11 @@ export const appRouter = router({
     list: protectedProcedure.query(() => getAllPayouts()),
     flagged: protectedProcedure.query(() => getFlaggedPayouts()),
     byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
-    // Public endpoint for staff to see their own payouts only (no auth required, just staffId)
-    myPayouts: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
+    // Staff self-only: uses server-side staff session cookie, ignores client-supplied staffId
+    myPayouts: publicProcedure.query(({ ctx }) => {
+      if (!ctx.staffId) return [];
+      return getPayoutsByStaff(ctx.staffId);
+    }),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       authorizedById: z.number().optional(),
@@ -127,8 +141,11 @@ export const appRouter = router({
   voids: router({
     list: protectedProcedure.query(() => getAllVoids()),
     byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
-    // Public endpoint for staff to see their own voids only (no auth required, just staffId)
-    myVoids: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
+    // Staff self-only: uses server-side staff session cookie, ignores client-supplied staffId
+    myVoids: publicProcedure.query(({ ctx }) => {
+      if (!ctx.staffId) return [];
+      return getVoidsByStaff(ctx.staffId);
+    }),
     weeklyByStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
@@ -251,6 +268,13 @@ export const appRouter = router({
       priority: z.enum(["low", "medium", "high", "critical"]),
       photoUrl: z.string().optional(),
     })).mutation(({ input }) => createIssue(input)),
+  }),
+
+  // ============ ADMIN OPERATIONS ============
+  admin: router({
+    archiveInactive: adminProcedure.mutation(() => archiveInactiveStaff()),
+    payoutTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
+    invoiceTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),
   }),
 
   // ============ DAILY BRIEFING ============

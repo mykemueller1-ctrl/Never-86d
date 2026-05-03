@@ -145,6 +145,24 @@ export async function updateStaffStatus(staffId: number, status: "active" | "ina
   await db.update(staff).set({ status }).where(eq(staff.id, staffId));
 }
 
+// ============ AUTO-ARCHIVE HELPERS ============
+
+/** Archive staff who haven't clocked in for 30+ days */
+export async function archiveInactiveStaff() {
+  const db = await getDb();
+  if (!db) return 0;
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const result = await db.update(staff)
+    .set({ status: "inactive" })
+    .where(
+      and(
+        eq(staff.status, "active"),
+        sql`(${staff.lastClockIn} IS NULL OR ${staff.lastClockIn} < ${thirtyDaysAgo})`
+      )
+    );
+  return (result as any)[0]?.affectedRows ?? 0;
+}
+
 // ============ PAYOUT HELPERS ============
 
 export async function getAllPayouts(limit = 50) {
@@ -169,6 +187,36 @@ export async function getPayoutsByStaff(staffId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(payouts).where(eq(payouts.staffId, staffId)).orderBy(desc(payouts.date));
+}
+
+// ============ VENDOR RUNNING TOTALS ============
+
+/** Get running total of payouts by vendor/category for a given period */
+export async function getPayoutTotalsByCategory(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select({
+    category: payouts.category,
+    total: sql<string>`CAST(SUM(${payouts.amount}) AS CHAR)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(payouts)
+    .where(gte(payouts.date, since))
+    .groupBy(payouts.category);
+}
+
+/** Get running total of invoices by vendor for a given period */
+export async function getInvoiceTotalsByVendor(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select({
+    vendorName: invoices.vendorName,
+    total: sql<string>`CAST(SUM(${invoices.totalAmount}) AS CHAR)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(invoices)
+    .where(gte(invoices.date, since))
+    .groupBy(invoices.vendorName);
 }
 
 // ============ INVOICE HELPERS ============

@@ -8,7 +8,8 @@
 - [ ] Wi-Fi proximity tracking (on floor / off network) — UI placeholder only
 - [x] Schedule by merit (leaderboard score = shift priority)
 - [ ] Social posting (Facebook) for points — UI entry only, no FB integration
-- [ ] 30-day auto-archive for inactive staff
+- [x] 30-day auto-archive DB helper + admin endpoint — archiveInactiveStaff() + admin.archiveInactive
+- [ ] Scheduled job to run auto-archive automatically (needs deployed site + scheduled task)
 
 ## Store Run / Pay Out Module
 - [ ] Pay Out tracking with receipt photo capture — UI form exists, photo upload not wired to S3
@@ -45,7 +46,9 @@
 - [x] Vendors: Sawyer's Meats, Hughes Distributing, Fort Dodge Distributing, Confluence Brewing — in DB
 - [ ] Week-over-week price tracking per item
 - [ ] Volume vs. sales matching
-- [ ] Running total by vendor per week/month — query exists but not verified
+- [x] Running total by vendor per week/month — admin.invoiceTotals (by vendor) + admin.payoutTotals (by category) with configurable days
+- [ ] Add payout totals grouped by vendor (not just category)
+- [ ] Add test coverage for vendor running totals
 - [ ] Anomaly flags (price jumps, volume mismatches)
 - [x] Tom = Kitchen Manager authorized to place orders — in DB
 
@@ -121,10 +124,10 @@
 - [x] P&L data restricted to manager+ roles (owner, key_manager, kitchen_manager, bar_manager)
 - [x] Void counts hidden from non-managers on leaderboard and profile
 - [x] Staff self-only view for their own voids (myVoids query + profile display — frontend-filtered by staffId)
-- [ ] Server-side self-only enforcement for voids (requires staff session/token after PIN login, not just client-supplied staffId)
+- [x] Server-side self-only enforcement for voids (staff session JWT cookie set on PIN login, myVoids reads staffId from server-side cookie)
 - [x] Payout screen restricted to managers only
 - [x] Staff self-only view for their own payouts (myPayouts query + profile display — frontend-filtered by staffId)
-- [ ] Server-side self-only enforcement for payouts (requires staff session/token after PIN login, not just client-supplied staffId)
+- [x] Server-side self-only enforcement for payouts (staff session JWT cookie set on PIN login, myPayouts reads staffId from server-side cookie)
 
 ## Gamified UI Polish
 - [x] Replace any raw dollar amounts with gamified equivalents for non-managers

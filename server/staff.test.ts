@@ -5,12 +5,15 @@ import type { TrpcContext } from "./_core/context";
 function createPublicContext(): TrpcContext {
   return {
     user: null,
+    staffId: null,
     req: {
       protocol: "https",
       headers: {},
+      cookies: {},
     } as TrpcContext["req"],
     res: {
       clearCookie: () => {},
+      cookie: () => {},
     } as TrpcContext["res"],
   };
 }
