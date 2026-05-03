@@ -89,6 +89,11 @@ export default function CTapHub() {
   const [issuePriority, setIssuePriority] = useState<string>("medium");
   const [issueCategory, setIssueCategory] = useState<string>("equipment");
   const [storeRunForm, setStoreRunForm] = useState({ description: "", amount: "", vendor: "", category: "food", authorizedById: 0 });
+  const [invoiceForm, setInvoiceForm] = useState({ vendorName: "", totalAmount: "", category: "meat", invoiceNumber: "", customVendor: false });
+  const [receiptPhotoUrl, setReceiptPhotoUrl] = useState<string | null>(null);
+  const [invoicePhotoUrl, setInvoicePhotoUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingInvoicePhoto, setUploadingInvoicePhoto] = useState(false);
 
   const isManager = isManagerOrOwner(staffUser);
 
@@ -142,6 +147,8 @@ export default function CTapHub() {
   const createIssue = trpc.issues.create.useMutation();
   const createPayout = trpc.payouts.create.useMutation();
   const staffLogout = trpc.staff.logout.useMutation();
+  const uploadReceipt = trpc.upload.receiptPhoto.useMutation();
+  const createInvoice = trpc.invoices.create.useMutation();
 
   // ─── Derived data ──────────────────────────────────────────────────
   const deptStaff = staffByDept.data || [];
@@ -673,6 +680,38 @@ export default function CTapHub() {
     </div>
   );
 
+  // ─── Shared Photo Upload Handler ──────────────────────────────────────
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>, context: "payout" | "invoice" | "issue") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Photo must be under 5MB"); return; }
+    const isInvoice = context === "invoice";
+    if (isInvoice) setUploadingInvoicePhoto(true); else setUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // strip data:...;base64, prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { url } = await uploadReceipt.mutateAsync({
+        base64,
+        filename: file.name,
+        mimeType: file.type || "image/jpeg",
+        context,
+      });
+      if (isInvoice) setInvoicePhotoUrl(url); else setReceiptPhotoUrl(url);
+      toast.success(context === "invoice" ? "Invoice photo uploaded" : "Receipt uploaded");
+    } catch {
+      toast.error("Failed to upload photo");
+    } finally {
+      if (isInvoice) setUploadingInvoicePhoto(false); else setUploadingPhoto(false);
+    }
+  };
+
   // ─── STORE RUN / PAY OUT — Manager Only ──────────────────────────────
   const StoreRunScreen = () => {
     if (!isManager) return <AccessDenied />;
@@ -700,9 +739,11 @@ export default function CTapHub() {
           vendor: storeRunForm.vendor,
           category: storeRunForm.category as any,
           authorizedById: authId,
+          receiptPhotoUrl: receiptPhotoUrl || undefined,
         });
         toast.success("Store run logged");
         setStoreRunForm({ description: "", amount: "", vendor: "", category: "food", authorizedById: 0 });
+        setReceiptPhotoUrl(null);
       } catch { toast.error("Failed to log — try again"); }
     };
 
@@ -736,7 +777,30 @@ export default function CTapHub() {
                 ))}
               </select>
             </div>
-            <button onClick={handleSubmitStoreRun} disabled={createPayout.isPending} className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-50">
+            {/* Receipt Photo Capture */}
+            <div>
+              <label className="text-zinc-400 text-[10px] uppercase block mb-1">Receipt Photo</label>
+              <div className="flex items-center gap-2">
+                <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border cursor-pointer transition-colors ${
+                  receiptPhotoUrl ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-amber-500/30'
+                }`}>
+                  {uploadingPhoto ? (
+                    <><Loader2 size={14} className="animate-spin" /><span className="text-xs">Uploading...</span></>
+                  ) : receiptPhotoUrl ? (
+                    <><CheckCircle2 size={14} /><span className="text-xs">Receipt Attached</span></>
+                  ) : (
+                    <><Camera size={14} /><span className="text-xs">Snap Receipt</span></>
+                  )}
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handlePhotoCapture(e, "payout")} disabled={uploadingPhoto} />
+                </label>
+                {receiptPhotoUrl && (
+                  <button onClick={() => setReceiptPhotoUrl(null)} className="text-red-400 text-[9px] px-2 py-1 border border-red-500/30 rounded-lg hover:bg-red-500/10">
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <button onClick={handleSubmitStoreRun} disabled={createPayout.isPending || uploadingPhoto} className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-50">
               {createPayout.isPending ? "Saving..." : "Log Store Run"}
             </button>
           </div>
@@ -795,11 +859,36 @@ export default function CTapHub() {
       return Object.entries(map).sort((a, b) => b[1] - a[1]);
     }, [allInvoices]);
     const vendorColors = ["bg-red-500", "bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-purple-500"];
+    const INVOICE_CATEGORIES = ["meat", "bread", "produce", "liquor", "beer", "supplies", "misc"] as const;
+    const COMMON_VENDORS = ["Sawyer's Meats", "Hughes Distributing", "Fort Dodge Distributing", "Confluence Brewing", "Hy-Vee", "Fareway", "Dollar General"];
+
+    const handleSubmitInvoice = async () => {
+      if (!isAuthenticated) { toast.error("Please sign in via Manus to log invoices"); return; }
+      if (!invoiceForm.vendorName || !invoiceForm.totalAmount) {
+        toast.error("Vendor name and total amount are required");
+        return;
+      }
+      try {
+        await createInvoice.mutateAsync({
+          vendorName: invoiceForm.vendorName,
+          date: new Date(),
+          totalAmount: invoiceForm.totalAmount,
+          category: invoiceForm.category as any,
+          invoiceNumber: invoiceForm.invoiceNumber || undefined,
+          receiptPhotoUrl: invoicePhotoUrl || undefined,
+        });
+        toast.success("Invoice logged");
+        setInvoiceForm({ vendorName: "", totalAmount: "", category: "meat", invoiceNumber: "", customVendor: false });
+        setInvoicePhotoUrl(null);
+        invoicesQuery.refetch();
+      } catch { toast.error("Failed to log invoice"); }
+    };
 
     return (
       <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
         <ScreenHeader title="VENDOR INVOICES" subtitle="Track spend · Flag anomalies" />
         <div className="p-4 space-y-3">
+          {/* Weekly Spend Summary */}
           <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
             <p className="text-zinc-400 text-[10px] uppercase mb-2">This Week's Vendor Spend</p>
             <p className="text-white text-2xl font-bold">${weeklyTotal.toFixed(2)}</p>
@@ -814,19 +903,95 @@ export default function CTapHub() {
             </div>
           </div>
 
+          {/* New Invoice Form */}
+          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 space-y-2">
+            <p className="text-zinc-400 text-[10px] uppercase font-semibold">Log New Invoice</p>
+            <div>
+              <label className="text-zinc-400 text-[10px] uppercase block mb-1">Vendor</label>
+              {!invoiceForm.customVendor ? (
+                <select
+                  value={invoiceForm.vendorName}
+                  onChange={e => {
+                    if (e.target.value === "__custom") {
+                      setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: true }));
+                    } else {
+                      setInvoiceForm(f => ({ ...f, vendorName: e.target.value }));
+                    }
+                  }}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-amber-500/50"
+                >
+                  <option value="">Select vendor...</option>
+                  {COMMON_VENDORS.map(v => <option key={v} value={v}>{v}</option>)}
+                  <option value="__custom">Other (type below)</option>
+                </select>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={invoiceForm.vendorName}
+                    onChange={e => setInvoiceForm(f => ({ ...f, vendorName: e.target.value }))}
+                    placeholder="Enter vendor name"
+                    autoFocus
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50"
+                  />
+                  <button onClick={() => setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: false }))} className="text-zinc-400 text-xs px-2 border border-zinc-700 rounded-lg hover:border-amber-500/30">Back</button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input value={invoiceForm.totalAmount} onChange={e => setInvoiceForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="Total ($)" type="number" step="0.01" className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+              <input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice # (optional)" className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {INVOICE_CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setInvoiceForm(f => ({ ...f, category: cat }))} className={`px-2 py-1 rounded-full text-[9px] border capitalize ${invoiceForm.category === cat ? 'bg-teal-500/20 border-teal-500/50 text-teal-400' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{cat}</button>
+              ))}
+            </div>
+            {/* Invoice Photo Capture */}
+            <div>
+              <label className="text-zinc-400 text-[10px] uppercase block mb-1">Invoice Photo</label>
+              <div className="flex items-center gap-2">
+                <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border cursor-pointer transition-colors ${
+                  invoicePhotoUrl ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-teal-500/30'
+                }`}>
+                  {uploadingInvoicePhoto ? (
+                    <><Loader2 size={14} className="animate-spin" /><span className="text-xs">Uploading...</span></>
+                  ) : invoicePhotoUrl ? (
+                    <><CheckCircle2 size={14} /><span className="text-xs">Invoice Attached</span></>
+                  ) : (
+                    <><Camera size={14} /><span className="text-xs">Snap Invoice</span></>
+                  )}
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handlePhotoCapture(e, "invoice")} disabled={uploadingInvoicePhoto} />
+                </label>
+                {invoicePhotoUrl && (
+                  <button onClick={() => setInvoicePhotoUrl(null)} className="text-red-400 text-[9px] px-2 py-1 border border-red-500/30 rounded-lg hover:bg-red-500/10">
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <button onClick={handleSubmitInvoice} disabled={createInvoice.isPending || uploadingInvoicePhoto} className="w-full py-2.5 rounded-xl bg-teal-600 text-white font-bold text-sm disabled:opacity-50">
+              {createInvoice.isPending ? "Saving..." : "Log Invoice"}
+            </button>
+          </div>
+
+          {/* Invoice List */}
           {invoicesQuery.isLoading ? (
             <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
           ) : (
             <>
+              <p className="text-zinc-400 text-[10px] uppercase tracking-wider">Recent Invoices</p>
               {allInvoices.length === 0 && <p className="text-zinc-500 text-sm text-center py-4">No invoices recorded yet</p>}
               {allInvoices.map(inv => (
                 <div key={inv.id} className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-white text-sm font-medium">{inv.vendorName}</p>
-                      <p className="text-zinc-500 text-[10px]">{new Date(inv.date).toLocaleDateString()} · {inv.category}</p>
+                      <p className="text-zinc-500 text-[10px]">{new Date(inv.date).toLocaleDateString()} · {inv.category}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ''}</p>
                     </div>
-                    <p className="text-amber-500 font-bold">${inv.totalAmount}</p>
+                    <div className="text-right">
+                      <p className="text-amber-500 font-bold">${inv.totalAmount}</p>
+                      {inv.receiptPhotoUrl ? <span className="text-green-500 text-[9px] flex items-center gap-0.5 justify-end"><CheckCircle2 size={8} />Photo</span> : <span className="text-zinc-600 text-[9px]">No photo</span>}
+                    </div>
                   </div>
                 </div>
               ))}

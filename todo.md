@@ -12,12 +12,15 @@
 - [ ] Scheduled job to run auto-archive automatically (needs deployed site + scheduled task)
 
 ## Store Run / Pay Out Module
-- [ ] Pay Out tracking with receipt photo capture — UI form exists, photo upload not wired to S3
+- [x] Pay Out receipt photo upload backend — upload.receiptPhoto endpoint wired to S3 via storagePut
+- [x] Wire payout form UI with camera capture button, upload via upload.receiptPhoto, pass URL to payouts.create
 - [x] Required fields: WHO ran it, WHAT they bought, WHERE (required), WHO authorized (key employee selector), amount — all enforced in frontend validation
 - [x] Authorization rule: Only key employees can hand cash — payout.create REJECTS if authorizer missing or not key employee
 - [x] Block if non-key employee tries to authorize pay out — throws error, payout not created
-- [ ] Daily digest to manager/owner of all pay outs
-- [ ] Pattern detection on repeated misc pay outs
+- [x] Daily digest query endpoint — admin.dailyPayoutDigest returns today's payouts, total, flagged count
+- [x] Restrict dailyPayoutDigest to adminProcedure (admin-only)
+- [ ] Add actual delivery via notifyOwner or scheduled task
+- [x] Pattern detection — admin.miscPayoutPatterns finds employees with 2+ misc payouts in configurable window
 - [ ] Store run receipt matching (POS pay out ↔ store receipt)
 
 ## Void / Comp Tracking
@@ -41,7 +44,8 @@
 - [x] Leaderboard — real DB data
 
 ## Vendor / Invoice Tracking
-- [ ] Invoice photo capture — form exists, photo upload not wired to S3
+- [x] Invoice photo upload backend — upload.receiptPhoto supports context: "invoice"
+- [x] Wire invoice form UI with vendor selector, category picker, photo capture, and submit — all wired to invoices.create
 - [ ] Auto-tag: vendor, category, authorized by, date — DB fields exist, no auto-extraction
 - [x] Vendors: Sawyer's Meats, Hughes Distributing, Fort Dodge Distributing, Confluence Brewing — in DB
 - [ ] Week-over-week price tracking per item
@@ -83,7 +87,8 @@
 ## Known Issues
 - [x] Bottom nav z-index fixed — moved outside overflow-hidden container (preview mode overlay still intercepts in dev)
 - [ ] Driver EOD and Feedback forms require Manus OAuth session (protected procedures)
-- [ ] Photo upload for invoices/payouts needs S3 wiring
+- [x] Photo upload backend endpoint for invoices/payouts/issues — upload.receiptPhoto
+- [x] Add vitest coverage for upload.receiptPhoto, dailyPayoutDigest, miscPayoutPatterns (6 tests in upload-digest.test.ts)
 - [x] Command Center KPIs verified — sales, payouts, voids, staff count, vendor spend, issues all pulling from real DB
 
 ## Security Hardening

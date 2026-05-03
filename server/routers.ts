@@ -270,12 +270,66 @@ export const appRouter = router({
     })).mutation(({ input }) => createIssue(input)),
   }),
 
+  // ============ PHOTO UPLOAD ============
+  upload: router({
+    receiptPhoto: protectedProcedure.input(z.object({
+      base64: z.string(),
+      filename: z.string(),
+      mimeType: z.string().default("image/jpeg"),
+      context: z.enum(["payout", "invoice", "issue"]),
+    })).mutation(async ({ input }) => {
+      const { storagePut } = await import("./storage");
+      const buffer = Buffer.from(input.base64, "base64");
+      const key = `receipts/${input.context}/${Date.now()}-${input.filename}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      return { url };
+    }),
+  }),
+
   // ============ ADMIN OPERATIONS ============
   admin: router({
     archiveInactive: adminProcedure.mutation(() => archiveInactiveStaff()),
     payoutTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
     payoutTotalsByVendor: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByVendor(input?.days ?? 7)),
     invoiceTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),
+    // Pattern detection: find employees with repeated misc payouts
+    miscPayoutPatterns: protectedProcedure.input(z.object({ days: z.number().default(14) }).optional()).query(async ({ input }) => {
+      const allPayouts = await getAllPayouts();
+      const since = new Date(Date.now() - (input?.days ?? 14) * 24 * 60 * 60 * 1000);
+      const miscPayouts = allPayouts.filter(p => p.category === "miscellaneous" && new Date(p.date) >= since);
+      // Group by staffId
+      const byStaff = new Map<number, typeof miscPayouts>();
+      for (const p of miscPayouts) {
+        const list = byStaff.get(p.staffId) || [];
+        list.push(p);
+        byStaff.set(p.staffId, list);
+      }
+      // Return staff with 2+ misc payouts (pattern)
+      const patterns: { staffId: number; count: number; totalAmount: string; payouts: typeof miscPayouts }[] = [];
+      Array.from(byStaff.entries()).forEach(([staffId, payoutList]) => {
+        if (payoutList.length >= 2) {
+          const total = payoutList.reduce((sum: number, p: { amount: string }) => sum + parseFloat(p.amount), 0);
+          patterns.push({ staffId, count: payoutList.length, totalAmount: total.toFixed(2), payouts: payoutList });
+        }
+      });
+      return patterns.sort((a, b) => b.count - a.count);
+    }),
+    // Daily digest: summary of all payouts for today
+    dailyPayoutDigest: adminProcedure.query(async () => {
+      const allPayouts = await getAllPayouts();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayPayouts = allPayouts.filter(p => new Date(p.date) >= today);
+      const totalAmount = todayPayouts.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const flaggedCount = todayPayouts.filter(p => p.flagged).length;
+      return {
+        date: today.toISOString(),
+        count: todayPayouts.length,
+        totalAmount: totalAmount.toFixed(2),
+        flaggedCount,
+        payouts: todayPayouts,
+      };
+    }),
   }),
 
   // ============ DAILY BRIEFING ============
