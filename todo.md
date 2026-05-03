@@ -9,7 +9,7 @@
 - [x] Schedule by merit (leaderboard score = shift priority)
 - [ ] [ROADMAP] Social posting (Facebook) for points — needs Facebook Graph API integration
 - [x] 30-day auto-archive DB helper + admin endpoint — archiveInactiveStaff() + admin.archiveInactive
-- [ ] [ROADMAP] Scheduled job to run auto-archive automatically (needs deployed site + scheduled task)
+- [ ] [ROADMAP] Scheduled job to run auto-archive automatically — needs separate scheduled endpoint
 
 ## Store Run / Pay Out Module
 - [x] Pay Out receipt photo upload backend — upload.receiptPhoto endpoint wired to S3 via storagePut
@@ -19,7 +19,7 @@
 - [x] Block if non-key employee tries to authorize pay out — throws error, payout not created
 - [x] Daily digest query endpoint — admin.dailyPayoutDigest returns today's payouts, total, flagged count
 - [x] Restrict dailyPayoutDigest to adminProcedure (admin-only)
-- [ ] [ROADMAP] Add actual delivery via notifyOwner or scheduled task (needs deployed site)
+- [ ] [ROADMAP] Add actual delivery of payout digest via notifyOwner — needs scheduled endpoint for daily payout summary
 - [x] Pattern detection — admin.miscPayoutPatterns finds employees with 2+ misc payouts in configurable window
 - [ ] [ROADMAP] Store run receipt matching (POS pay out ↔ store receipt) — needs POS data feed
 
@@ -422,5 +422,5 @@
 - [x] Wire forecast.mlPrediction tRPC endpoint in routers.ts
 - [x] Add ML Prediction tab to ForecastScreen with model stats, DOW multipliers, category momentum, prediction chart
 - [x] 148 tests passing, 0 TypeScript errors
-- [ ] Set up daily scheduled task for automated briefing generation (POST /api/scheduled/briefing)
-- [ ] Push Wave 9 to remote machine (~/ctap/platform)
+- [x] Set up daily scheduled task for automated briefing generation (POST /api/scheduled/briefing) — cron 6:00 AM CDT daily
+- [x] Push Wave 9 to remote machine (~/ctap/platform)
