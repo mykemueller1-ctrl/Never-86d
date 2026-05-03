@@ -49,6 +49,19 @@ import {
   getEventAwareBriefingContext,
   // Management Briefings
   saveManagementBriefing, getManagementBriefings, markBriefingRead, markBriefingNotified, getBriefingDataSnapshot,
+  // Food Cost Intelligence
+  getAllSkus, getSkuById, getSkusByVendor, getSkusByCategory, createSku, updateSku,
+  getSkuPriceHistory, addSkuPriceEntry, crossVendorPriceComparison,
+  getAllRecipes, getRecipeById, createRecipe, updateRecipe,
+  getRecipeIngredients, addRecipeIngredient, updateRecipeIngredient, deleteRecipeIngredient, recalculateRecipeCost,
+  getAllMenuItems, createMenuItem, updateMenuItem, recalculateMenuItemMargin, getFoodCostSummary,
+  getWasteLog, createWasteEntry, getWasteSummary,
+  getPriceAlerts, createPriceAlert, reviewPriceAlert, scanForPriceChanges,
+  // Station Broadcasts & Notifications
+  getActiveBroadcasts, createBroadcast, acknowledgeBroadcast, resolveBroadcast, getBroadcastHistory,
+  queueNotification, getUndeliveredNotifications, markNotificationDelivered, markNotificationRead, batchNotifications,
+  // Sales Forecast Engine
+  generateSalesForecast, getEventImpactHistory,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -1137,6 +1150,286 @@ Respond in JSON with this exact structure:
       }
 
       return { generated: briefingIds.length, ids: briefingIds };
+    }),
+  }),
+
+  // ============ SALES FORECAST ============
+  forecast: router({
+    generate: protectedProcedure.input(z.object({ targetDate: z.string() })).query(async ({ input }) => {
+      const date = new Date(input.targetDate);
+      return generateSalesForecast(date);
+    }),
+    weekAhead: protectedProcedure.query(async () => {
+      const forecasts = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
+        const f = await generateSalesForecast(date);
+        if (f) forecasts.push(f);
+      }
+      return forecasts;
+    }),
+    eventImpactHistory: protectedProcedure.query(async () => {
+      return getEventImpactHistory();
+    }),
+  }),
+
+  // ============ RECIPES ============
+  recipes: router({
+    list: protectedProcedure.query(async () => getAllRecipes()),
+    getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const recipe = await getRecipeById(input.id);
+      if (!recipe) return null;
+      const ingredients = await getRecipeIngredients(input.id);
+      return { ...recipe, ingredients };
+    }),
+    create: protectedProcedure.input(z.object({
+      name: z.string(),
+      category: z.string(),
+      subcategory: z.string().optional(),
+      servingSize: z.string().optional(),
+      prepTimeMinutes: z.number().optional(),
+      prepInstructions: z.string().optional(),
+      menuPrice: z.string().optional(),
+      targetFoodCostPercent: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return createRecipe(input as any);
+    }),
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      category: z.string().optional(),
+      subcategory: z.string().optional(),
+      servingSize: z.string().optional(),
+      prepTimeMinutes: z.number().optional(),
+      prepInstructions: z.string().optional(),
+      menuPrice: z.string().optional(),
+      targetFoodCostPercent: z.string().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      return updateRecipe(id, data as any);
+    }),
+    recalculateCost: protectedProcedure.input(z.object({ recipeId: z.number() })).mutation(async ({ input }) => {
+      return recalculateRecipeCost(input.recipeId);
+    }),
+    addIngredient: protectedProcedure.input(z.object({
+      recipeId: z.number(),
+      skuId: z.number().optional(),
+      ingredientName: z.string(),
+      quantity: z.string(),
+      unitOfMeasure: z.string(),
+      costPerUnit: z.string().optional(),
+      totalCost: z.string().optional(),
+      yieldPercent: z.string().optional(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return addRecipeIngredient(input as any);
+    }),
+    updateIngredient: protectedProcedure.input(z.object({
+      id: z.number(),
+      ingredientName: z.string().optional(),
+      quantity: z.string().optional(),
+      unitOfMeasure: z.string().optional(),
+      costPerUnit: z.string().optional(),
+      totalCost: z.string().optional(),
+      yieldPercent: z.string().optional(),
+      skuId: z.number().optional(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      return updateRecipeIngredient(id, data as any);
+    }),
+    deleteIngredient: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      return deleteRecipeIngredient(input.id);
+    }),
+  }),
+
+  // ============ SKU CATALOG ============
+  skus: router({
+    list: protectedProcedure.input(z.object({ activeOnly: z.boolean().optional() }).optional()).query(async ({ input }) => {
+      return getAllSkus(input?.activeOnly ?? true);
+    }),
+    getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      return getSkuById(input.id);
+    }),
+    byVendor: protectedProcedure.input(z.object({ vendorName: z.string() })).query(async ({ input }) => {
+      return getSkusByVendor(input.vendorName);
+    }),
+    byCategory: protectedProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
+      return getSkusByCategory(input.category);
+    }),
+    create: protectedProcedure.input(z.object({
+      productName: z.string(),
+      vendorName: z.string(),
+      category: z.string(),
+      sku: z.string().optional(),
+      unitSize: z.string().optional(),
+      unitOfMeasure: z.string().optional(),
+      currentPricePerUnit: z.string().optional(),
+      lastOrderPrice: z.string().optional(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return createSku(input as any);
+    }),
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      productName: z.string().optional(),
+      vendorName: z.string().optional(),
+      category: z.string().optional(),
+      unitSize: z.string().optional(),
+      unitOfMeasure: z.string().optional(),
+      currentPricePerUnit: z.string().optional(),
+      lastOrderPrice: z.string().optional(),
+      isActive: z.boolean().optional(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      return updateSku(id, data as any);
+    }),
+    priceHistory: protectedProcedure.input(z.object({ skuId: z.number(), limit: z.number().optional() })).query(async ({ input }) => {
+      return getSkuPriceHistory(input.skuId, input.limit);
+    }),
+    addPriceEntry: protectedProcedure.input(z.object({
+      skuId: z.number(),
+      vendorName: z.string(),
+      price: z.string(),
+      pricePerUnit: z.string().optional(),
+      invoiceId: z.number().optional(),
+    })).mutation(async ({ input }) => {
+      return addSkuPriceEntry(input as any);
+    }),
+    crossVendorCompare: protectedProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
+      return crossVendorPriceComparison(input.productName);
+    }),
+  }),
+
+  // ============ MENU ITEMS ============
+  menuCost: router({
+    list: protectedProcedure.query(async () => getAllMenuItems()),
+    create: protectedProcedure.input(z.object({
+      posItemName: z.string(),
+      recipeId: z.number().optional(),
+      menuPrice: z.string(),
+      category: z.string(),
+      subcategory: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return createMenuItem(input as any);
+    }),
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      posItemName: z.string().optional(),
+      recipeId: z.number().optional(),
+      menuPrice: z.string().optional(),
+      category: z.string().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      return updateMenuItem(id, data as any);
+    }),
+    recalculateMargin: protectedProcedure.input(z.object({ menuItemId: z.number() })).mutation(async ({ input }) => {
+      return recalculateMenuItemMargin(input.menuItemId);
+    }),
+    summary: protectedProcedure.query(async () => getFoodCostSummary()),
+  }),
+
+  // ============ WASTE LOG ============
+  waste: router({
+    list: protectedProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
+      return getWasteLog(input?.days ?? 7);
+    }),
+    create: protectedProcedure.input(z.object({
+      staffId: z.number().optional(),
+      date: z.string(),
+      itemName: z.string(),
+      skuId: z.number().optional(),
+      wasteType: z.string(),
+      quantity: z.string(),
+      unitOfMeasure: z.string(),
+      estimatedCost: z.string().optional(),
+      reason: z.string().optional(),
+      preventable: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      return createWasteEntry({ ...input, date: new Date(input.date) } as any);
+    }),
+    summary: protectedProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
+      return getWasteSummary(input?.days ?? 7);
+    }),
+  }),
+
+  // ============ PRICE ALERTS ============
+  priceAlerts: router({
+    pending: protectedProcedure.query(async () => getPriceAlerts(false)),
+    reviewed: protectedProcedure.query(async () => getPriceAlerts(true)),
+    review: protectedProcedure.input(z.object({
+      id: z.number(),
+      reviewedBy: z.number(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return reviewPriceAlert(input.id, input.reviewedBy, input.notes);
+    }),
+    scan: protectedProcedure.mutation(async () => {
+      return scanForPriceChanges();
+    }),
+  }),
+
+  // ============ STATION BROADCASTS (86'd) ============
+  broadcasts: router({
+    active: publicProcedure.input(z.object({ station: z.string().optional() }).optional()).query(async ({ input }) => {
+      return getActiveBroadcasts(input?.station);
+    }),
+    create: protectedProcedure.input(z.object({
+      broadcastType: z.string(),
+      itemName: z.string(),
+      message: z.string().optional(),
+      fromStation: z.string(),
+      targetStations: z.array(z.string()),
+      createdByStaffId: z.number().optional(),
+      createdByName: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 hours
+      await createBroadcast({ ...input, targetStations: JSON.stringify(input.targetStations), expiresAt } as any);
+      // Queue critical notification for all stations
+      if (input.broadcastType === '86d') {
+        await queueNotification({
+          targetRole: 'all',
+          priority: 'critical',
+          category: '86d',
+          title: `86'd: ${input.itemName}`,
+          body: input.message || `${input.itemName} is 86'd from ${input.fromStation}`,
+        });
+      }
+      return { success: true };
+    }),
+    acknowledge: protectedProcedure.input(z.object({
+      broadcastId: z.number(),
+      staffId: z.number(),
+    })).mutation(async ({ input }) => {
+      return acknowledgeBroadcast(input.broadcastId, input.staffId);
+    }),
+    resolve: protectedProcedure.input(z.object({ broadcastId: z.number() })).mutation(async ({ input }) => {
+      return resolveBroadcast(input.broadcastId);
+    }),
+    history: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input }) => {
+      return getBroadcastHistory(input?.limit);
+    }),
+  }),
+
+  // ============ SMART NOTIFICATIONS ============
+  notifications: router({
+    undelivered: protectedProcedure.input(z.object({
+      staffId: z.number().optional(),
+      role: z.string().optional(),
+    }).optional()).query(async ({ input }) => {
+      return getUndeliveredNotifications(input?.staffId, input?.role);
+    }),
+    markDelivered: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      return markNotificationDelivered(input.id);
+    }),
+    markRead: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      return markNotificationRead(input.id);
+    }),
+    batchPending: protectedProcedure.mutation(async () => {
+      return batchNotifications();
     }),
   }),
 });

@@ -225,8 +225,8 @@
 - [x] Contextual routing — station-aware knowledge.ask routes answers by department/role
 - [x] Shift handoff intelligence — ShiftHandoffScreen with write/read modes, auto-categorization, 24hr expiry
 - [x] Escalation chain — issue severity determines who gets notified (void alerts auto-create issues)
-- [ ] Cross-station communication — kitchen tells bar about 86'd item, system broadcasts (future)
-- [ ] Smart notifications — don't spam, batch low-priority, instant for critical (future)
+- [x] Cross-station communication — StationBroadcastScreen + stationBroadcasts table + endpoints
+- [x] Smart notifications — notificationQueue table + queueNotification + processNotificationBatch helpers
 
 ## Wave 2 Features
 
@@ -335,7 +335,7 @@
 - [x] Delivery Driver module — order verification, cash handling, route tips
 - [x] Wire POSTrainingScreen into CTapHub routing + home screen QuickAction
 - [x] Map POS training modules to real DB training module IDs (phone→4, bar→16, closing→7, voids→3, driver→5)
-- [ ] Add answer validation logic (currently self-assessment only)
+- [x] Add answer validation logic — 20 multiple-choice questions across 5 modules, 80% pass threshold
 
 ### Intelligence Briefing Enhancements
 - [x] Wire historical sales patterns into knowledge.ask LLM briefings (getDayOfWeekPattern + getRecentSalesTrend)
@@ -365,3 +365,36 @@
 
 ## Bug Fix — Name Correction
 - [x] Fix all "Michael" references to "Mychael" (owner's actual name spelling) across briefing system, role labels, LLM prompts, and todo.md
+
+## Wave 7 — Food Cost Intelligence System
+- [x] Recipe schema — recipes + recipeIngredients tables with portions, prep, yield tracking
+- [x] SKU schema — skuCatalog + skuPriceHistory tables tracking every product by vendor, unit size, price per unit
+- [x] Menu items schema — menuItems table linking recipes to POS items for margin analysis
+- [x] Waste/yield tracking schema — wasteLog table for trim, cooking loss, expired, dropped, overportioned, returned
+- [x] Recipe costing db helpers — recalculateRecipeCost auto-pulls SKU prices, applies yield%, updates recipe
+- [x] SKU tracking db helpers — crossVendorPriceComparison, getSkuPriceHistory, CRUD for all SKUs
+- [x] Menu cost engine db helpers — recalculateMenuItemMargin, getFoodCostSummary by category
+- [x] Price comparison alerts — scanForPriceChanges flags 5%+ price moves, createPriceAlert, reviewPriceAlert
+- [x] tRPC endpoints for recipe CRUD, SKU management, menu costing, waste logging, broadcasts, forecasts
+- [x] RecipeCostScreen UI — recipe builder with ingredient costs, portion calculator, cost per plate
+- [x] SKUTrackerScreen UI — vendor product catalog, price alerts, cross-vendor comparison
+- [x] PriceComparisonScreen UI — integrated into SKUTrackerScreen price alerts tab
+- [x] Cross-station 86'd broadcast system — StationBroadcastScreen + endpoints + ack
+- [x] StationBroadcastScreen UI — send/receive 86'd alerts, acknowledge, resolve, history
+- [x] Smart notification batching — notificationQueue table + queueNotification + processNotificationBatch
+- [x] POS training answer validation — 20 multiple-choice questions with real A/B/C/D grading, visual feedback, correct answer reveal
+- [x] Wire all new screens into CTapHub navigation (Forecast, Recipes, SKU, 86'd Alerts, Waste Log)
+
+## Wave 7b — Forecast Model & Communication Hub Enhancements
+- [x] Sales forecast engine — generateSalesForecast + ForecastScreen UI with 7-day view
+- [x] Weather-sales correlation model — analyzeWeatherSalesCorrelation in db.ts
+- [x] Event-pattern matching — getEventImpactHistory + forecast.eventImpactHistory endpoint
+- [x] Waste reporting from communication hub — WasteLogScreen with category/reason tracking
+- [x] Forecast display on management dashboard with confidence levels + weather overlay
+- [x] Local event intelligence — integrated into ForecastScreen + event impact history
+- [x] Event impact correlation — getEventImpactHistory matches event types to sales data
+- [x] Proactive event alerts for Mychael — built into scheduled briefing + ForecastScreen
+
+## Remaining Gaps
+- [x] POS training answer validation — 20 multiple-choice questions with real A/B/C/D grading, visual feedback, correct answer reveal
+- [x] Smart notification batching end-to-end — critical/high = instant delivery, low/normal = auto-batchKey + batchNotifications() groups by category+role+date

@@ -872,3 +872,170 @@ export const managementBriefings = mysqlTable("management_briefings", {
 });
 export type ManagementBriefing = typeof managementBriefings.$inferSelect;
 export type InsertManagementBriefing = typeof managementBriefings.$inferInsert;
+
+// ─── Cross-Station Broadcasts (86'd items, urgent alerts) ──────────────────
+export const stationBroadcasts = mysqlTable("station_broadcasts", {
+  id: int("id").autoincrement().primaryKey(),
+  broadcastType: varchar("broadcastType", { length: 50 }).notNull(), // '86d' | 'back_in_stock' | 'urgent' | 'info'
+  itemName: varchar("itemName", { length: 255 }).notNull(),
+  message: text("message"),
+  fromStation: varchar("fromStation", { length: 50 }).notNull(), // 'kitchen' | 'bar' | 'management'
+  targetStations: json("targetStations").notNull(), // ['bar', 'server', 'kitchen', 'driver'] — who needs to see it
+  createdByStaffId: int("createdByStaffId"),
+  createdByName: varchar("createdByName", { length: 100 }),
+  acknowledgedBy: json("acknowledgedBy").default("[]"), // array of staffIds who acknowledged
+  resolvedAt: timestamp("resolvedAt"),
+  expiresAt: timestamp("expiresAt"), // auto-expire after shift or 12 hours
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type StationBroadcast = typeof stationBroadcasts.$inferSelect;
+export type InsertStationBroadcast = typeof stationBroadcasts.$inferInsert;
+
+// ─── Notification Queue (smart batching) ───────────────────────────────────
+export const notificationQueue = mysqlTable("notification_queue", {
+  id: int("id").autoincrement().primaryKey(),
+  targetStaffId: int("targetStaffId"), // null = broadcast to role/station
+  targetRole: varchar("targetRole", { length: 50 }), // 'manager' | 'bar' | 'kitchen' | 'all'
+  priority: varchar("priority", { length: 20 }).notNull().default("normal"), // 'critical' | 'high' | 'normal' | 'low'
+  category: varchar("category", { length: 50 }).notNull(), // 'void_alert' | '86d' | 'achievement' | 'briefing' | 'handoff' | 'system'
+  title: varchar("title", { length: 255 }).notNull(),
+  body: text("body").notNull(),
+  data: json("data"), // extra payload for the notification
+  batchKey: varchar("batchKey", { length: 100 }), // group key for batching (e.g., 'void_alerts_2024-01-15')
+  deliveredAt: timestamp("deliveredAt"),
+  readAt: timestamp("readAt"),
+  batchedInto: int("batchedInto"), // if this was batched, points to the batch summary notification
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type NotificationQueueItem = typeof notificationQueue.$inferSelect;
+export type InsertNotificationQueueItem = typeof notificationQueue.$inferInsert;
+
+// ─── Price Comparison Alerts ───────────────────────────────────────────────
+export const priceAlerts = mysqlTable("price_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorName: varchar("vendorName", { length: 255 }).notNull(),
+  productName: varchar("productName", { length: 255 }).notNull(),
+  previousPrice: decimal("previousPrice", { precision: 10, scale: 2 }).notNull(),
+  currentPrice: decimal("currentPrice", { precision: 10, scale: 2 }).notNull(),
+  changePercent: decimal("changePercent", { precision: 5, scale: 2 }).notNull(),
+  changeDirection: varchar("changeDirection", { length: 10 }).notNull(), // 'up' | 'down'
+  invoiceId: int("invoiceId"), // which invoice triggered this
+  flaggedAt: timestamp("flaggedAt").defaultNow().notNull(),
+  reviewedBy: int("reviewedBy"), // manager who reviewed
+  reviewedAt: timestamp("reviewedAt"),
+  notes: text("notes"),
+});
+export type PriceAlert = typeof priceAlerts.$inferSelect;
+export type InsertPriceAlert = typeof priceAlerts.$inferInsert;
+
+// ─── SKU Catalog (every product you buy, tracked by vendor) ────────────────
+export const skuCatalog = mysqlTable("sku_catalog", {
+  id: int("id").autoincrement().primaryKey(),
+  sku: varchar("sku", { length: 50 }), // vendor SKU if available
+  productName: varchar("productName", { length: 255 }).notNull(),
+  vendorName: varchar("vendorName", { length: 255 }).notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // 'meat' | 'produce' | 'dairy' | 'beer' | 'liquor' | 'bread' | 'supplies' | 'dry_goods'
+  unitSize: varchar("unitSize", { length: 100 }), // '10 lb case', '24 pack', '1 gallon'
+  unitOfMeasure: varchar("unitOfMeasure", { length: 30 }), // 'lb' | 'oz' | 'each' | 'case' | 'gallon'
+  currentPricePerUnit: decimal("currentPricePerUnit", { precision: 10, scale: 4 }), // price per unit of measure
+  lastOrderPrice: decimal("lastOrderPrice", { precision: 10, scale: 2 }), // last invoice price for the package
+  lastOrderDate: timestamp("lastOrderDate"),
+  avgPrice30d: decimal("avgPrice30d", { precision: 10, scale: 4 }), // rolling 30-day avg price per unit
+  isActive: boolean("isActive").default(true).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SkuCatalogItem = typeof skuCatalog.$inferSelect;
+export type InsertSkuCatalogItem = typeof skuCatalog.$inferInsert;
+
+// ─── SKU Price History (every price point for trend tracking) ──────────────
+export const skuPriceHistory = mysqlTable("sku_price_history", {
+  id: int("id").autoincrement().primaryKey(),
+  skuId: int("skuId").notNull(),
+  vendorName: varchar("vendorName", { length: 255 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  pricePerUnit: decimal("pricePerUnit", { precision: 10, scale: 4 }),
+  invoiceId: int("invoiceId"),
+  invoiceDate: timestamp("invoiceDate"),
+  recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+});
+export type SkuPriceHistoryEntry = typeof skuPriceHistory.$inferSelect;
+export type InsertSkuPriceHistoryEntry = typeof skuPriceHistory.$inferInsert;
+
+// ─── Recipes (every menu item broken down by ingredients) ──────────────────
+export const recipes = mysqlTable("recipes", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // 'Classic Burger', 'BBQ Wings (1 lb)'
+  category: varchar("category", { length: 50 }).notNull(), // 'appetizer' | 'entree' | 'pizza' | 'sandwich' | 'side' | 'dessert' | 'drink'
+  subcategory: varchar("subcategory", { length: 50 }), // 'wings' | 'burger' | 'salad' etc
+  servingSize: varchar("servingSize", { length: 100 }), // '1 plate', '1 lb', '12 oz pour'
+  prepTimeMinutes: int("prepTimeMinutes"),
+  prepInstructions: text("prepInstructions"),
+  theoreticalCost: decimal("theoreticalCost", { precision: 10, scale: 4 }), // calculated from ingredients
+  menuPrice: decimal("menuPrice", { precision: 10, scale: 2 }), // what we charge
+  foodCostPercent: decimal("foodCostPercent", { precision: 5, scale: 2 }), // theoreticalCost / menuPrice * 100
+  targetFoodCostPercent: decimal("targetFoodCostPercent", { precision: 5, scale: 2 }).default("30.00"), // target
+  isActive: boolean("isActive").default(true).notNull(),
+  lastCostedAt: timestamp("lastCostedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Recipe = typeof recipes.$inferSelect;
+export type InsertRecipe = typeof recipes.$inferInsert;
+
+// ─── Recipe Ingredients (links recipes to SKUs with portions) ──────────────
+export const recipeIngredients = mysqlTable("recipe_ingredients", {
+  id: int("id").autoincrement().primaryKey(),
+  recipeId: int("recipeId").notNull(),
+  skuId: int("skuId"), // links to sku_catalog for auto-pricing
+  ingredientName: varchar("ingredientName", { length: 255 }).notNull(), // 'Ground Beef 80/20', 'Brioche Bun'
+  quantity: decimal("quantity", { precision: 10, scale: 4 }).notNull(), // how much per serving
+  unitOfMeasure: varchar("unitOfMeasure", { length: 30 }).notNull(), // 'oz' | 'lb' | 'each' | 'cup'
+  costPerUnit: decimal("costPerUnit", { precision: 10, scale: 4 }), // pulled from SKU or manual
+  totalCost: decimal("totalCost", { precision: 10, scale: 4 }), // quantity * costPerUnit
+  yieldPercent: decimal("yieldPercent", { precision: 5, scale: 2 }).default("100.00"), // after trim/cooking loss
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
+export type InsertRecipeIngredient = typeof recipeIngredients.$inferInsert;
+
+// ─── Menu Items (links recipes to POS menu for margin analysis) ────────────
+export const menuItems = mysqlTable("menu_items", {
+  id: int("id").autoincrement().primaryKey(),
+  posItemName: varchar("posItemName", { length: 255 }).notNull(), // name as it appears in POS/product mix
+  recipeId: int("recipeId"), // links to recipe for cost calc
+  menuPrice: decimal("menuPrice", { precision: 10, scale: 2 }).notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // 'food' | 'beer' | 'liquor' | 'wine' | 'non_alc'
+  subcategory: varchar("subcategory", { length: 50 }),
+  theoreticalCost: decimal("theoreticalCost", { precision: 10, scale: 4 }),
+  actualCost: decimal("actualCost", { precision: 10, scale: 4 }), // from invoice/usage data
+  marginPercent: decimal("marginPercent", { precision: 5, scale: 2 }),
+  avgDailySales: decimal("avgDailySales", { precision: 10, scale: 2 }), // from product mix data
+  avgDailyQuantity: int("avgDailyQuantity"),
+  isActive: boolean("isActive").default(true).notNull(),
+  lastAnalyzedAt: timestamp("lastAnalyzedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type MenuItem = typeof menuItems.$inferSelect;
+export type InsertMenuItem = typeof menuItems.$inferInsert;
+
+// ─── Waste Log (trim loss, cooking loss, portioning variance) ──────────────
+export const wasteLog = mysqlTable("waste_log", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId"), // who logged it
+  date: timestamp("date").notNull(),
+  itemName: varchar("itemName", { length: 255 }).notNull(),
+  skuId: int("skuId"), // links to sku_catalog
+  wasteType: varchar("wasteType", { length: 50 }).notNull(), // 'trim' | 'cooking_loss' | 'expired' | 'dropped' | 'overportioned' | 'returned'
+  quantity: decimal("quantity", { precision: 10, scale: 4 }).notNull(),
+  unitOfMeasure: varchar("unitOfMeasure", { length: 30 }).notNull(),
+  estimatedCost: decimal("estimatedCost", { precision: 10, scale: 2 }),
+  reason: text("reason"),
+  preventable: boolean("preventable").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WasteLogEntry = typeof wasteLog.$inferSelect;
+export type InsertWasteLogEntry = typeof wasteLog.$inferInsert;

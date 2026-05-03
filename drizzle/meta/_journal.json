@@ -43,6 +43,20 @@
       "when": 1777830693853,
       "tag": "0005_green_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1777831909707,
+      "tag": "0006_perfect_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1777834617223,
+      "tag": "0007_strange_forgotten_one",
+      "breakpoints": true
     }
   ]
 }

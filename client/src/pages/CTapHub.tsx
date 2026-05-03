@@ -32,6 +32,11 @@ import WorkerProfileScreen from "./WorkerProfileScreen";
 import SalesIntelligenceScreen from "./SalesIntelligenceScreen";
 import POSTrainingScreen from "./POSTrainingScreen";
 import ManagementBriefingScreen from "./ManagementBriefingScreen";
+import ForecastScreen from "./ForecastScreen";
+import RecipeCostScreen from "./RecipeCostScreen";
+import SKUTrackerScreen from "./SKUTrackerScreen";
+import StationBroadcastScreen from "./StationBroadcastScreen";
+import WasteLogScreen from "./WasteLogScreen";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -42,7 +47,8 @@ type Screen =
   | "store-run" | "invoices"
   | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop"
   | "order-guide" | "shift-handoff"
-  | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing";
+  | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing"
+  | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -193,7 +199,7 @@ export default function CTapHub() {
 
   // ─── Screen Guard — redirect non-managers away from financial screens ──
   const navigateTo = (target: Screen) => {
-    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing"];
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker"];
     if (managerOnlyScreens.includes(target) && !isManager) {
       toast.error("Manager access required");
       return;
@@ -595,6 +601,9 @@ export default function CTapHub() {
                 <QuickAction icon={ShoppingCart} label="Order Guide" color="text-cyan-500" bg="bg-cyan-500/10" onClick={() => navigateTo("order-guide")} />
                 <QuickAction icon={BarChart3} label="Sales Intel" color="text-indigo-500" bg="bg-indigo-500/10" onClick={() => navigateTo("sales-intel")} />
                 <QuickAction icon={Brain} label="Intel Briefings" color="text-purple-500" bg="bg-purple-500/10" onClick={() => navigateTo("management-briefing")} />
+                <QuickAction icon={TrendingUp} label="Forecast" color="text-blue-500" bg="bg-blue-500/10" onClick={() => navigateTo("forecast")} />
+                <QuickAction icon={Flame} label="Recipes & Cost" color="text-rose-500" bg="bg-rose-500/10" onClick={() => navigateTo("recipe-cost")} />
+                <QuickAction icon={Package} label="SKU Tracker" color="text-teal-500" bg="bg-teal-500/10" onClick={() => navigateTo("sku-tracker")} />
               </>
             )}
             <QuickAction icon={UserCircle} label="My Profile" color="text-violet-500" bg="bg-violet-500/10" onClick={() => navigateTo("worker-profile")} />
@@ -602,6 +611,8 @@ export default function CTapHub() {
             <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("issues")} />
             <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => navigateTo("feedback")} subtitle="+5 pts" />
             <QuickAction icon={GraduationCap} label="POS Training" color="text-sky-500" bg="bg-sky-500/10" onClick={() => navigateTo("pos-training")} />
+            <QuickAction icon={Zap} label="86'd Alerts" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("station-broadcast")} />
+            <QuickAction icon={Target} label="Waste Log" color="text-amber-500" bg="bg-amber-500/10" onClick={() => navigateTo("waste-log")} />
           </div>
 
           {/* AI Intelligence Actions */}
@@ -1563,6 +1574,11 @@ export default function CTapHub() {
         {screen === "sales-intel" && staffUser && <SalesIntelligenceScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
         {screen === "pos-training" && <POSTrainingScreen staffId={staffUser?.id} staffName={staffUser?.firstName} onBack={() => navigateTo("home")} />}
         {screen === "management-briefing" && <ManagementBriefingScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, department: staffUser.department, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "forecast" && <ForecastScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "recipe-cost" && <RecipeCostScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "sku-tracker" && <SKUTrackerScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "station-broadcast" && <StationBroadcastScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "waste-log" && <WasteLogScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
       </div>
       <BottomNav />
     </>

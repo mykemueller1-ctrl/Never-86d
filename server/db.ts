@@ -20,6 +20,16 @@ import {
   intelligenceAnomalies,
   scheduleIntelligence,
   managementBriefings,
+  stationBroadcasts, InsertStationBroadcast,
+  notificationQueue, InsertNotificationQueueItem,
+  priceAlerts, InsertPriceAlert,
+  vendorProducts,
+  skuCatalog, InsertSkuCatalogItem,
+  skuPriceHistory, InsertSkuPriceHistoryEntry,
+  recipes, InsertRecipe,
+  recipeIngredients, InsertRecipeIngredient,
+  menuItems, InsertMenuItem,
+  wasteLog, InsertWasteLogEntry,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -453,7 +463,6 @@ import {
   rewardRedemptions,
   photoMissions,
   photoSubmissions,
-  vendorProducts,
   orderGuideTemplates,
   briefingMemory,
 } from "../drizzle/schema";
@@ -1726,4 +1735,691 @@ export async function getBriefingDataSnapshot() {
     weatherCorrelation,
     categoryTrends,
   };
+}
+
+
+// ============================================================
+// FOOD COST INTELLIGENCE — DB HELPERS
+// ============================================================
+
+// ============ SKU CATALOG ============
+
+export async function getAllSkus(activeOnly = true) {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(skuCatalog).where(eq(skuCatalog.isActive, true)).orderBy(skuCatalog.category, skuCatalog.productName);
+  }
+  return db.select().from(skuCatalog).orderBy(skuCatalog.category, skuCatalog.productName);
+}
+
+export async function getSkuById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(skuCatalog).where(eq(skuCatalog.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getSkusByVendor(vendorName: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(skuCatalog).where(eq(skuCatalog.vendorName, vendorName)).orderBy(skuCatalog.productName);
+}
+
+export async function getSkusByCategory(category: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(skuCatalog).where(eq(skuCatalog.category, category)).orderBy(skuCatalog.productName);
+}
+
+export async function createSku(data: InsertSkuCatalogItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(skuCatalog).values(data);
+}
+
+export async function updateSku(id: number, data: Partial<InsertSkuCatalogItem>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(skuCatalog).set(data).where(eq(skuCatalog.id, id));
+}
+
+// ============ SKU PRICE HISTORY ============
+
+export async function getSkuPriceHistory(skuId: number, limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(skuPriceHistory).where(eq(skuPriceHistory.skuId, skuId)).orderBy(desc(skuPriceHistory.recordedAt)).limit(limit);
+}
+
+export async function addSkuPriceEntry(data: InsertSkuPriceHistoryEntry) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(skuPriceHistory).values(data);
+}
+
+/** Cross-vendor price comparison for a product name (fuzzy match) */
+export async function crossVendorPriceComparison(productName: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(skuCatalog)
+    .where(sql`LOWER(${skuCatalog.productName}) LIKE LOWER(${`%${productName}%`})`)
+    .orderBy(asc(skuCatalog.currentPricePerUnit));
+}
+
+// ============ RECIPES ============
+
+export async function getAllRecipes(activeOnly = true) {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(recipes).where(eq(recipes.isActive, true)).orderBy(recipes.category, recipes.name);
+  }
+  return db.select().from(recipes).orderBy(recipes.category, recipes.name);
+}
+
+export async function getRecipeById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(recipes).where(eq(recipes.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createRecipe(data: InsertRecipe) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(recipes).values(data);
+  return result;
+}
+
+export async function updateRecipe(id: number, data: Partial<InsertRecipe>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(recipes).set(data).where(eq(recipes.id, id));
+}
+
+// ============ RECIPE INGREDIENTS ============
+
+export async function getRecipeIngredients(recipeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
+}
+
+export async function addRecipeIngredient(data: InsertRecipeIngredient) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(recipeIngredients).values(data);
+}
+
+export async function updateRecipeIngredient(id: number, data: Partial<InsertRecipeIngredient>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(recipeIngredients).set(data).where(eq(recipeIngredients.id, id));
+}
+
+export async function deleteRecipeIngredient(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(recipeIngredients).where(eq(recipeIngredients.id, id));
+}
+
+/** Calculate total recipe cost from its ingredients and update the recipe */
+export async function recalculateRecipeCost(recipeId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const ingredients = await db.select().from(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
+  let totalCost = 0;
+
+  for (const ing of ingredients) {
+    // If linked to a SKU, pull latest price
+    if (ing.skuId) {
+      const sku = await db.select().from(skuCatalog).where(eq(skuCatalog.id, ing.skuId)).limit(1);
+      if (sku[0]?.currentPricePerUnit) {
+        const costPerUnit = parseFloat(sku[0].currentPricePerUnit);
+        const qty = parseFloat(ing.quantity);
+        const yieldPct = parseFloat(ing.yieldPercent || "100") / 100;
+        const adjustedCost = (costPerUnit * qty) / yieldPct;
+        await db.update(recipeIngredients).set({
+          costPerUnit: costPerUnit.toFixed(4),
+          totalCost: adjustedCost.toFixed(4),
+        }).where(eq(recipeIngredients.id, ing.id));
+        totalCost += adjustedCost;
+        continue;
+      }
+    }
+    // Use manual cost if no SKU link
+    if (ing.totalCost) {
+      totalCost += parseFloat(ing.totalCost);
+    }
+  }
+
+  // Get the recipe to check menu price
+  const recipe = await db.select().from(recipes).where(eq(recipes.id, recipeId)).limit(1);
+  const menuPrice = recipe[0]?.menuPrice ? parseFloat(recipe[0].menuPrice) : 0;
+  const foodCostPct = menuPrice > 0 ? (totalCost / menuPrice) * 100 : 0;
+
+  await db.update(recipes).set({
+    theoreticalCost: totalCost.toFixed(4),
+    foodCostPercent: foodCostPct.toFixed(2),
+    lastCostedAt: new Date(),
+  }).where(eq(recipes.id, recipeId));
+
+  return { theoreticalCost: totalCost, foodCostPercent: foodCostPct, ingredientCount: ingredients.length };
+}
+
+// ============ MENU ITEMS ============
+
+export async function getAllMenuItems(activeOnly = true) {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(menuItems).where(eq(menuItems.isActive, true)).orderBy(menuItems.category, menuItems.posItemName);
+  }
+  return db.select().from(menuItems).orderBy(menuItems.category, menuItems.posItemName);
+}
+
+export async function createMenuItem(data: InsertMenuItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(menuItems).values(data);
+}
+
+export async function updateMenuItem(id: number, data: Partial<InsertMenuItem>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(menuItems).set(data).where(eq(menuItems.id, id));
+}
+
+/** Calculate menu item margin from linked recipe cost */
+export async function recalculateMenuItemMargin(menuItemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const item = await db.select().from(menuItems).where(eq(menuItems.id, menuItemId)).limit(1);
+  if (!item[0]) return null;
+
+  let theoreticalCost = 0;
+  if (item[0].recipeId) {
+    const recipe = await db.select().from(recipes).where(eq(recipes.id, item[0].recipeId)).limit(1);
+    if (recipe[0]?.theoreticalCost) {
+      theoreticalCost = parseFloat(recipe[0].theoreticalCost);
+    }
+  }
+
+  const menuPrice = parseFloat(item[0].menuPrice);
+  const marginPct = menuPrice > 0 ? ((menuPrice - theoreticalCost) / menuPrice) * 100 : 0;
+
+  await db.update(menuItems).set({
+    theoreticalCost: theoreticalCost.toFixed(4),
+    marginPercent: marginPct.toFixed(2),
+    lastAnalyzedAt: new Date(),
+  }).where(eq(menuItems.id, menuItemId));
+
+  return { theoreticalCost, menuPrice, marginPercent: marginPct };
+}
+
+/** Get food cost summary — theoretical vs actual by category */
+export async function getFoodCostSummary() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    category: menuItems.category,
+    itemCount: sql<number>`COUNT(*)`,
+    avgMenuPrice: sql<string>`CAST(AVG(${menuItems.menuPrice}) AS CHAR)`,
+    avgTheoreticalCost: sql<string>`CAST(AVG(${menuItems.theoreticalCost}) AS CHAR)`,
+    avgMarginPercent: sql<string>`CAST(AVG(${menuItems.marginPercent}) AS CHAR)`,
+    totalRevenuePotential: sql<string>`CAST(SUM(${menuItems.avgDailySales}) AS CHAR)`,
+  }).from(menuItems)
+    .where(eq(menuItems.isActive, true))
+    .groupBy(menuItems.category);
+}
+
+// ============ WASTE LOG ============
+
+export async function getWasteLog(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select().from(wasteLog).where(gte(wasteLog.date, since)).orderBy(desc(wasteLog.date));
+}
+
+export async function createWasteEntry(data: InsertWasteLogEntry) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(wasteLog).values(data);
+}
+
+export async function getWasteSummary(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select({
+    wasteType: wasteLog.wasteType,
+    totalQuantity: sql<string>`CAST(SUM(${wasteLog.quantity}) AS CHAR)`,
+    totalCost: sql<string>`CAST(SUM(${wasteLog.estimatedCost}) AS CHAR)`,
+    count: sql<number>`COUNT(*)`,
+    preventableCount: sql<number>`SUM(CASE WHEN ${wasteLog.preventable} = true THEN 1 ELSE 0 END)`,
+  }).from(wasteLog)
+    .where(gte(wasteLog.date, since))
+    .groupBy(wasteLog.wasteType);
+}
+
+// ============ PRICE COMPARISON ALERTS ============
+
+export async function getPriceAlerts(reviewedOnly = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (reviewedOnly) {
+    return db.select().from(priceAlerts).where(sql`${priceAlerts.reviewedAt} IS NOT NULL`).orderBy(desc(priceAlerts.flaggedAt));
+  }
+  return db.select().from(priceAlerts).where(sql`${priceAlerts.reviewedAt} IS NULL`).orderBy(desc(priceAlerts.flaggedAt));
+}
+
+export async function createPriceAlert(data: InsertPriceAlert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(priceAlerts).values(data);
+}
+
+export async function reviewPriceAlert(id: number, reviewedBy: number, notes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(priceAlerts).set({
+    reviewedBy,
+    reviewedAt: new Date(),
+    notes: notes || null,
+  }).where(eq(priceAlerts.id, id));
+}
+
+/** Scan invoices for price changes and generate alerts */
+export async function scanForPriceChanges() {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get all SKUs with price history (at least 2 entries)
+  const allSkus = await db.select().from(skuCatalog).where(eq(skuCatalog.isActive, true));
+  const alerts: Array<{ vendorName: string; productName: string; previousPrice: string; currentPrice: string; changePercent: string; changeDirection: string }> = [];
+
+  for (const sku of allSkus) {
+    const history = await db.select().from(skuPriceHistory)
+      .where(eq(skuPriceHistory.skuId, sku.id))
+      .orderBy(desc(skuPriceHistory.recordedAt))
+      .limit(2);
+
+    if (history.length < 2) continue;
+
+    const current = parseFloat(history[0].price);
+    const previous = parseFloat(history[1].price);
+    if (previous === 0) continue;
+
+    const changePct = ((current - previous) / previous) * 100;
+    // Flag if price changed more than 5%
+    if (Math.abs(changePct) >= 5) {
+      const alertData: InsertPriceAlert = {
+        vendorName: sku.vendorName,
+        productName: sku.productName,
+        previousPrice: previous.toFixed(2),
+        currentPrice: current.toFixed(2),
+        changePercent: Math.abs(changePct).toFixed(2),
+        changeDirection: changePct > 0 ? 'up' : 'down',
+      };
+      await db.insert(priceAlerts).values(alertData);
+      alerts.push({
+        vendorName: sku.vendorName,
+        productName: sku.productName,
+        previousPrice: previous.toFixed(2),
+        currentPrice: current.toFixed(2),
+        changePercent: Math.abs(changePct).toFixed(2),
+        changeDirection: changePct > 0 ? 'up' : 'down',
+      });
+    }
+  }
+
+  return alerts;
+}
+
+// ============ STATION BROADCASTS (86'd) ============
+
+export async function getActiveBroadcasts(station?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get broadcasts that are not resolved and not expired
+  const rows = await db.select().from(stationBroadcasts)
+    .where(sql`${stationBroadcasts.resolvedAt} IS NULL AND (${stationBroadcasts.expiresAt} IS NULL OR ${stationBroadcasts.expiresAt} > NOW())`)
+    .orderBy(desc(stationBroadcasts.createdAt));
+
+  if (station) {
+    // Filter to broadcasts targeting this station
+    return rows.filter((b: any) => {
+      const targets = typeof b.targetStations === 'string' ? JSON.parse(b.targetStations) : b.targetStations;
+      return Array.isArray(targets) && (targets.includes(station) || targets.includes('all'));
+    });
+  }
+  return rows;
+}
+
+export async function createBroadcast(data: InsertStationBroadcast) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(stationBroadcasts).values(data);
+}
+
+export async function acknowledgeBroadcast(broadcastId: number, staffId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const broadcast = await db.select().from(stationBroadcasts).where(eq(stationBroadcasts.id, broadcastId)).limit(1);
+  if (!broadcast[0]) return;
+  const currentAcks = typeof broadcast[0].acknowledgedBy === 'string'
+    ? JSON.parse(broadcast[0].acknowledgedBy)
+    : (broadcast[0].acknowledgedBy || []);
+  if (!currentAcks.includes(staffId)) {
+    currentAcks.push(staffId);
+  }
+  await db.update(stationBroadcasts).set({ acknowledgedBy: JSON.stringify(currentAcks) }).where(eq(stationBroadcasts.id, broadcastId));
+}
+
+export async function resolveBroadcast(broadcastId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(stationBroadcasts).set({ resolvedAt: new Date() }).where(eq(stationBroadcasts.id, broadcastId));
+}
+
+export async function getBroadcastHistory(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(stationBroadcasts).orderBy(desc(stationBroadcasts.createdAt)).limit(limit);
+}
+
+// ============ SMART NOTIFICATION QUEUE ============
+
+export async function queueNotification(data: InsertNotificationQueueItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Smart classification: auto-assign batchKey for low/normal priority
+  const enriched = { ...data };
+  if (!enriched.batchKey && enriched.priority !== 'critical' && enriched.priority !== 'high') {
+    // Auto-batch by category + date
+    const today = new Date().toISOString().split('T')[0];
+    enriched.batchKey = `${enriched.category}_${enriched.targetRole || 'all'}_${today}`;
+  }
+
+  const result = await db.insert(notificationQueue).values(enriched);
+
+  // Critical notifications: mark as delivered immediately (instant delivery)
+  if (enriched.priority === 'critical' || enriched.priority === 'high') {
+    const insertedId = (result as any)[0]?.insertId;
+    if (insertedId) {
+      await db.update(notificationQueue)
+        .set({ deliveredAt: new Date() })
+        .where(eq(notificationQueue.id, insertedId));
+    }
+  }
+
+  return result;
+}
+
+export async function getUndeliveredNotifications(targetStaffId?: number, targetRole?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  let conditions = [sql`${notificationQueue.deliveredAt} IS NULL`, sql`${notificationQueue.batchedInto} IS NULL`];
+  if (targetStaffId) conditions.push(eq(notificationQueue.targetStaffId, targetStaffId));
+  if (targetRole) conditions.push(eq(notificationQueue.targetRole, targetRole));
+  return db.select().from(notificationQueue)
+    .where(and(...conditions))
+    .orderBy(desc(notificationQueue.createdAt));
+}
+
+export async function markNotificationDelivered(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notificationQueue).set({ deliveredAt: new Date() }).where(eq(notificationQueue.id, id));
+}
+
+export async function markNotificationRead(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notificationQueue).set({ readAt: new Date() }).where(eq(notificationQueue.id, id));
+}
+
+/** Batch low-priority notifications with the same batchKey */
+// ============ SALES FORECAST ENGINE ============
+
+/** Generate a sales forecast based on day-of-week patterns, weather, and events */
+export async function generateSalesForecast(targetDate: Date) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const dayOfWeek = targetDate.getDay(); // 0=Sun, 6=Sat
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = dayNames[dayOfWeek];
+
+  // 1. Get day-of-week historical pattern (last 90 days)
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+  const dowSales = await db.select({
+    avgTotalAmount: sql<string>`CAST(AVG(${dailySales.totalAmount}) AS CHAR)`,
+    avgGrandTotal: sql<string>`CAST(AVG(${dailySales.grandTotal}) AS CHAR)`,
+    avgTotalQty: sql<string>`CAST(AVG(${dailySales.totalQty}) AS CHAR)`,
+    avgPerGuest: sql<string>`CAST(AVG(${dailySales.avgPerGuest}) AS CHAR)`,
+    sampleCount: sql<number>`COUNT(*)`,
+    minTotalAmount: sql<string>`CAST(MIN(${dailySales.totalAmount}) AS CHAR)`,
+    maxTotalAmount: sql<string>`CAST(MAX(${dailySales.totalAmount}) AS CHAR)`,
+    stdDev: sql<string>`CAST(STDDEV(${dailySales.totalAmount}) AS CHAR)`,
+    avgFoodAmount: sql<string>`CAST(AVG(${dailySales.catFoodAmount}) AS CHAR)`,
+    avgBeerAmount: sql<string>`CAST(AVG(${dailySales.catBeerAmount}) AS CHAR)`,
+    avgLiquorAmount: sql<string>`CAST(AVG(${dailySales.catLiquorAmount}) AS CHAR)`,
+    avgPopAmount: sql<string>`CAST(AVG(${dailySales.catPopAmount}) AS CHAR)`,
+  }).from(dailySales)
+    .where(and(
+      sql`DAYOFWEEK(${dailySales.businessDate}) = ${dayOfWeek + 1}`,
+      sql`${dailySales.businessDate} >= ${ninetyDaysAgoStr}`
+    ));
+
+  // 2. Get hourly pattern for this day of week
+  const hourlyPattern = await db.select({
+    hour: hourlySales.hour,
+    avgSales: sql<string>`CAST(AVG(${hourlySales.total}) AS CHAR)`,
+    avgOrders: sql<string>`CAST(AVG(${hourlySales.orders}) AS CHAR)`,
+  }).from(hourlySales)
+    .where(and(
+      sql`DAYOFWEEK(${hourlySales.businessDate}) = ${dayOfWeek + 1}`,
+      sql`${hourlySales.businessDate} >= ${ninetyDaysAgoStr}`
+    ))
+    .groupBy(hourlySales.hour)
+    .orderBy(hourlySales.hour);
+
+  // 3. Get weather for target date if available
+  const targetDateStr = targetDate.toISOString().split('T')[0];
+  const weatherRows = await db.select().from(weatherData)
+    .where(sql`DATE(${weatherData.date}) = ${targetDateStr}`)
+    .limit(1);
+
+  // 4. Get weather-sales correlation data
+  const weatherCorr = await getWeatherSalesCorrelation();
+
+  // 5. Get upcoming events near target date (eventDate is varchar YYYY-MM-DD)
+  const twoDaysBefore = new Date(targetDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const twoDaysAfter = new Date(targetDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const nearbyEvents = await db.select().from(localEvents)
+    .where(and(
+      sql`${localEvents.eventDate} >= ${twoDaysBefore}`,
+      sql`${localEvents.eventDate} <= ${twoDaysAfter}`,
+      sql`CAST(${localEvents.distance} AS DECIMAL) <= 30`
+    ));
+
+  // 6. Get product mix trends for this day of week
+  const categoryTrends = await db.select({
+    category: productMixEntries.category,
+    avgSales: sql<string>`CAST(AVG(${productMixEntries.totalAmount}) AS CHAR)`,
+    avgQuantity: sql<string>`CAST(AVG(${productMixEntries.totalQty}) AS CHAR)`,
+  }).from(productMixEntries)
+    .where(and(
+      sql`DAYOFWEEK(${productMixEntries.periodStart}) = ${dayOfWeek + 1}`,
+      sql`${productMixEntries.periodStart} >= ${ninetyDaysAgoStr}`
+    ))
+    .groupBy(productMixEntries.category);
+
+  // 7. Calculate forecast with confidence
+  const baseline = dowSales[0];
+  const baseSales = parseFloat(baseline?.avgTotalAmount || '0');
+  const stdDev = parseFloat(baseline?.stdDev || '0');
+  const sampleCount = baseline?.sampleCount || 0;
+
+  // Weather adjustment factor
+  let weatherAdjustment = 1.0;
+  let weatherNote = '';
+  if (weatherRows[0]) {
+    const temp = parseFloat(weatherRows[0].tempMax?.toString() || '70');
+    const weatherCode = weatherRows[0].weatherCode || 0;
+    // WMO weather codes: 0-3=clear, 45-48=fog, 51-67=rain/drizzle, 71-77=snow, 80-82=showers, 85-86=snow showers, 95-99=thunderstorm
+    const condition = weatherCode >= 95 ? 'storm' : weatherCode >= 80 ? 'rain' : weatherCode >= 71 ? 'snow' : weatherCode >= 51 ? 'rain' : weatherCode >= 45 ? 'fog' : 'clear';
+    if (condition.includes('rain') || condition.includes('storm')) {
+      weatherAdjustment = 0.85;
+      weatherNote = 'Rain expected — typically -15% sales';
+    } else if (condition.includes('snow') || condition.includes('ice')) {
+      weatherAdjustment = 0.70;
+      weatherNote = 'Snow/ice expected — typically -30% sales';
+    } else if (temp > 85) {
+      weatherAdjustment = 1.10;
+      weatherNote = 'Hot day — expect +10% (beer/frozen drinks up)';
+    } else if (temp < 30) {
+      weatherAdjustment = 0.80;
+      weatherNote = 'Very cold — typically -20% sales';
+    }
+  }
+
+  // Event adjustment factor
+  let eventAdjustment = 1.0;
+  let eventNotes: string[] = [];
+  for (const evt of nearbyEvents) {
+    const dist = parseFloat(evt.distance?.toString() || '30');
+    const cat = (evt.category || '').toLowerCase();
+    if (dist <= 10) {
+      if (cat.includes('fair') || cat.includes('festival')) {
+        eventAdjustment += 0.25;
+        eventNotes.push(`${evt.eventName} (${dist}mi) — county fair/festival typically +25%`);
+      } else if (cat.includes('concert') || cat.includes('band') || cat.includes('music')) {
+        eventAdjustment += 0.15;
+        eventNotes.push(`${evt.eventName} (${dist}mi) — live music nearby typically +15%`);
+      } else if (cat.includes('sport') || cat.includes('game')) {
+        eventAdjustment += 0.20;
+        eventNotes.push(`${evt.eventName} (${dist}mi) — sporting event typically +20%`);
+      } else {
+        eventAdjustment += 0.10;
+        eventNotes.push(`${evt.eventName} (${dist}mi) — local event typically +10%`);
+      }
+    } else if (dist <= 20) {
+      eventAdjustment += 0.05;
+      eventNotes.push(`${evt.eventName} (${dist}mi) — moderate distance, slight bump +5%`);
+    }
+  }
+
+  const forecastedSales = baseSales * weatherAdjustment * eventAdjustment;
+  const forecastedOrders = parseFloat(baseline?.avgTotalQty || '0') * weatherAdjustment * eventAdjustment;
+  const confidence = sampleCount >= 8 ? 'high' : sampleCount >= 4 ? 'medium' : 'low';
+
+  return {
+    targetDate: targetDateStr,
+    dayOfWeek: dayName,
+    baseline: {
+      avgTotalAmount: baseSales,
+      avgGrandTotal: parseFloat(baseline?.avgGrandTotal || '0'),
+      avgTotalQty: parseFloat(baseline?.avgTotalQty || '0'),
+      avgPerGuest: parseFloat(baseline?.avgPerGuest || '0'),
+      minTotalAmount: parseFloat(baseline?.minTotalAmount || '0'),
+      maxTotalAmount: parseFloat(baseline?.maxTotalAmount || '0'),
+      avgFoodAmount: parseFloat(baseline?.avgFoodAmount || '0'),
+      avgBeerAmount: parseFloat(baseline?.avgBeerAmount || '0'),
+      avgLiquorAmount: parseFloat(baseline?.avgLiquorAmount || '0'),
+      avgPopAmount: parseFloat(baseline?.avgPopAmount || '0'),
+      sampleCount,
+    },
+    forecast: {
+      predictedSales: Math.round(forecastedSales * 100) / 100,
+      predictedOrders: Math.round(forecastedOrders),
+      confidence,
+      weatherAdjustmentPct: Math.round((weatherAdjustment - 1) * 100),
+      eventAdjustmentPct: Math.round((eventAdjustment - 1) * 100),
+    },
+    weather: weatherRows[0] || null,
+    weatherNote,
+    events: nearbyEvents,
+    eventNotes,
+    hourlyPattern,
+    categoryTrends,
+    weatherCorrelation: weatherCorr,
+  };
+}
+
+/** Get event impact history — match event types to past sales performance */
+export async function getEventImpactHistory() {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get all past events and match with daily sales on those dates
+  const results = await db.select({
+    eventName: localEvents.eventName,
+    category: localEvents.category,
+    eventDate: localEvents.eventDate,
+    distance: localEvents.distance,
+    totalAmount: dailySales.totalAmount,
+    totalQty: dailySales.totalQty,
+  }).from(localEvents)
+    .leftJoin(dailySales, sql`${localEvents.eventDate} = ${dailySales.businessDate}`)
+    .where(sql`${dailySales.totalAmount} IS NOT NULL`)
+    .orderBy(sql`${localEvents.eventDate} DESC`);
+
+  return results;
+}
+
+export async function batchNotifications() {
+  const db = await getDb();
+  if (!db) return 0;
+
+  // Find undelivered low/normal priority notifications with batch keys
+  const batchable = await db.select().from(notificationQueue)
+    .where(and(
+      sql`${notificationQueue.deliveredAt} IS NULL`,
+      sql`${notificationQueue.batchedInto} IS NULL`,
+      sql`${notificationQueue.batchKey} IS NOT NULL`,
+      sql`${notificationQueue.priority} IN ('low', 'normal')`
+    ))
+    .orderBy(notificationQueue.batchKey);
+
+  // Group by batchKey
+  const groups: Record<string, typeof batchable> = {};
+  for (const n of batchable) {
+    const key = n.batchKey || 'misc';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(n);
+  }
+
+  let batchedCount = 0;
+  for (const [key, items] of Object.entries(groups)) {
+    if (items.length < 2) continue; // Only batch if 2+ items
+
+    // Create a summary notification
+    const summaryResult = await db.insert(notificationQueue).values({
+      targetRole: items[0].targetRole,
+      priority: 'normal',
+      category: items[0].category,
+      title: `${items.length} ${items[0].category} updates`,
+      body: items.map(i => `• ${i.title}`).join('\n'),
+      batchKey: key,
+    });
+
+    const summaryId = (summaryResult as any)[0]?.insertId;
+    if (summaryId) {
+      // Mark originals as batched
+      for (const item of items) {
+        await db.update(notificationQueue).set({ batchedInto: summaryId }).where(eq(notificationQueue.id, item.id));
+      }
+      batchedCount += items.length;
+    }
+  }
+
+  return batchedCount;
 }
