@@ -431,3 +431,386 @@ export async function seedStaffData() {
   await db.insert(staff).values(staffData);
   return { message: `Seeded ${staffData.length} staff members` };
 }
+
+// ============================================================
+// AI-NATIVE INTELLIGENCE LAYER — DB HELPERS
+// ============================================================
+
+import {
+  knowledgeEntries, InsertKnowledgeEntry, KnowledgeEntry,
+  knowledgeCorrections,
+  achievementDefinitions, AchievementDefinition,
+  staffAchievementProgress,
+  staffAchievementUnlocks,
+  rewards,
+  rewardRedemptions,
+  photoMissions,
+  photoSubmissions,
+  vendorProducts,
+  orderGuideTemplates,
+  briefingMemory,
+} from "../drizzle/schema";
+
+// ============ KNOWLEDGE ENTRIES ============
+
+export async function createKnowledgeEntry(data: InsertKnowledgeEntry) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(knowledgeEntries).values(data);
+  return result;
+}
+
+export async function getKnowledgeByStation(station: string, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(knowledgeEntries)
+    .where(eq(knowledgeEntries.station, station as any))
+    .orderBy(desc(knowledgeEntries.confidence))
+    .limit(limit);
+}
+
+export async function getKnowledgeByCategory(category: string, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(knowledgeEntries)
+    .where(eq(knowledgeEntries.category, category as any))
+    .limit(limit);
+}
+
+export async function searchKnowledge(query: string, station?: string, limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [
+    sql`(${knowledgeEntries.question} LIKE ${'%' + query + '%'} OR ${knowledgeEntries.answer} LIKE ${'%' + query + '%'})`,
+  ];
+  if (station && station !== "general") {
+    conditions.push(
+      sql`(${knowledgeEntries.station} = ${station} OR ${knowledgeEntries.station} = 'general')`
+    );
+  }
+  return db.select().from(knowledgeEntries)
+    .where(and(...conditions))
+    .orderBy(desc(knowledgeEntries.confidence))
+    .limit(limit);
+}
+
+export async function updateKnowledgeEntry(id: number, data: Partial<InsertKnowledgeEntry>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(knowledgeEntries).set(data).where(eq(knowledgeEntries.id, id));
+}
+
+export async function getAllKnowledge(limit = 200) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(knowledgeEntries).orderBy(desc(knowledgeEntries.updatedAt)).limit(limit);
+}
+
+// ============ KNOWLEDGE CORRECTIONS ============
+
+export async function createKnowledgeCorrection(data: typeof knowledgeCorrections.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(knowledgeCorrections).values(data);
+}
+
+export async function getPendingCorrections() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(knowledgeCorrections)
+    .where(eq(knowledgeCorrections.status, "pending"))
+    .orderBy(desc(knowledgeCorrections.createdAt));
+}
+
+export async function approveCorrection(id: number, approvedByStaffId: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Get the correction
+  const corrections = await db.select().from(knowledgeCorrections).where(eq(knowledgeCorrections.id, id)).limit(1);
+  if (!corrections[0]) return;
+  const correction = corrections[0];
+  // Update the correction status
+  await db.update(knowledgeCorrections).set({
+    status: "approved",
+    approvedByStaffId,
+    approvedAt: new Date(),
+  }).where(eq(knowledgeCorrections.id, id));
+  // Update the knowledge entry with the new answer
+  await db.update(knowledgeEntries).set({
+    answer: correction.newAnswer,
+    confidence: "high",
+    source: "correction",
+    correctionsCount: sql`${knowledgeEntries.correctionsCount} + 1`,
+    lastCorrectedAt: new Date(),
+  }).where(eq(knowledgeEntries.id, correction.entryId));
+}
+
+export async function rejectCorrection(id: number, approvedByStaffId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(knowledgeCorrections).set({
+    status: "rejected",
+    approvedByStaffId,
+    approvedAt: new Date(),
+  }).where(eq(knowledgeCorrections.id, id));
+}
+
+// ============ ACHIEVEMENT DEFINITIONS ============
+
+export async function getAllAchievements() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(achievementDefinitions).orderBy(achievementDefinitions.category);
+}
+
+export async function createAchievementDefinition(data: typeof achievementDefinitions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(achievementDefinitions).values(data);
+}
+
+// ============ STAFF ACHIEVEMENT PROGRESS ============
+
+export async function getStaffAchievementProgress(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(staffAchievementProgress)
+    .where(eq(staffAchievementProgress.staffId, staffId));
+}
+
+export async function upsertAchievementProgress(
+  staffId: number,
+  achievementId: number,
+  currentValue: number,
+  bestValue: number,
+  status: "in_progress" | "completed" | "locked" = "in_progress"
+) {
+  const db = await getDb();
+  if (!db) return;
+  // Check if progress exists
+  const existing = await db.select().from(staffAchievementProgress)
+    .where(and(
+      eq(staffAchievementProgress.staffId, staffId),
+      eq(staffAchievementProgress.achievementId, achievementId)
+    )).limit(1);
+  if (existing[0]) {
+    await db.update(staffAchievementProgress).set({
+      currentValue,
+      bestValue: Math.max(bestValue, existing[0].bestValue),
+      status,
+      lastEventDate: new Date(),
+    }).where(eq(staffAchievementProgress.id, existing[0].id));
+  } else {
+    await db.insert(staffAchievementProgress).values({
+      staffId,
+      achievementId,
+      currentValue,
+      bestValue,
+      status,
+      lastEventDate: new Date(),
+    });
+  }
+}
+
+export async function getUnacknowledgedUnlocks(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(staffAchievementUnlocks)
+    .where(eq(staffAchievementUnlocks.staffId, staffId))
+    .orderBy(desc(staffAchievementUnlocks.earnedAt));
+}
+
+export async function createAchievementUnlock(data: typeof staffAchievementUnlocks.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(staffAchievementUnlocks).values(data);
+}
+
+export async function acknowledgeUnlock(staffId: number, achievementId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staffAchievementProgress).set({
+    acknowledgedAt: new Date(),
+  }).where(and(
+    eq(staffAchievementProgress.staffId, staffId),
+    eq(staffAchievementProgress.achievementId, achievementId)
+  ));
+}
+
+// ============ REWARDS ============
+
+export async function getAllRewards() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rewards).where(eq(rewards.active, true)).orderBy(rewards.pointsCost);
+}
+
+export async function createReward(data: typeof rewards.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(rewards).values(data);
+}
+
+export async function createRedemption(data: typeof rewardRedemptions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(rewardRedemptions).values(data);
+}
+
+export async function getStaffRedemptions(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rewardRedemptions)
+    .where(eq(rewardRedemptions.staffId, staffId))
+    .orderBy(desc(rewardRedemptions.createdAt));
+}
+
+export async function getPendingRedemptions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(rewardRedemptions)
+    .where(eq(rewardRedemptions.status, "pending"))
+    .orderBy(desc(rewardRedemptions.createdAt));
+}
+
+export async function approveRedemption(id: number, approvedByStaffId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(rewardRedemptions).set({
+    status: "approved",
+    approvedByStaffId,
+    approvedAt: new Date(),
+  }).where(eq(rewardRedemptions.id, id));
+}
+
+// ============ PHOTO MISSIONS ============
+
+export async function getActiveMissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(photoMissions)
+    .where(eq(photoMissions.active, true))
+    .orderBy(desc(photoMissions.createdAt));
+}
+
+export async function createPhotoMission(data: typeof photoMissions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(photoMissions).values(data);
+}
+
+// ============ PHOTO SUBMISSIONS ============
+
+export async function createPhotoSubmission(data: typeof photoSubmissions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(photoSubmissions).values(data);
+}
+
+export async function getPhotoSubmissionsByStaff(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(photoSubmissions)
+    .where(eq(photoSubmissions.staffId, staffId))
+    .orderBy(desc(photoSubmissions.createdAt));
+}
+
+export async function getPhotoSubmissionsByMission(missionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(photoSubmissions)
+    .where(eq(photoSubmissions.missionId, missionId))
+    .orderBy(desc(photoSubmissions.createdAt));
+}
+
+export async function verifyPhotoSubmission(id: number, verifiedByStaffId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(photoSubmissions).set({
+    verified: true,
+    verifiedByStaffId,
+  }).where(eq(photoSubmissions.id, id));
+}
+
+// ============ VENDOR PRODUCTS ============
+
+export async function getVendorProducts(vendorName?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (vendorName) {
+    return db.select().from(vendorProducts)
+      .where(and(eq(vendorProducts.vendorName, vendorName), eq(vendorProducts.active, true)))
+      .orderBy(vendorProducts.category, vendorProducts.productName);
+  }
+  return db.select().from(vendorProducts)
+    .where(eq(vendorProducts.active, true))
+    .orderBy(vendorProducts.vendorName, vendorProducts.category, vendorProducts.productName);
+}
+
+export async function createVendorProduct(data: typeof vendorProducts.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(vendorProducts).values(data);
+}
+
+export async function updateVendorProductPrice(id: number, newPrice: string) {
+  const db = await getDb();
+  if (!db) return;
+  // Get current price to store as previous
+  const existing = await db.select().from(vendorProducts).where(eq(vendorProducts.id, id)).limit(1);
+  if (!existing[0]) return;
+  const oldPrice = existing[0].lastPrice;
+  const changePercent = oldPrice ? (((parseFloat(newPrice) - parseFloat(oldPrice)) / parseFloat(oldPrice)) * 100).toFixed(2) : null;
+  await db.update(vendorProducts).set({
+    previousPrice: oldPrice,
+    lastPrice: newPrice,
+    priceChangePercent: changePercent,
+    lastOrderedAt: new Date(),
+  }).where(eq(vendorProducts.id, id));
+}
+
+// ============ ORDER GUIDE TEMPLATES ============
+
+export async function getOrderGuides(staffId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (staffId) {
+    return db.select().from(orderGuideTemplates)
+      .where(eq(orderGuideTemplates.assignedToStaffId, staffId));
+  }
+  return db.select().from(orderGuideTemplates);
+}
+
+export async function createOrderGuide(data: typeof orderGuideTemplates.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(orderGuideTemplates).values(data);
+}
+
+// ============ BRIEFING MEMORY ============
+
+export async function getRelevantMemories(limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(briefingMemory)
+    .where(
+      sql`(${briefingMemory.expiresAt} IS NULL OR ${briefingMemory.expiresAt} > NOW())`
+    )
+    .orderBy(desc(briefingMemory.relevanceScore))
+    .limit(limit);
+}
+
+export async function createBriefingMemory(data: typeof briefingMemory.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(briefingMemory).values(data);
+}
+
+export async function decayMemoryRelevance() {
+  const db = await getDb();
+  if (!db) return;
+  // Decay all memories by 5% per day (called by daily job)
+  await db.update(briefingMemory).set({
+    relevanceScore: sql`GREATEST(${briefingMemory.relevanceScore} - 5, 0)`,
+  });
+}

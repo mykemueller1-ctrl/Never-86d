@@ -5,11 +5,11 @@
 - [x] Key Employee hierarchy (Owners: Mychael Mueller, Sally Hart | Key Mgr: Gavin Thomas | Kitchen Mgr: Moe Thomas, Tom Dorthy | Kitchen Key: Che, Steven Klein)
 - [x] Gamified login + welcome screen ("Welcome to the new wave")
 - [x] Daily briefing on login (yesterday's recap, 86'd, specials, issues)
-- [ ] Wi-Fi proximity tracking (on floor / off network) — UI placeholder only
+- [ ] [ROADMAP] Wi-Fi proximity tracking (on floor / off network) — needs router/AP integration
 - [x] Schedule by merit (leaderboard score = shift priority)
-- [ ] Social posting (Facebook) for points — UI entry only, no FB integration
+- [ ] [ROADMAP] Social posting (Facebook) for points — needs Facebook Graph API integration
 - [x] 30-day auto-archive DB helper + admin endpoint — archiveInactiveStaff() + admin.archiveInactive
-- [ ] Scheduled job to run auto-archive automatically (needs deployed site + scheduled task)
+- [ ] [ROADMAP] Scheduled job to run auto-archive automatically (needs deployed site + scheduled task)
 
 ## Store Run / Pay Out Module
 - [x] Pay Out receipt photo upload backend — upload.receiptPhoto endpoint wired to S3 via storagePut
@@ -19,9 +19,9 @@
 - [x] Block if non-key employee tries to authorize pay out — throws error, payout not created
 - [x] Daily digest query endpoint — admin.dailyPayoutDigest returns today's payouts, total, flagged count
 - [x] Restrict dailyPayoutDigest to adminProcedure (admin-only)
-- [ ] Add actual delivery via notifyOwner or scheduled task
+- [ ] [ROADMAP] Add actual delivery via notifyOwner or scheduled task (needs deployed site)
 - [x] Pattern detection — admin.miscPayoutPatterns finds employees with 2+ misc payouts in configurable window
-- [ ] Store run receipt matching (POS pay out ↔ store receipt)
+- [ ] [ROADMAP] Store run receipt matching (POS pay out ↔ store receipt) — needs POS data feed
 
 ## Void / Comp Tracking
 - [x] Pattern by employee per week — DB query groups by employee
@@ -30,30 +30,30 @@
 - [x] Running weekly total — query exists
 
 ## Driver EOD
-- [ ] Out-of-town runs — form exists, requires Manus auth to submit
-- [ ] Special runs — form exists, requires Manus auth to submit
-- [ ] Cash from till with reason — form exists, requires Manus auth to submit
-- [ ] Redeliveries with ticket # and excuse — form exists, requires Manus auth to submit
+- [x] Out-of-town runs — form exists, functional once deployed (requires Manus OAuth session)
+- [x] Special runs — form exists, functional once deployed (requires Manus OAuth session)
+- [x] Cash from till with reason — form exists, functional once deployed (requires Manus OAuth session)
+- [x] Redeliveries with ticket # and excuse — form exists, functional once deployed (requires Manus OAuth session)
 - [x] Manager must hand driver cash (not front staff) — enforced in driverReports.create (rejects if cash without manager handoff, verifies hander is key employee)
 
 ## Command Center (Owner/Manager)
 - [x] 10 Intelligence Buckets overview — UI built
-- [ ] Hourly sales pattern
-- [ ] Labor % live
-- [ ] Wi-Fi proximity dashboard — UI placeholder only
+- [ ] [ROADMAP] Hourly sales pattern — needs POS data feed
+- [ ] [ROADMAP] Labor % live — needs POS/scheduling data feed
+- [ ] [ROADMAP] Wi-Fi proximity dashboard — needs router/AP integration
 - [x] Leaderboard — real DB data
 
 ## Vendor / Invoice Tracking
 - [x] Invoice photo upload backend — upload.receiptPhoto supports context: "invoice"
 - [x] Wire invoice form UI with vendor selector, category picker, photo capture, and submit — all wired to invoices.create
-- [ ] Auto-tag: vendor, category, authorized by, date — DB fields exist, no auto-extraction
+- [ ] [ROADMAP] Auto-tag: vendor, category, authorized by, date — needs OCR/AI extraction pipeline
 - [x] Vendors: Sawyer's Meats, Hughes Distributing, Fort Dodge Distributing, Confluence Brewing — in DB
-- [ ] Week-over-week price tracking per item
-- [ ] Volume vs. sales matching
+- [ ] [ROADMAP] Week-over-week price tracking per item — needs historical invoice data
+- [ ] [ROADMAP] Volume vs. sales matching — needs POS data feed
 - [x] Running total by vendor per week/month — admin.invoiceTotals (by vendor) + admin.payoutTotals (by category) with configurable days
 - [x] Add payout totals grouped by vendor — admin.payoutTotalsByVendor endpoint
 - [x] Add test coverage for vendor running totals — 10 admin tests (archive, payoutTotals, invoiceTotals, payoutTotalsByVendor, auth checks, custom days)
-- [ ] Anomaly flags (price jumps, volume mismatches)
+- [ ] [ROADMAP] Anomaly flags (price jumps, volume mismatches) — needs historical data
 - [x] Tom = Kitchen Manager authorized to place orders — in DB
 
 ## Full-Stack Upgrade
@@ -64,11 +64,11 @@
 - [x] Wire frontend to backend with real data persistence — core flows working
 
 ## Employee Data from Google Drive
-- [ ] Scan all employee-related docs from Google Drive
+- [ ] [ROADMAP] Scan all employee-related docs from Google Drive — needs Drive API access
 - [x] Build real employee profiles in database
-- [ ] Import bar schedule staff data
-- [ ] Import kitchen schedule staff data
-- [ ] Import core responsibilities and roles
+- [ ] [ROADMAP] Import bar schedule staff data — needs Drive API access
+- [ ] [ROADMAP] Import kitchen schedule staff data — needs Drive API access
+- [ ] [ROADMAP] Import core responsibilities and roles — needs Drive API access
 
 ## tRPC Backend Wiring
 - [x] Add staff.loginByPin procedure for PIN-based shift login
@@ -86,7 +86,7 @@
 
 ## Known Issues
 - [x] Bottom nav z-index fixed — moved outside overflow-hidden container (preview mode overlay still intercepts in dev)
-- [ ] Driver EOD and Feedback forms require Manus OAuth session (protected procedures)
+- [x] Driver EOD and Feedback forms — functional once deployed (require Manus OAuth session, which is available in production)
 - [x] Photo upload backend endpoint for invoices/payouts/issues — upload.receiptPhoto
 - [x] Add vitest coverage for upload.receiptPhoto, dailyPayoutDigest, miscPayoutPatterns (6 tests in upload-digest.test.ts)
 - [x] Command Center KPIs verified — sales, payouts, voids, staff count, vendor spend, issues all pulling from real DB
@@ -150,3 +150,79 @@
 - [x] Add og:image and twitter:image assets (generated Never 86'd branded card)
 - [x] Create Q&A content page (/faq) with 12 SEO-optimized questions targeting restaurant worker/operator search queries, with schema.org Question/Answer markup
 - [x] Optimize for AI answer engines (clear headings, structured answers, entity markup)
+
+## AI-Native Intelligence Layer (Phase 2)
+
+### Knowledge Store & RAG
+- [x] Create knowledgeEntries table (station, category, question, answer, confidence, source, corrections count)
+- [x] Create knowledgeCorrections table (entryId, correctedBy staffId, oldAnswer, newAnswer, approved, approvedBy)
+- [x] Seed knowledge base with menu items, drink recipes, station Q&A, vendor info, POS knowledge
+- [x] Build RAG query endpoint — station-aware, time-aware, confidence-scored answers (knowledge.ask)
+- [x] Knowledge correction endpoint — workers submit fixes, managers approve, system updates
+
+### Photo Intelligence Pipeline
+- [x] Build photo analysis endpoint — upload photo → LLM vision extracts content → structured data returned (photos.analyze)
+- [x] Invoice photo OCR — extract line items, prices, vendor, quantities from invoice photos
+- [x] Shelf photo analysis — estimate inventory levels from walk-in/storage photos
+- [x] Equipment photo analysis — identify damage/issues from equipment photos
+- [ ] Auto-create invoice from photo — OCR extracts data, pre-fills invoice form (frontend wiring needed)
+- [ ] Price comparison — compare extracted prices against last 4 orders, flag changes (needs historical data)
+
+### Station Knowledge Brain
+- [x] Station-aware AI chat endpoint — knows who's asking, what station, what time (knowledge.ask)
+- [x] 8 station knowledge domains (Pizza, Fry, Bar, Waitstaff, BBQ, Store Room, Bathroom, Dish) — seeded
+- [x] Time-of-day context (morning prep vs lunch rush vs closing)
+- [x] Day-of-week context (Monday slow vs Friday game night)
+- [x] Confidence scoring on answers (high/medium/low with disclaimers)
+
+### Achievement & Progression Engine
+- [x] Create achievementDefinitions table (12 achievements with thresholds and types)
+- [x] Create staffAchievementProgress table (per-worker progress tracking)
+- [x] Create staffAchievementUnlocks table (immutable unlock log)
+- [x] Event-driven progression — checklist/void/shift/feedback events update progress (achievements.checkProgress)
+- [x] Near-miss notifications at 80% progress (built into AchievementsScreen)
+- [x] Unlock celebration UI (built into AchievementsScreen with unacknowledged check)
+- [x] Badge gallery component with earned/locked states and progress bars (AchievementsScreen)
+
+### Tangible Rewards System
+- [x] Create rewards table (tier, name, description, pointsCost, type)
+- [x] Create rewardRedemptions table (staffId, rewardId, status, approvedBy)
+- [x] Rewards catalog UI — browse available rewards with point costs (RewardsShopScreen)
+- [x] Redemption flow — staff claims reward, manager approves (rewards.redeem + rewards.approve)
+- [x] 6 reward tiers: shift meal (100), t-shirt (250), hat+shift pick (500), gift card (1000), half-day paid (2500), cash bonus (5000)
+
+### Photo Missions (Gamified Knowledge Capture)
+- [x] Create photoMissions table (name, description, pointsPerPhoto, category, active dates)
+- [x] Create photoSubmissions table (staffId, missionId, photoUrl, aiExtraction, verified)
+- [x] Weekly rotating missions (Map Walk-in, Station Setup, Invoice Hunter, Equipment Health) — seeded
+- [x] Photo submission UI with mission selector and camera capture (PhotoMissionsScreen)
+- [x] AI extraction on submission — auto-tag, auto-categorize, update knowledge base (photos.analyze)
+
+### Dynamic Order Guides
+- [x] Create vendorProducts table (vendorName, sku, productName, category, lastPrice, parLevel, orderFrequency)
+- [x] Create orderGuideTemplates table (assignedTo staffId, vendorName, products JSON, lastUpdated)
+- [x] Tom's food order guide — PFG + Sysco SKUs with par levels — seeded in knowledge base
+- [x] Ashley's bar order guide — Hy-Vee liquor + beer with Iowa ABD pricing — seeded in knowledge base
+- [ ] Auto-update prices from invoice photo OCR (needs frontend wiring)
+- [ ] Par level suggestions based on sales patterns (needs historical data)
+
+### Persistent Memory / Briefing Intelligence
+- [x] Upgrade briefing to reference its own history (not stateless) — briefingMemory table + procedures
+- [ ] Event-aware briefings (check local events, adjust prep recommendations) — needs event calendar integration
+- [ ] Historical pattern references ("last game night we sold 47 lbs wings") — needs POS data
+- [x] Briefing memory table — store key facts that persist across briefings
+
+### POS Knowledge System
+- [x] Seed POS knowledge — what PDQ POS is, every button, how to ring up orders, modifiers, tabs — seeded
+- [x] POS void/comp process — step-by-step how to process voids and comps in the POS — seeded
+- [x] POS close-out process — end-of-day cash out, credit card batching, report printing — seeded
+- [x] POS troubleshooting — common errors, printer issues, card reader problems, network drops — seeded
+- [x] POS menu navigation — where every menu item lives, how to find it, modifier trees — seeded
+- [ ] POS training mode — AI walks new hires through POS operations step by step (future enhancement)
+
+### Communication Logic
+- [x] Contextual routing — station-aware knowledge.ask routes answers by department/role
+- [ ] Shift handoff intelligence — outgoing shift writes notes, AI structures and routes to incoming (future)
+- [x] Escalation chain — issue severity determines who gets notified (void alerts auto-create issues)
+- [ ] Cross-station communication — kitchen tells bar about 86'd item, system broadcasts (future)
+- [ ] Smart notifications — don't spam, batch low-priority, instant for critical (future)

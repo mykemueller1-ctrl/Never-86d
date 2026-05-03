@@ -262,3 +262,253 @@ export const issues = mysqlTable("issues", {
 });
 
 export type Issue = typeof issues.$inferSelect;
+
+// ============================================================
+// AI-NATIVE INTELLIGENCE LAYER
+// ============================================================
+
+/**
+ * Knowledge Entries — the restaurant's tribal knowledge brain.
+ * Every piece of knowledge: recipes, locations, processes, vendor info.
+ * Station-aware, confidence-scored, correction-learning.
+ */
+export const knowledgeEntries = mysqlTable("knowledge_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  station: mysqlEnum("station", [
+    "pizza_line", "fry_line", "bar", "waitstaff", "bbq_room",
+    "store_room", "bathroom", "dish_pit", "general"
+  ]).notNull(),
+  category: mysqlEnum("category", [
+    "recipe", "location", "process", "equipment", "vendor",
+    "allergen", "prep", "cleaning", "safety", "menu_info"
+  ]).notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  confidence: mysqlEnum("confidence", ["high", "medium", "low"]).default("medium").notNull(),
+  source: mysqlEnum("source", ["manual", "photo_extraction", "correction", "ai_inferred", "imported"]).default("manual").notNull(),
+  correctionsCount: int("correctionsCount").default(0).notNull(),
+  lastCorrectedAt: timestamp("lastCorrectedAt"),
+  tags: json("tags"), // Array of string tags for search
+  photoUrl: text("photoUrl"), // Visual reference if applicable
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KnowledgeEntry = typeof knowledgeEntries.$inferSelect;
+export type InsertKnowledgeEntry = typeof knowledgeEntries.$inferInsert;
+
+/**
+ * Knowledge Corrections — workers fix wrong answers, managers approve.
+ * Every correction makes the system smarter.
+ */
+export const knowledgeCorrections = mysqlTable("knowledge_corrections", {
+  id: int("id").autoincrement().primaryKey(),
+  entryId: int("entryId").notNull(),
+  correctedByStaffId: int("correctedByStaffId").notNull(),
+  oldAnswer: text("oldAnswer").notNull(),
+  newAnswer: text("newAnswer").notNull(),
+  reason: text("reason"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  approvedByStaffId: int("approvedByStaffId"),
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type KnowledgeCorrection = typeof knowledgeCorrections.$inferSelect;
+
+/**
+ * Achievement Definitions — the 12+ permanent unlockable badges.
+ */
+export const achievementDefinitions = mysqlTable("achievement_definitions", {
+  id: int("id").autoincrement().primaryKey(),
+  slug: varchar("slug", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description").notNull(),
+  badge: varchar("badge", { length: 10 }).notNull(), // emoji badge
+  category: mysqlEnum("category", [
+    "onboarding", "reliability", "quality", "engagement", "leadership", "longevity"
+  ]).notNull(),
+  thresholdType: mysqlEnum("thresholdType", ["cumulative", "consecutive", "window", "milestone"]).notNull(),
+  thresholdValue: int("thresholdValue").notNull(),
+  windowDays: int("windowDays"), // for window type
+  resetEvent: varchar("resetEvent", { length: 100 }), // what resets consecutive/window
+  bonusPoints: int("bonusPoints").default(0).notNull(),
+  difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard", "legendary"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AchievementDefinition = typeof achievementDefinitions.$inferSelect;
+
+/**
+ * Staff Achievement Progress — per-worker progress toward each achievement.
+ */
+export const staffAchievementProgress = mysqlTable("staff_achievement_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  achievementId: int("achievementId").notNull(),
+  currentValue: int("currentValue").default(0).notNull(),
+  bestValue: int("bestValue").default(0).notNull(), // personal best (preserved on reset)
+  status: mysqlEnum("status", ["in_progress", "completed", "locked"]).default("in_progress").notNull(),
+  streakStartDate: timestamp("streakStartDate"),
+  lastEventDate: timestamp("lastEventDate"),
+  acknowledgedAt: timestamp("acknowledgedAt"), // null = celebration not yet shown
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StaffAchievementProgress = typeof staffAchievementProgress.$inferSelect;
+
+/**
+ * Staff Achievement Unlocks — immutable log of when achievements were earned.
+ */
+export const staffAchievementUnlocks = mysqlTable("staff_achievement_unlocks", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  achievementId: int("achievementId").notNull(),
+  earnedAt: timestamp("earnedAt").notNull(),
+  contextSnapshot: json("contextSnapshot"), // what was happening when earned
+  bonusPointsAwarded: int("bonusPointsAwarded").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StaffAchievementUnlock = typeof staffAchievementUnlocks.$inferSelect;
+
+/**
+ * Rewards — tangible rewards workers can redeem with points.
+ */
+export const rewards = mysqlTable("rewards", {
+  id: int("id").autoincrement().primaryKey(),
+  tier: mysqlEnum("tier", ["bronze", "silver", "gold", "platinum", "diamond", "legend"]).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  pointsCost: int("pointsCost").notNull(),
+  type: mysqlEnum("type", ["meal", "merch", "schedule", "gift_card", "time_off", "cash"]).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Reward = typeof rewards.$inferSelect;
+
+/**
+ * Reward Redemptions — staff claims, manager approves.
+ */
+export const rewardRedemptions = mysqlTable("reward_redemptions", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  rewardId: int("rewardId").notNull(),
+  pointsSpent: int("pointsSpent").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "denied", "fulfilled"]).default("pending").notNull(),
+  approvedByStaffId: int("approvedByStaffId"),
+  approvedAt: timestamp("approvedAt"),
+  fulfilledAt: timestamp("fulfilledAt"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RewardRedemption = typeof rewardRedemptions.$inferSelect;
+
+/**
+ * Photo Missions — weekly rotating challenges that build the knowledge base.
+ */
+export const photoMissions = mysqlTable("photo_missions", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  category: mysqlEnum("category", [
+    "walk_in", "station_setup", "invoice", "equipment", "prep", "plate", "delivery", "general"
+  ]).notNull(),
+  pointsPerPhoto: int("pointsPerPhoto").default(5).notNull(),
+  bonusPoints: int("bonusPoints").default(0).notNull(), // bonus for completing mission
+  targetPhotoCount: int("targetPhotoCount").default(10).notNull(),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PhotoMission = typeof photoMissions.$inferSelect;
+
+/**
+ * Photo Submissions — photos taken by workers, AI-analyzed, knowledge-building.
+ */
+export const photoSubmissions = mysqlTable("photo_submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  missionId: int("missionId"),
+  photoUrl: text("photoUrl").notNull(),
+  photoType: mysqlEnum("photoType", [
+    "invoice", "shelf", "station", "equipment", "plate", "delivery", "prep", "other"
+  ]).notNull(),
+  aiExtraction: json("aiExtraction"), // structured data extracted by LLM vision
+  aiSummary: text("aiSummary"), // human-readable summary of what AI found
+  verified: boolean("verified").default(false).notNull(),
+  verifiedByStaffId: int("verifiedByStaffId"),
+  pointsAwarded: int("pointsAwarded").default(0).notNull(),
+  knowledgeEntryIds: json("knowledgeEntryIds"), // IDs of knowledge entries created from this photo
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PhotoSubmission = typeof photoSubmissions.$inferSelect;
+
+/**
+ * Vendor Products — SKU-level tracking per vendor for order guides.
+ */
+export const vendorProducts = mysqlTable("vendor_products", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorName: varchar("vendorName", { length: 200 }).notNull(),
+  sku: varchar("sku", { length: 50 }),
+  productName: varchar("productName", { length: 300 }).notNull(),
+  category: mysqlEnum("category", [
+    "meat", "dairy", "produce", "bread", "frozen", "dry_goods",
+    "paper", "chemicals", "liquor", "beer", "wine", "soda", "other"
+  ]).notNull(),
+  unit: varchar("unit", { length: 50 }), // "case", "lb", "each", "bottle"
+  lastPrice: decimal("lastPrice", { precision: 10, scale: 2 }),
+  previousPrice: decimal("previousPrice", { precision: 10, scale: 2 }),
+  priceChangePercent: decimal("priceChangePercent", { precision: 5, scale: 2 }),
+  parLevel: int("parLevel"), // how many to keep in stock
+  orderFrequency: mysqlEnum("orderFrequency", ["daily", "twice_weekly", "weekly", "biweekly", "monthly", "as_needed"]),
+  lastOrderedAt: timestamp("lastOrderedAt"),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type VendorProduct = typeof vendorProducts.$inferSelect;
+
+/**
+ * Order Guide Templates — assigned order guides per manager.
+ */
+export const orderGuideTemplates = mysqlTable("order_guide_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  assignedToStaffId: int("assignedToStaffId"),
+  vendorName: varchar("vendorName", { length: 200 }).notNull(),
+  products: json("products"), // Array of { vendorProductId, customParLevel, notes }
+  lastUpdated: timestamp("lastUpdated"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OrderGuideTemplate = typeof orderGuideTemplates.$inferSelect;
+
+/**
+ * Briefing Memory — persistent facts that carry across briefings.
+ * The system remembers what happened and references it in future briefings.
+ */
+export const briefingMemory = mysqlTable("briefing_memory", {
+  id: int("id").autoincrement().primaryKey(),
+  factType: mysqlEnum("factType", [
+    "event_pattern", "shortage", "equipment_issue", "staff_pattern",
+    "vendor_change", "menu_change", "seasonal", "custom"
+  ]).notNull(),
+  fact: text("fact").notNull(),
+  relevanceScore: int("relevanceScore").default(50).notNull(), // 0-100, decays over time
+  expiresAt: timestamp("expiresAt"), // null = never expires
+  sourceType: varchar("sourceType", { length: 50 }), // "checklist", "invoice", "feedback", etc.
+  sourceId: int("sourceId"), // reference to source record
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BriefingMemory = typeof briefingMemory.$inferSelect;

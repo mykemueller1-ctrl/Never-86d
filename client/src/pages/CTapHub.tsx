@@ -22,8 +22,10 @@ import {
   ClipboardCheck, LogOut, Home, ArrowRight,
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
-  Sparkles, Target, ThumbsUp, MessageSquare
+  Sparkles, Target, ThumbsUp, MessageSquare,
+  Brain, Gift
 } from "lucide-react";
+import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -31,7 +33,8 @@ type Screen =
   | "home" | "checklist" | "issues"
   | "voids" | "feedback" | "driver-eod"
   | "command" | "leaderboard" | "profile"
-  | "store-run" | "invoices";
+  | "store-run" | "invoices"
+  | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -582,6 +585,26 @@ export default function CTapHub() {
             )}
             <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("issues")} />
             <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => navigateTo("feedback")} subtitle="+5 pts" />
+          </div>
+
+          {/* AI Intelligence Actions */}
+          <div className="grid grid-cols-4 gap-2">
+            <button onClick={() => navigateTo("ask-brain")} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:border-purple-500/40 transition-all">
+              <Brain size={18} className="text-purple-400" />
+              <span className="text-[9px] text-purple-300 font-medium">Ask Brain</span>
+            </button>
+            <button onClick={() => navigateTo("photo-missions")} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+              <Camera size={18} className="text-emerald-400" />
+              <span className="text-[9px] text-emerald-300 font-medium">Missions</span>
+            </button>
+            <button onClick={() => navigateTo("achievements")} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all">
+              <Trophy size={18} className="text-amber-400" />
+              <span className="text-[9px] text-amber-300 font-medium">Badges</span>
+            </button>
+            <button onClick={() => navigateTo("rewards-shop")} className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20 hover:border-pink-500/40 transition-all">
+              <Gift size={18} className="text-pink-400" />
+              <span className="text-[9px] text-pink-300 font-medium">Rewards</span>
+            </button>
           </div>
 
           {/* Leaderboard Preview */}
@@ -1478,6 +1501,10 @@ export default function CTapHub() {
         {screen === "profile" && <ProfileScreen />}
         {screen === "store-run" && <StoreRunScreen />}
         {screen === "invoices" && <InvoiceScreen />}
+        {screen === "ask-brain" && staffUser && <AskBrainScreen staffUser={staffUser} station={selectedDept === "bar" ? "bar" : selectedDept === "kitchen" ? "pizza_line" : "general"} onBack={() => navigateTo("home")} />}
+        {screen === "photo-missions" && staffUser && <PhotoMissionsScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
+        {screen === "achievements" && staffUser && <AchievementsScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
+        {screen === "rewards-shop" && staffUser && <RewardsShopScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
       </div>
       <BottomNav />
     </>

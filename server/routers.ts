@@ -17,7 +17,17 @@ import {
   getLatestBriefing, createBriefing,
   seedStaffData,
   archiveInactiveStaff, getPayoutTotalsByCategory, getPayoutTotalsByVendor, getInvoiceTotalsByVendor,
+  // AI-Native Intelligence Layer
+  createKnowledgeEntry, getKnowledgeByStation, getKnowledgeByCategory, searchKnowledge, updateKnowledgeEntry, getAllKnowledge,
+  createKnowledgeCorrection, getPendingCorrections, approveCorrection, rejectCorrection,
+  getAllAchievements, createAchievementDefinition, getStaffAchievementProgress, upsertAchievementProgress, getUnacknowledgedUnlocks, createAchievementUnlock, acknowledgeUnlock,
+  getAllRewards, createReward, createRedemption, getStaffRedemptions, getPendingRedemptions, approveRedemption,
+  getActiveMissions, createPhotoMission, createPhotoSubmission, getPhotoSubmissionsByStaff, getPhotoSubmissionsByMission, verifyPhotoSubmission,
+  getVendorProducts, createVendorProduct, updateVendorProductPrice,
+  getOrderGuides, createOrderGuide,
+  getRelevantMemories, createBriefingMemory,
 } from "./db";
+import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -344,6 +354,311 @@ export const appRouter = router({
       openIssues: z.any().optional(),
       shoutouts: z.any().optional(),
     })).mutation(({ input }) => createBriefing(input)),
+  }),
+
+  // ============ KNOWLEDGE BRAIN ============
+  knowledge: router({
+    list: protectedProcedure.input(z.object({ station: z.string().optional(), category: z.string().optional() }).optional()).query(({ input }) => {
+      if (input?.station) return getKnowledgeByStation(input.station);
+      if (input?.category) return getKnowledgeByCategory(input.category);
+      return getAllKnowledge();
+    }),
+    search: publicProcedure.input(z.object({ query: z.string(), station: z.string().optional() })).query(({ input }) => searchKnowledge(input.query, input.station)),
+    create: protectedProcedure.input(z.object({
+      station: z.enum(["pizza_line", "fry_line", "bar", "waitstaff", "bbq_room", "store_room", "bathroom", "dish_pit", "general"]),
+      category: z.enum(["recipe", "location", "process", "equipment", "vendor", "allergen", "prep", "cleaning", "safety", "menu_info"]),
+      question: z.string(),
+      answer: z.string(),
+      confidence: z.enum(["high", "medium", "low"]).optional(),
+      source: z.enum(["manual", "photo_extraction", "correction", "ai_inferred", "imported"]).optional(),
+      tags: z.array(z.string()).optional(),
+      photoUrl: z.string().optional(),
+    })).mutation(({ input }) => createKnowledgeEntry(input)),
+    // AI-powered station Q&A — contextual, station-aware, time-aware
+    ask: publicProcedure.input(z.object({
+      question: z.string(),
+      station: z.string().optional(),
+      staffName: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      // Fetch relevant knowledge entries for context injection
+      const relevantKnowledge = await searchKnowledge(input.question, input.station, 15);
+      const memories = await getRelevantMemories(10);
+      const now = new Date();
+      const hour = now.getHours();
+      const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+      const timeContext = hour < 11 ? "morning prep" : hour < 14 ? "lunch rush" : hour < 17 ? "afternoon lull" : hour < 21 ? "dinner rush" : "closing";
+
+      const knowledgeContext = relevantKnowledge.map(k =>
+        `[${k.station}/${k.category}] Q: ${k.question}\nA: ${k.answer} (confidence: ${k.confidence})`
+      ).join("\n\n");
+
+      const memoryContext = memories.map(m => `[${m.factType}] ${m.fact}`).join("\n");
+
+      const systemPrompt = `You are the Community Tap & Pizzeria knowledge assistant. You help restaurant staff with questions about recipes, processes, locations, equipment, and operations.
+
+Current context:
+- Time: ${now.toLocaleTimeString()} (${timeContext})
+- Day: ${dayOfWeek}
+- Station: ${input.station || "general"}
+- Staff member: ${input.staffName || "team member"}
+
+Relevant knowledge from the restaurant brain:
+${knowledgeContext || "No specific knowledge entries found for this query."}
+
+Recent restaurant memories:
+${memoryContext || "No recent memories."}
+
+Rules:
+1. Answer based on the knowledge entries above when available
+2. If you're not confident, say so and suggest asking a manager
+3. Keep answers concise and actionable — this person is working a shift
+4. If the question is about a recipe, include exact measurements
+5. If about a location, be specific ("second shelf, left side of walk-in")
+6. Never make up food safety information — defer to management
+7. Reference the time of day when relevant (prep vs rush vs closing)`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: input.question },
+        ],
+      });
+
+      const answer = response.choices?.[0]?.message?.content || "I couldn't find an answer. Please ask a manager.";
+      return { answer, sourcesUsed: relevantKnowledge.length, station: input.station || "general" };
+    }),
+    // Submit a correction to a knowledge entry
+    correct: protectedProcedure.input(z.object({
+      entryId: z.number(),
+      correctedByStaffId: z.number(),
+      oldAnswer: z.string(),
+      newAnswer: z.string(),
+      reason: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      await createKnowledgeCorrection(input);
+      // Award points for contributing
+      await addGamificationEvent({
+        staffId: input.correctedByStaffId,
+        date: new Date(),
+        eventType: "feedback_submitted",
+        points: 10,
+        description: "Knowledge correction submitted",
+      });
+      return { success: true };
+    }),
+    corrections: router({
+      pending: protectedProcedure.query(() => getPendingCorrections()),
+      approve: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveCorrection(input.id, input.approvedByStaffId)),
+      reject: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => rejectCorrection(input.id, input.approvedByStaffId)),
+    }),
+  }),
+
+  // ============ PHOTO INTELLIGENCE ============
+  photos: router({
+    // Analyze a photo with LLM vision and extract structured data
+    analyze: protectedProcedure.input(z.object({
+      photoUrl: z.string(),
+      photoType: z.enum(["invoice", "shelf", "station", "equipment", "plate", "delivery", "prep", "other"]),
+      staffId: z.number(),
+      missionId: z.number().optional(),
+    })).mutation(async ({ input }) => {
+      const typePrompts: Record<string, string> = {
+        invoice: `Analyze this restaurant invoice/receipt photo. Extract ALL line items with: product name, quantity, unit (case/lb/each), unit price, extended price. Also extract: vendor name, invoice number, date, total amount. Return as JSON with fields: { vendor, invoiceNumber, date, total, items: [{ product, quantity, unit, unitPrice, extendedPrice }] }`,
+        shelf: `Analyze this restaurant storage/walk-in shelf photo. Identify all visible products, estimate quantity levels (full/half/low/empty), note any organization issues or expired items. Return as JSON: { location, items: [{ product, estimatedQuantity, level, notes }] }`,
+        station: `Analyze this restaurant station/workspace photo. Identify the station type, note setup completeness, cleanliness, any missing items or issues. Return as JSON: { station, setupComplete, cleanliness, items: [{ item, status, notes }] }`,
+        equipment: `Analyze this restaurant equipment photo. Identify the equipment, note its condition, any visible damage or maintenance needs. Return as JSON: { equipment, condition, issues: [{ issue, severity, recommendation }] }`,
+        plate: `Analyze this plated dish photo. Identify the menu item, note presentation quality, portion accuracy, any issues. Return as JSON: { menuItem, presentationScore, portionAccuracy, notes }`,
+        delivery: `Analyze this delivery/receiving photo. Identify products received, check for damage, temperature concerns, quantity verification. Return as JSON: { vendor, items: [{ product, quantity, condition, notes }] }`,
+        prep: `Analyze this food prep photo. Identify what's being prepped, note technique, portioning, food safety compliance. Return as JSON: { prepItem, technique, portionConsistency, foodSafety, notes }`,
+        other: `Analyze this restaurant photo. Describe what you see and extract any useful operational information. Return as JSON: { description, category, actionItems: [] }`,
+      };
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: "You are a restaurant operations AI that analyzes photos to extract structured data. Always respond with valid JSON." },
+          { role: "user", content: [
+            { type: "text", text: typePrompts[input.photoType] || typePrompts.other },
+            { type: "image_url", image_url: { url: input.photoUrl, detail: "high" } },
+          ]},
+        ],
+      });
+
+      const rawContent = response.choices?.[0]?.message?.content;
+      const aiContent: string = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent) || "{}";
+      let extraction: any = {};
+      try {
+        // Try to parse JSON from the response (may be wrapped in markdown code blocks)
+        const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, aiContent];
+        extraction = JSON.parse(jsonMatch[1]?.trim() || "{}");
+      } catch {
+        extraction = { raw: aiContent };
+      }
+
+      // Save the photo submission
+      await createPhotoSubmission({
+        staffId: input.staffId,
+        missionId: input.missionId || null,
+        photoUrl: input.photoUrl,
+        photoType: input.photoType,
+        aiExtraction: extraction,
+        aiSummary: typeof extraction === "object" ? JSON.stringify(extraction).slice(0, 500) : aiContent.slice(0, 500),
+        pointsAwarded: 5,
+      });
+
+      // Award points for photo submission
+      await addGamificationEvent({
+        staffId: input.staffId,
+        date: new Date(),
+        eventType: "feedback_submitted",
+        points: 5,
+        description: `Photo submitted: ${input.photoType}`,
+      });
+
+      // If invoice, auto-create knowledge entries from extracted items
+      const knowledgeEntryIds: number[] = [];
+      if (input.photoType === "invoice" && extraction.items && Array.isArray(extraction.items)) {
+        for (const item of extraction.items.slice(0, 30)) {
+          if (item.product) {
+            const entry = await createKnowledgeEntry({
+              station: "store_room",
+              category: "vendor",
+              question: `What is the current price for ${item.product}?`,
+              answer: `${item.product}: ${item.unitPrice ? '$' + item.unitPrice + '/' + (item.unit || 'each') : 'price not extracted'} from ${extraction.vendor || 'unknown vendor'}. Last ordered: ${extraction.date || 'today'}.`,
+              confidence: "medium",
+              source: "photo_extraction",
+              tags: [extraction.vendor || "unknown", item.product, "price"],
+            });
+            // knowledgeEntryIds.push(entry[0]?.insertId); // MySQL returns insertId
+          }
+        }
+      }
+
+      return { extraction, photoType: input.photoType, pointsAwarded: 5, knowledgeEntriesCreated: knowledgeEntryIds.length };
+    }),
+    mySubmissions: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPhotoSubmissionsByStaff(input.staffId)),
+    byMission: protectedProcedure.input(z.object({ missionId: z.number() })).query(({ input }) => getPhotoSubmissionsByMission(input.missionId)),
+    verify: protectedProcedure.input(z.object({ id: z.number(), verifiedByStaffId: z.number() })).mutation(({ input }) => verifyPhotoSubmission(input.id, input.verifiedByStaffId)),
+  }),
+
+  // ============ ACHIEVEMENTS ============
+  achievements: router({
+    definitions: publicProcedure.query(() => getAllAchievements()),
+    myProgress: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getStaffAchievementProgress(input.staffId)),
+    myUnlocks: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getUnacknowledgedUnlocks(input.staffId)),
+    acknowledge: publicProcedure.input(z.object({ staffId: z.number(), achievementId: z.number() })).mutation(({ input }) => acknowledgeUnlock(input.staffId, input.achievementId)),
+    // Admin: seed achievement definitions
+    seed: adminProcedure.mutation(async () => {
+      const defs = [
+        { slug: "rookie", name: "Rookie", description: "Complete 5 shifts", badge: "🟢", category: "onboarding" as const, thresholdType: "cumulative" as const, thresholdValue: 5, bonusPoints: 25, difficulty: "easy" as const },
+        { slug: "iron_streak", name: "Iron Streak", description: "14-day consecutive on-time streak", badge: "🔥", category: "reliability" as const, thresholdType: "consecutive" as const, thresholdValue: 14, resetEvent: "late_clock_in", bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "clean_hands", name: "Clean Hands", description: "Zero voids in 30 days", badge: "💎", category: "quality" as const, thresholdType: "window" as const, thresholdValue: 30, windowDays: 30, resetEvent: "void_created", bonusPoints: 75, difficulty: "hard" as const },
+        { slug: "machine", name: "Machine", description: "Complete 100 checklists", badge: "⚙️", category: "reliability" as const, thresholdType: "cumulative" as const, thresholdValue: 100, bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "voice", name: "Voice", description: "Submit 50 feedback entries", badge: "🎤", category: "engagement" as const, thresholdType: "cumulative" as const, thresholdValue: 50, bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "mentor", name: "Mentor", description: "Train 3 new employees", badge: "🎓", category: "leadership" as const, thresholdType: "cumulative" as const, thresholdValue: 3, bonusPoints: 75, difficulty: "hard" as const },
+        { slug: "ambassador", name: "Ambassador", description: "10 social media posts", badge: "📱", category: "engagement" as const, thresholdType: "cumulative" as const, thresholdValue: 10, bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "night_owl", name: "Night Owl", description: "Work 50 closing shifts", badge: "🦉", category: "longevity" as const, thresholdType: "cumulative" as const, thresholdValue: 50, bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "early_bird", name: "Early Bird", description: "Work 50 opening shifts", badge: "🐦", category: "longevity" as const, thresholdType: "cumulative" as const, thresholdValue: 50, bonusPoints: 50, difficulty: "medium" as const },
+        { slug: "key_holder", name: "Key Holder", description: "Promoted to key employee", badge: "🔑", category: "leadership" as const, thresholdType: "milestone" as const, thresholdValue: 1, bonusPoints: 100, difficulty: "hard" as const },
+        { slug: "centurion", name: "Centurion", description: "Work 100 shifts", badge: "💯", category: "longevity" as const, thresholdType: "cumulative" as const, thresholdValue: 100, bonusPoints: 75, difficulty: "medium" as const },
+        { slug: "veteran", name: "Veteran", description: "1 year of active employment", badge: "⭐", category: "longevity" as const, thresholdType: "cumulative" as const, thresholdValue: 365, bonusPoints: 150, difficulty: "legendary" as const },
+      ];
+      for (const def of defs) {
+        await createAchievementDefinition(def);
+      }
+      return { message: `Seeded ${defs.length} achievement definitions` };
+    }),
+  }),
+
+  // ============ REWARDS ============
+  rewards: router({
+    list: publicProcedure.query(() => getAllRewards()),
+    myRedemptions: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getStaffRedemptions(input.staffId)),
+    redeem: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      rewardId: z.number(),
+      pointsSpent: z.number(),
+    })).mutation(async ({ input }) => {
+      // Verify staff has enough points
+      const staffMember = await getStaffById(input.staffId);
+      if (!staffMember || staffMember.totalPoints < input.pointsSpent) {
+        throw new Error("Not enough points to redeem this reward");
+      }
+      // Deduct points
+      await updateStaffPoints(input.staffId, -input.pointsSpent);
+      // Create redemption
+      return createRedemption(input);
+    }),
+    pendingApprovals: protectedProcedure.query(() => getPendingRedemptions()),
+    approve: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveRedemption(input.id, input.approvedByStaffId)),
+    // Admin: seed rewards
+    seed: adminProcedure.mutation(async () => {
+      const rewardDefs = [
+        { tier: "bronze" as const, name: "Shift Meal", description: "Free meal on your next shift", pointsCost: 100, type: "meal" as const },
+        { tier: "bronze" as const, name: "Free Appetizer", description: "Any appetizer on the house", pointsCost: 75, type: "meal" as const },
+        { tier: "silver" as const, name: "N86 T-Shirt", description: "Never 86'd branded t-shirt", pointsCost: 250, type: "merch" as const },
+        { tier: "silver" as const, name: "Priority Shift Pick", description: "First pick on next week's schedule", pointsCost: 300, type: "schedule" as const },
+        { tier: "gold" as const, name: "N86 Hat + Shift Pick", description: "Branded hat plus priority scheduling", pointsCost: 500, type: "merch" as const },
+        { tier: "platinum" as const, name: "$25 Gift Card", description: "$25 gift card of your choice", pointsCost: 1000, type: "gift_card" as const },
+        { tier: "diamond" as const, name: "Half-Day Paid", description: "4 hours paid time off", pointsCost: 2500, type: "time_off" as const },
+        { tier: "legend" as const, name: "$100 Cash Bonus", description: "Cash bonus for legendary performance", pointsCost: 5000, type: "cash" as const },
+      ];
+      for (const r of rewardDefs) {
+        await createReward(r);
+      }
+      return { message: `Seeded ${rewardDefs.length} rewards` };
+    }),
+  }),
+
+  // ============ PHOTO MISSIONS ============
+  missions: router({
+    active: publicProcedure.query(() => getActiveMissions()),
+    create: adminProcedure.input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      category: z.enum(["walk_in", "station_setup", "invoice", "equipment", "prep", "plate", "delivery", "general"]),
+      pointsPerPhoto: z.number().default(5),
+      bonusPoints: z.number().default(0),
+      targetPhotoCount: z.number().default(10),
+    })).mutation(({ input }) => createPhotoMission(input)),
+  }),
+
+  // ============ VENDOR PRODUCTS & ORDER GUIDES ============
+  vendorProducts: router({
+    list: protectedProcedure.input(z.object({ vendorName: z.string().optional() }).optional()).query(({ input }) => getVendorProducts(input?.vendorName)),
+    create: protectedProcedure.input(z.object({
+      vendorName: z.string(),
+      sku: z.string().optional(),
+      productName: z.string(),
+      category: z.enum(["meat", "dairy", "produce", "bread", "frozen", "dry_goods", "paper", "chemicals", "liquor", "beer", "wine", "soda", "other"]),
+      unit: z.string().optional(),
+      lastPrice: z.string().optional(),
+      parLevel: z.number().optional(),
+      orderFrequency: z.enum(["daily", "twice_weekly", "weekly", "biweekly", "monthly", "as_needed"]).optional(),
+      notes: z.string().optional(),
+    })).mutation(({ input }) => createVendorProduct(input)),
+    updatePrice: protectedProcedure.input(z.object({ id: z.number(), newPrice: z.string() })).mutation(({ input }) => updateVendorProductPrice(input.id, input.newPrice)),
+  }),
+  orderGuides: router({
+    list: protectedProcedure.input(z.object({ staffId: z.number().optional() }).optional()).query(({ input }) => getOrderGuides(input?.staffId)),
+    create: protectedProcedure.input(z.object({
+      name: z.string(),
+      assignedToStaffId: z.number().optional(),
+      vendorName: z.string(),
+      products: z.any().optional(),
+    })).mutation(({ input }) => createOrderGuide(input)),
+  }),
+
+  // ============ BRIEFING MEMORY ============
+  briefingMemory: router({
+    relevant: protectedProcedure.query(() => getRelevantMemories()),
+    create: protectedProcedure.input(z.object({
+      factType: z.enum(["event_pattern", "shortage", "equipment_issue", "staff_pattern", "vendor_change", "menu_change", "seasonal", "custom"]),
+      fact: z.string(),
+      relevanceScore: z.number().default(50),
+      expiresAt: z.date().optional(),
+      sourceType: z.string().optional(),
+      sourceId: z.number().optional(),
+    })).mutation(({ input }) => createBriefingMemory(input)),
   }),
 });
 
