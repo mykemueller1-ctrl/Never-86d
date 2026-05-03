@@ -23,7 +23,7 @@ import {
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
   Sparkles, Target, ThumbsUp, MessageSquare,
-  Brain, Gift, ShoppingCart, GraduationCap
+  Brain, Gift, ShoppingCart, GraduationCap, Shield
 } from "lucide-react";
 import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
 import OrderGuideScreen from "./OrderGuideScreen";
@@ -37,6 +37,7 @@ import RecipeCostScreen from "./RecipeCostScreen";
 import SKUTrackerScreen from "./SKUTrackerScreen";
 import StationBroadcastScreen from "./StationBroadcastScreen";
 import WasteLogScreen from "./WasteLogScreen";
+import ComplianceIntelScreen from "./ComplianceIntelScreen";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -48,7 +49,7 @@ type Screen =
   | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop"
   | "order-guide" | "shift-handoff"
   | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing"
-  | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log";
+  | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -199,7 +200,7 @@ export default function CTapHub() {
 
   // ─── Screen Guard — redirect non-managers away from financial screens ──
   const navigateTo = (target: Screen) => {
-    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker"];
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker", "compliance-intel"];
     if (managerOnlyScreens.includes(target) && !isManager) {
       toast.error("Manager access required");
       return;
@@ -604,6 +605,7 @@ export default function CTapHub() {
                 <QuickAction icon={TrendingUp} label="Forecast" color="text-blue-500" bg="bg-blue-500/10" onClick={() => navigateTo("forecast")} />
                 <QuickAction icon={Flame} label="Recipes & Cost" color="text-rose-500" bg="bg-rose-500/10" onClick={() => navigateTo("recipe-cost")} />
                 <QuickAction icon={Package} label="SKU Tracker" color="text-teal-500" bg="bg-teal-500/10" onClick={() => navigateTo("sku-tracker")} />
+                <QuickAction icon={Shield} label="Compliance & Intel" color="text-cyan-500" bg="bg-cyan-500/10" onClick={() => navigateTo("compliance-intel")} />
               </>
             )}
             <QuickAction icon={UserCircle} label="My Profile" color="text-violet-500" bg="bg-violet-500/10" onClick={() => navigateTo("worker-profile")} />
@@ -1579,6 +1581,7 @@ export default function CTapHub() {
         {screen === "sku-tracker" && <SKUTrackerScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
         {screen === "station-broadcast" && <StationBroadcastScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
         {screen === "waste-log" && <WasteLogScreen staffUser={staffUser ? { id: staffUser.id, name: staffUser.firstName, role: staffUser.jobRole } : null} onBack={() => navigateTo("home")} />}
+        {screen === "compliance-intel" && <ComplianceIntelScreen staffRole={staffUser?.jobRole} onBack={() => navigateTo("home")} />}
       </div>
       <BottomNav />
     </>

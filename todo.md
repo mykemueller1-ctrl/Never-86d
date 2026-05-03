@@ -398,3 +398,11 @@
 ## Remaining Gaps
 - [x] POS training answer validation — 20 multiple-choice questions with real A/B/C/D grading, visual feedback, correct answer reveal
 - [x] Smart notification batching end-to-end — critical/high = instant delivery, low/normal = auto-batchKey + batchNotifications() groups by category+role+date
+
+## Wave 8 — Iowa Compliance & Cost Intelligence Research
+- [x] Parallel research: Iowa food safety laws, liquor regulations, labor laws, commodity prices, food cost benchmarks (12 topics)
+- [x] Comprehensive reference document: IOWA_RESTAURANT_COMPLIANCE_REFERENCE.md
+- [x] ComplianceIntelScreen UI — 5 tabs: Food Safety (temps, certs, violations), Labor Law (wages, breaks, youth, workers comp), Commodity Trends (USDA 2026 forecast, futures), Cost Benchmarks (pizza/bar/prime targets, NRA stats), Liquor Law (dramshop, license, penalties)
+- [x] Wire ComplianceIntelScreen into CTapHub (manager-only, Shield icon QuickAction)
+- [x] Iowa-specific data: CFPM requirements, $7.25 min wage, $4.35 tipped wage, dramshop liability $250K cap, 127 craft breweries, USDA commodity forecasts
+- [x] Live data source links: USDA ERS, FRED, CME Group, NDPSR cheese prices, Iowa inspection database
