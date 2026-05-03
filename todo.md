@@ -103,12 +103,12 @@
 - [x] No hunting through tabs — the app knows who you are and surfaces your stuff
 
 ## Intelligence Report
-- [ ] Synthesize all research into polished intelligence report (platforms, benchmarks, gaps, recommendations)
+- [x] Synthesize all research into polished intelligence report (platforms, benchmarks, gaps, recommendations)
 
 ## Social Media Content for Never 86'd
-- [ ] Find CTAP / Community Tap photos and videos online
-- [ ] Create Never 86'd branded short-form content for YouTube Shorts, Facebook Reels, Instagram Reels, TikTok
-- [ ] Package content assets ready for posting
+- [x] Find CTAP / Community Tap photos and videos online (8 photos from Tripadvisor/Yelp, Facebook page with 9.8K likes)
+- [x] Create Never 86'd branded short-form content — 3 reel covers (9:16) + 2 square posts (1:1) + full content pack with captions and hashtags
+- [x] Package content assets ready for posting (content-pack.md with captions, hashtags, posting schedule)
 
 ## QA Pass
 - [x] Test every button on every screen (splash, login, department select, staff select, PIN entry, welcome, briefing, home, checklists, leaderboard, profile, command center, EOD, feedback, payouts, invoices, voids)
