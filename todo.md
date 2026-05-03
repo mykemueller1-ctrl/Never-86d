@@ -250,3 +250,28 @@
 - [x] Incoming shift reads structured handoff on briefing screen
 - [x] Add to CTapHub screen routing
 - [x] Add vitest for shift handoff flow (covered by briefingMemory tests in intelligence.test.ts)
+
+## Wave 3 Features
+
+### Portable Worker Profile System
+- [x] Add 8 new tables to schema (6 worker profile + 2 sales intelligence: dailySales, hourlySales)
+- [x] Add primaryTrack and secondaryTracks fields to staff table
+- [x] Run db:push to migrate new schema
+- [ ] Seed training modules from SOP documents (18 modules) — needs seed script run
+- [x] Build backend procedures — training completion CRUD
+- [x] Build backend procedures — evaluation CRUD (9-category scoring)
+- [x] Build backend procedures — write-up workflow (verbal → written → final → termination)
+- [x] Build backend procedures — advancement readiness engine
+- [x] Build Worker Profile UI screen (training progress, skills, evaluations, write-ups, career track)
+- [x] Build Evaluation Form UI (9 categories, 1-5 scoring, narrative fields) — embedded in Worker Profile
+- [x] Build Write-Up Form UI (severity, category, description, acknowledgment) — embedded in Worker Profile
+- [x] Build Career Advancement UI (readiness score, hard gates, promotion flow) — embedded in Worker Profile
+- [x] Add worker profile to CTapHub navigation ("My Profile" button for all staff)
+
+### PDQ POS Sales Intelligence
+- [x] Pull all historical PDQ daily sales reports from Gmail (1,088 PDFs downloaded)
+- [x] Parse and structure PDQ report format (202 days extracted to CSV)
+- [x] Store sales data in database (196 daily records, 3,104 hourly records imported)
+- [x] Build product mix analysis — 8,939 item records, 1,069 unique products analyzed
+- [x] Build Sales Intelligence UI — daily trends, channel breakdown, labor analysis, role-based access
+- [ ] Machine learning — predict daily sales by product, day of week, seasonality (future: needs more data)

@@ -26,6 +26,14 @@ import {
   getVendorProducts, createVendorProduct, updateVendorProductPrice,
   getOrderGuides, createOrderGuide,
   getRelevantMemories, createBriefingMemory,
+  // Worker Profile
+  getTrainingModules, createTrainingModule, getTrainingCompletions, createTrainingCompletion,
+  getSkillCertifications, createSkillCertification,
+  getEvaluations, createEvaluation,
+  getWriteUps, getActiveWriteUps, createWriteUp, acknowledgeWriteUp,
+  getCareerTrack, upsertCareerTrack,
+  // Sales Intelligence
+  getDailySales, upsertDailySales, getHourlySales, insertHourlySales,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { processAchievementEvent } from "./achievementEngine";
@@ -696,7 +704,153 @@ Rules:
       sourceType: z.string().optional(),
       sourceId: z.number().optional(),
     })).mutation(({ input }) => createBriefingMemory(input)),
+   }),
+
+  // ============ WORKER TRAINING ============
+  training: router({
+    modules: publicProcedure.input(z.object({ track: z.string().optional() }).optional()).query(({ input }) => getTrainingModules(input?.track)),
+    createModule: adminProcedure.input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      category: z.enum(["equipment", "food_prep", "service", "management", "safety"]),
+      requiredForTrack: z.enum(["kitchen", "pizza", "foh", "driver", "all"]),
+      requiredForLevel: z.number().default(1),
+      estimatedMinutes: z.number().optional(),
+      assessmentType: z.enum(["trainer_signoff", "written_test", "weight_check", "checklist_completion", "manager_observation", "practical_demo"]),
+      passingScore: z.number().optional(),
+      sourceDocument: z.string().optional(),
+    })).mutation(({ input }) => createTrainingModule(input)),
+    completions: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getTrainingCompletions(input.staffId)),
+    complete: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      moduleId: z.number(),
+      completedAt: z.date(),
+      trainerId: z.number().optional(),
+      assessmentScore: z.number().optional(),
+      passed: z.boolean(),
+      notes: z.string().optional(),
+      verifiedByManagerId: z.number().optional(),
+    })).mutation(({ input }) => createTrainingCompletion(input)),
+  }),
+
+  // ============ WORKER SKILLS ============
+  skills: router({
+    list: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getSkillCertifications(input.staffId)),
+    certify: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      skillName: z.string(),
+      skillCategory: z.enum(["equipment", "food_prep", "service", "management", "safety"]),
+      certifiedAt: z.date(),
+      certifiedById: z.number().optional(),
+      expiresAt: z.date().optional(),
+      notes: z.string().optional(),
+    })).mutation(({ input }) => createSkillCertification(input)),
+  }),
+
+  // ============ WORKER EVALUATIONS ============
+  evaluations: router({
+    list: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getEvaluations(input.staffId)),
+    create: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      evaluatorId: z.number(),
+      evaluatedAt: z.date(),
+      workQuality: z.number().min(1).max(5),
+      attendance: z.number().min(1).max(5),
+      jobKnowledge: z.number().min(1).max(5),
+      teamwork: z.number().min(1).max(5),
+      finishingTasks: z.number().min(1).max(5),
+      overallAttitude: z.number().min(1).max(5),
+      customerInteraction: z.number().min(1).max(5),
+      multitasking: z.number().min(1).max(5),
+      computerSkills: z.number().min(1).max(5),
+      overallSuccession: z.string().optional(),
+      needsImprovement: z.string().optional(),
+      employeeConcerns: z.string().optional(),
+    })).mutation(({ input }) => createEvaluation(input)),
+  }),
+
+  // ============ WORKER WRITE-UPS ============
+  writeUps: router({
+    list: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWriteUps(input.staffId)),
+    active: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getActiveWriteUps(input.staffId)),
+    create: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      issuedById: z.number(),
+      issuedAt: z.date(),
+      severity: z.enum(["verbal", "written", "final", "termination"]),
+      category: z.enum(["attendance", "performance", "conduct", "safety", "policy"]),
+      description: z.string(),
+      employeeResponse: z.string().optional(),
+      followUpDate: z.date().optional(),
+      expiresAt: z.date().optional(),
+    })).mutation(({ input }) => createWriteUp(input)),
+    acknowledge: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => acknowledgeWriteUp(input.id)),
+  }),
+
+  // ============ WORKER CAREER TRACK ============
+  career: router({
+    track: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getCareerTrack(input.staffId)),
+    upsert: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      track: z.enum(["kitchen", "pizza", "foh", "driver"]),
+      currentLevel: z.number().default(1),
+      advancementReadinessScore: z.number().default(0),
+      nextLevelRequirements: z.any().optional(),
+      promotedAt: z.date().optional(),
+      promotedById: z.number().optional(),
+    })).mutation(({ input }) => upsertCareerTrack(input)),
+  }),
+
+  // ============ SALES INTELLIGENCE ============
+  sales: router({
+    daily: publicProcedure.input(z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      limit: z.number().default(90),
+    }).optional()).query(({ input }) => getDailySales(input?.startDate, input?.endDate, input?.limit)),
+    hourly: publicProcedure.input(z.object({ businessDate: z.string() })).query(({ input }) => getHourlySales(input.businessDate)),
+    importDaily: adminProcedure.input(z.object({
+      businessDate: z.string(),
+      grandTotal: z.string().optional(),
+      tax: z.string().optional(),
+      pickupQty: z.number().optional(),
+      pickupAmount: z.string().optional(),
+      deliveryQty: z.number().optional(),
+      deliveryAmount: z.string().optional(),
+      barQty: z.number().optional(),
+      barAmount: z.string().optional(),
+      tableQty: z.number().optional(),
+      tableAmount: z.string().optional(),
+      totalQty: z.number().optional(),
+      totalAmount: z.string().optional(),
+      catFoodQty: z.number().optional(),
+      catFoodAmount: z.string().optional(),
+      catBeerQty: z.number().optional(),
+      catBeerAmount: z.string().optional(),
+      catLiquorQty: z.number().optional(),
+      catLiquorAmount: z.string().optional(),
+      catPopQty: z.number().optional(),
+      catPopAmount: z.string().optional(),
+      catLargePizzasQty: z.number().optional(),
+      catLargePizzasAmount: z.string().optional(),
+      laborHeadcount: z.number().optional(),
+      laborTotal: z.string().optional(),
+      laborPct: z.string().optional(),
+      voidsCount: z.number().optional(),
+      voidsAmount: z.string().optional(),
+      discountCount: z.number().optional(),
+      discountTotal: z.string().optional(),
+      discountPct: z.string().optional(),
+      expectedCash: z.string().optional(),
+      creditCards: z.string().optional(),
+      creditCardTips: z.string().optional(),
+      payOuts: z.string().optional(),
+      tableOrders: z.number().optional(),
+      tableGuests: z.number().optional(),
+      avgGuestPerOrder: z.string().optional(),
+      avgPerGuest: z.string().optional(),
+      totalLastYear: z.string().optional(),
+    })).mutation(({ input }) => upsertDailySales(input)),
   }),
 });
-
 export type AppRouter = typeof appRouter;

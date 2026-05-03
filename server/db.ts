@@ -840,3 +840,191 @@ export async function decayMemoryRelevance() {
     relevanceScore: sql`GREATEST(${briefingMemory.relevanceScore} - 5, 0)`,
   });
 }
+
+
+// ============ WORKER TRAINING MODULES ============
+import {
+  workerTrainingModules, workerTrainingCompletions,
+  workerSkillCertifications, workerEvaluations,
+  workerWriteUps, workerCareerTrack,
+  dailySales, hourlySales,
+} from "../drizzle/schema";
+
+export async function getTrainingModules(track?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (track) {
+    return db.select().from(workerTrainingModules)
+      .where(sql`${workerTrainingModules.requiredForTrack} = ${track} OR ${workerTrainingModules.requiredForTrack} = 'all'`)
+      .orderBy(workerTrainingModules.requiredForLevel, workerTrainingModules.name);
+  }
+  return db.select().from(workerTrainingModules).orderBy(workerTrainingModules.category, workerTrainingModules.name);
+}
+
+export async function createTrainingModule(data: typeof workerTrainingModules.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(workerTrainingModules).values(data);
+}
+
+// ============ WORKER TRAINING COMPLETIONS ============
+
+export async function getTrainingCompletions(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerTrainingCompletions)
+    .where(eq(workerTrainingCompletions.staffId, staffId))
+    .orderBy(desc(workerTrainingCompletions.completedAt));
+}
+
+export async function createTrainingCompletion(data: typeof workerTrainingCompletions.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(workerTrainingCompletions).values(data);
+}
+
+// ============ WORKER SKILL CERTIFICATIONS ============
+
+export async function getSkillCertifications(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerSkillCertifications)
+    .where(eq(workerSkillCertifications.staffId, staffId))
+    .orderBy(desc(workerSkillCertifications.certifiedAt));
+}
+
+export async function createSkillCertification(data: typeof workerSkillCertifications.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(workerSkillCertifications).values(data);
+}
+
+// ============ WORKER EVALUATIONS ============
+
+export async function getEvaluations(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerEvaluations)
+    .where(eq(workerEvaluations.staffId, staffId))
+    .orderBy(desc(workerEvaluations.evaluatedAt));
+}
+
+export async function createEvaluation(data: typeof workerEvaluations.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Auto-compute average score
+  const scores = [
+    data.workQuality, data.attendance, data.jobKnowledge,
+    data.teamwork, data.finishingTasks, data.overallAttitude,
+    data.customerInteraction, data.multitasking, data.computerSkills,
+  ];
+  const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2);
+  return db.insert(workerEvaluations).values({ ...data, averageScore: avg });
+}
+
+// ============ WORKER WRITE-UPS ============
+
+export async function getWriteUps(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerWriteUps)
+    .where(eq(workerWriteUps.staffId, staffId))
+    .orderBy(desc(workerWriteUps.issuedAt));
+}
+
+export async function getActiveWriteUps(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerWriteUps)
+    .where(sql`${workerWriteUps.staffId} = ${staffId} AND (${workerWriteUps.expiresAt} IS NULL OR ${workerWriteUps.expiresAt} > NOW()) AND ${workerWriteUps.resolvedAt} IS NULL`)
+    .orderBy(desc(workerWriteUps.issuedAt));
+}
+
+export async function createWriteUp(data: typeof workerWriteUps.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(workerWriteUps).values(data);
+}
+
+export async function acknowledgeWriteUp(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(workerWriteUps)
+    .set({ acknowledgedAt: new Date() })
+    .where(eq(workerWriteUps.id, id));
+}
+
+// ============ WORKER CAREER TRACK ============
+
+export async function getCareerTrack(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerCareerTrack)
+    .where(eq(workerCareerTrack.staffId, staffId));
+}
+
+export async function upsertCareerTrack(data: typeof workerCareerTrack.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Check if track exists for this staff + track combo
+  const existing = await db.select().from(workerCareerTrack)
+    .where(sql`${workerCareerTrack.staffId} = ${data.staffId} AND ${workerCareerTrack.track} = ${data.track}`)
+    .limit(1);
+  if (existing.length > 0) {
+    return db.update(workerCareerTrack)
+      .set({
+        currentLevel: data.currentLevel,
+        advancementReadinessScore: data.advancementReadinessScore,
+        nextLevelRequirements: data.nextLevelRequirements,
+        promotedAt: data.promotedAt,
+        promotedById: data.promotedById,
+      })
+      .where(eq(workerCareerTrack.id, existing[0].id));
+  }
+  return db.insert(workerCareerTrack).values(data);
+}
+
+// ============ DAILY SALES ============
+
+export async function getDailySales(startDate?: string, endDate?: string, limit = 90) {
+  const db = await getDb();
+  if (!db) return [];
+  if (startDate && endDate) {
+    return db.select().from(dailySales)
+      .where(sql`${dailySales.businessDate} >= ${startDate} AND ${dailySales.businessDate} <= ${endDate}`)
+      .orderBy(desc(dailySales.businessDate))
+      .limit(limit);
+  }
+  return db.select().from(dailySales)
+    .orderBy(desc(dailySales.businessDate))
+    .limit(limit);
+}
+
+export async function upsertDailySales(data: typeof dailySales.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(dailySales)
+    .where(eq(dailySales.businessDate, data.businessDate!))
+    .limit(1);
+  if (existing.length > 0) {
+    return db.update(dailySales).set(data).where(eq(dailySales.id, existing[0].id));
+  }
+  return db.insert(dailySales).values(data);
+}
+
+// ============ HOURLY SALES ============
+
+export async function getHourlySales(businessDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hourlySales)
+    .where(eq(hourlySales.businessDate, businessDate))
+    .orderBy(hourlySales.hour);
+}
+
+export async function insertHourlySales(data: (typeof hourlySales.$inferInsert)[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (data.length === 0) return;
+  return db.insert(hourlySales).values(data);
+}

@@ -512,3 +512,228 @@ export const briefingMemory = mysqlTable("briefing_memory", {
 });
 
 export type BriefingMemory = typeof briefingMemory.$inferSelect;
+
+
+// ============================================================
+// PORTABLE WORKER PROFILE SYSTEM
+// ============================================================
+
+/**
+ * Worker Training Modules — every trainable skill mapped from real SOPs.
+ * Each module has a specific assessment type and passing criteria.
+ */
+export const workerTrainingModules = mysqlTable("worker_training_modules", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  category: mysqlEnum("category", ["equipment", "food_prep", "service", "management", "safety"]).notNull(),
+  requiredForTrack: mysqlEnum("requiredForTrack", ["kitchen", "pizza", "foh", "driver", "all"]).notNull(),
+  requiredForLevel: int("requiredForLevel").default(1).notNull(),
+  estimatedMinutes: int("estimatedMinutes"),
+  assessmentType: mysqlEnum("assessmentType", [
+    "trainer_signoff", "written_test", "weight_check",
+    "checklist_completion", "manager_observation", "practical_demo"
+  ]).notNull(),
+  passingScore: int("passingScore"), // nullable, e.g., 80 for written test
+  sourceDocument: varchar("sourceDocument", { length: 300 }), // reference to SOP
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerTrainingModule = typeof workerTrainingModules.$inferSelect;
+export type InsertWorkerTrainingModule = typeof workerTrainingModules.$inferInsert;
+
+/**
+ * Worker Training Completions — who completed what training, when, and how they scored.
+ */
+export const workerTrainingCompletions = mysqlTable("worker_training_completions", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  moduleId: int("moduleId").notNull(),
+  completedAt: timestamp("completedAt").notNull(),
+  trainerId: int("trainerId"), // FK → staff, who trained them
+  assessmentScore: int("assessmentScore"), // nullable
+  passed: boolean("passed").default(false).notNull(),
+  notes: text("notes"),
+  verifiedByManagerId: int("verifiedByManagerId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerTrainingCompletion = typeof workerTrainingCompletions.$inferSelect;
+
+/**
+ * Worker Skill Certifications — specific equipment/process certifications.
+ * Separate from training modules — these are ongoing competency markers.
+ */
+export const workerSkillCertifications = mysqlTable("worker_skill_certifications", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  skillName: varchar("skillName", { length: 200 }).notNull(),
+  skillCategory: mysqlEnum("skillCategory", ["equipment", "food_prep", "service", "management", "safety"]).notNull(),
+  certifiedAt: timestamp("certifiedAt").notNull(),
+  certifiedById: int("certifiedById"), // FK → staff
+  expiresAt: timestamp("expiresAt"), // nullable, for recertification
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerSkillCertification = typeof workerSkillCertifications.$inferSelect;
+
+/**
+ * Worker Evaluations — the 9-category, 1-5 scoring system from bar staff evaluations.
+ * Matches the exact evaluation form found in Google Drive.
+ */
+export const workerEvaluations = mysqlTable("worker_evaluations", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  evaluatorId: int("evaluatorId").notNull(),
+  evaluatedAt: timestamp("evaluatedAt").notNull(),
+  workQuality: int("workQuality").notNull(), // 1-5
+  attendance: int("attendance").notNull(), // 1-5
+  jobKnowledge: int("jobKnowledge").notNull(), // 1-5
+  teamwork: int("teamwork").notNull(), // 1-5
+  finishingTasks: int("finishingTasks").notNull(), // 1-5
+  overallAttitude: int("overallAttitude").notNull(), // 1-5
+  customerInteraction: int("customerInteraction").notNull(), // 1-5
+  multitasking: int("multitasking").notNull(), // 1-5
+  computerSkills: int("computerSkills").notNull(), // 1-5
+  averageScore: decimal("averageScore", { precision: 3, scale: 2 }), // computed
+  overallSuccession: text("overallSuccession"), // strengths / succession notes
+  needsImprovement: text("needsImprovement"),
+  employeeConcerns: text("employeeConcerns"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerEvaluation = typeof workerEvaluations.$inferSelect;
+
+/**
+ * Worker Write-Ups — disciplinary records following the escalation protocol.
+ * verbal → written → final → termination (from Kitchen Protocol Final Warning SOP).
+ */
+export const workerWriteUps = mysqlTable("worker_write_ups", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  issuedById: int("issuedById").notNull(),
+  issuedAt: timestamp("issuedAt").notNull(),
+  severity: mysqlEnum("severity", ["verbal", "written", "final", "termination"]).notNull(),
+  category: mysqlEnum("category", ["attendance", "performance", "conduct", "safety", "policy"]).notNull(),
+  description: text("description").notNull(),
+  employeeResponse: text("employeeResponse"),
+  acknowledgedAt: timestamp("acknowledgedAt"), // digital signature timestamp
+  followUpDate: timestamp("followUpDate"),
+  resolvedAt: timestamp("resolvedAt"),
+  expiresAt: timestamp("expiresAt"), // when it falls off active record
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerWriteUp = typeof workerWriteUps.$inferSelect;
+
+/**
+ * Worker Career Track — current position in advancement ladder.
+ * Tracks level, readiness score, and what's needed for next promotion.
+ */
+export const workerCareerTrack = mysqlTable("worker_career_track", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  track: mysqlEnum("track", ["kitchen", "pizza", "foh", "driver"]).notNull(),
+  currentLevel: int("currentLevel").default(1).notNull(),
+  promotedAt: timestamp("promotedAt"),
+  promotedById: int("promotedById"),
+  advancementReadinessScore: int("advancementReadinessScore").default(0).notNull(), // 0-100
+  nextLevelRequirements: json("nextLevelRequirements"), // JSON: what's still needed
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkerCareerTrack = typeof workerCareerTrack.$inferSelect;
+
+// ============================================================
+// POS SALES INTELLIGENCE
+// ============================================================
+
+/**
+ * Daily Sales — structured data from PDQ Z-Reports.
+ * One row per business day with revenue, labor, categories, delivery metrics.
+ */
+export const dailySales = mysqlTable("daily_sales", {
+  id: int("id").autoincrement().primaryKey(),
+  businessDate: varchar("businessDate", { length: 10 }).notNull().unique(), // YYYY-MM-DD
+  grandTotal: decimal("grandTotal", { precision: 10, scale: 2 }),
+  tax: decimal("tax", { precision: 10, scale: 2 }),
+  // Channel breakdown
+  pickupQty: int("pickupQty"),
+  pickupAmount: decimal("pickupAmount", { precision: 10, scale: 2 }),
+  deliveryQty: int("deliveryQty"),
+  deliveryAmount: decimal("deliveryAmount", { precision: 10, scale: 2 }),
+  barQty: int("barQty"),
+  barAmount: decimal("barAmount", { precision: 10, scale: 2 }),
+  tableQty: int("tableQty"),
+  tableAmount: decimal("tableAmount", { precision: 10, scale: 2 }),
+  totalQty: int("totalQty"),
+  totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }),
+  // Menu categories
+  catFoodQty: int("catFoodQty"),
+  catFoodAmount: decimal("catFoodAmount", { precision: 10, scale: 2 }),
+  catBeerQty: int("catBeerQty"),
+  catBeerAmount: decimal("catBeerAmount", { precision: 10, scale: 2 }),
+  catLiquorQty: int("catLiquorQty"),
+  catLiquorAmount: decimal("catLiquorAmount", { precision: 10, scale: 2 }),
+  catPopQty: int("catPopQty"),
+  catPopAmount: decimal("catPopAmount", { precision: 10, scale: 2 }),
+  catLargePizzasQty: int("catLargePizzasQty"),
+  catLargePizzasAmount: decimal("catLargePizzasAmount", { precision: 10, scale: 2 }),
+  // Labor
+  laborHeadcount: int("laborHeadcount"),
+  laborTotal: decimal("laborTotal", { precision: 10, scale: 2 }),
+  laborPct: decimal("laborPct", { precision: 5, scale: 2 }),
+  // Operational
+  voidsCount: int("voidsCount"),
+  voidsAmount: decimal("voidsAmount", { precision: 10, scale: 2 }),
+  lateDeliveriesCount: int("lateDeliveriesCount"),
+  avgDeliveryTimeMin: int("avgDeliveryTimeMin"),
+  wasteCount: int("wasteCount"),
+  wasteAmount: decimal("wasteAmount", { precision: 10, scale: 2 }),
+  discountCount: int("discountCount"),
+  discountTotal: decimal("discountTotal", { precision: 10, scale: 2 }),
+  discountPct: decimal("discountPct", { precision: 5, scale: 2 }),
+  // Cash management
+  expectedCash: decimal("expectedCash", { precision: 10, scale: 2 }),
+  creditCards: decimal("creditCards", { precision: 10, scale: 2 }),
+  creditCardTips: decimal("creditCardTips", { precision: 10, scale: 2 }),
+  payOuts: decimal("payOuts", { precision: 10, scale: 2 }),
+  // Table service
+  tableOrders: int("tableOrders"),
+  tableGuests: int("tableGuests"),
+  avgGuestPerOrder: decimal("avgGuestPerOrder", { precision: 4, scale: 2 }),
+  avgPerGuest: decimal("avgPerGuest", { precision: 8, scale: 2 }),
+  // Year-over-year
+  totalLastYear: decimal("totalLastYear", { precision: 10, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DailySales = typeof dailySales.$inferSelect;
+export type InsertDailySales = typeof dailySales.$inferInsert;
+
+/**
+ * Hourly Sales — per-hour breakdown from PDQ Hourly Sales Reports.
+ */
+export const hourlySales = mysqlTable("hourly_sales", {
+  id: int("id").autoincrement().primaryKey(),
+  businessDate: varchar("businessDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  hour: varchar("hour", { length: 20 }).notNull(), // "7 AM-8 AM"
+  orders: int("orders"),
+  total: decimal("total", { precision: 10, scale: 2 }),
+  avgSales: decimal("avgSales", { precision: 10, scale: 2 }),
+  laborPct: decimal("laborPct", { precision: 5, scale: 2 }),
+  pickupQty: int("pickupQty"),
+  pickupAmount: decimal("pickupAmount", { precision: 10, scale: 2 }),
+  deliveryQty: int("deliveryQty"),
+  deliveryAmount: decimal("deliveryAmount", { precision: 10, scale: 2 }),
+  barQty: int("barQty"),
+  barAmount: decimal("barAmount", { precision: 10, scale: 2 }),
+  tableQty: int("tableQty"),
+  tableAmount: decimal("tableAmount", { precision: 10, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HourlySales = typeof hourlySales.$inferSelect;
+export type InsertHourlySales = typeof hourlySales.$inferInsert;
