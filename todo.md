@@ -47,8 +47,8 @@
 - [ ] Week-over-week price tracking per item
 - [ ] Volume vs. sales matching
 - [x] Running total by vendor per week/month — admin.invoiceTotals (by vendor) + admin.payoutTotals (by category) with configurable days
-- [ ] Add payout totals grouped by vendor (not just category)
-- [ ] Add test coverage for vendor running totals
+- [x] Add payout totals grouped by vendor — admin.payoutTotalsByVendor endpoint
+- [x] Add test coverage for vendor running totals — 10 admin tests (archive, payoutTotals, invoiceTotals, payoutTotalsByVendor, auth checks, custom days)
 - [ ] Anomaly flags (price jumps, volume mismatches)
 - [x] Tom = Kitchen Manager authorized to place orders — in DB
 

@@ -205,6 +205,20 @@ export async function getPayoutTotalsByCategory(days = 7) {
     .groupBy(payouts.category);
 }
 
+/** Get running total of payouts by vendor for a given period */
+export async function getPayoutTotalsByVendor(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return db.select({
+    vendor: payouts.vendor,
+    total: sql<string>`CAST(SUM(${payouts.amount}) AS CHAR)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(payouts)
+    .where(and(gte(payouts.date, since), sql`${payouts.vendor} IS NOT NULL`))
+    .groupBy(payouts.vendor);
+}
+
 /** Get running total of invoices by vendor for a given period */
 export async function getInvoiceTotalsByVendor(days = 7) {
   const db = await getDb();

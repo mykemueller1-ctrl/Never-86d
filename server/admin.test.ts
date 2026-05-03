@@ -133,4 +133,33 @@ describe("Admin Operations", () => {
     const caller = appRouter.createCaller(ctx);
     await expect(caller.admin.invoiceTotals({ days: 7 })).rejects.toThrow();
   });
+
+  it("payoutTotalsByVendor returns an array with vendor/total/count", async () => {
+    const ctx = createProtectedContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.admin.payoutTotalsByVendor({ days: 7 });
+    expect(Array.isArray(result)).toBe(true);
+    for (const entry of result) {
+      expect(entry).toHaveProperty("vendor");
+      expect(entry).toHaveProperty("total");
+      expect(entry).toHaveProperty("count");
+    }
+  });
+
+  it("payoutTotalsByVendor rejects unauthenticated users", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.admin.payoutTotalsByVendor({ days: 7 })).rejects.toThrow();
+  });
+
+  it("payoutTotals and invoiceTotals accept custom days parameter", async () => {
+    const ctx = createProtectedContext();
+    const caller = appRouter.createCaller(ctx);
+    const payouts30 = await caller.admin.payoutTotals({ days: 30 });
+    const invoices30 = await caller.admin.invoiceTotals({ days: 30 });
+    const vendors30 = await caller.admin.payoutTotalsByVendor({ days: 30 });
+    expect(Array.isArray(payouts30)).toBe(true);
+    expect(Array.isArray(invoices30)).toBe(true);
+    expect(Array.isArray(vendors30)).toBe(true);
+  });
 });

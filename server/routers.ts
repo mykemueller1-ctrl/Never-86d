@@ -16,7 +16,7 @@ import {
   createIssue, getOpenIssues,
   getLatestBriefing, createBriefing,
   seedStaffData,
-  archiveInactiveStaff, getPayoutTotalsByCategory, getInvoiceTotalsByVendor,
+  archiveInactiveStaff, getPayoutTotalsByCategory, getPayoutTotalsByVendor, getInvoiceTotalsByVendor,
 } from "./db";
 
 export const appRouter = router({
@@ -274,6 +274,7 @@ export const appRouter = router({
   admin: router({
     archiveInactive: adminProcedure.mutation(() => archiveInactiveStaff()),
     payoutTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
+    payoutTotalsByVendor: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByVendor(input?.days ?? 7)),
     invoiceTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),
   }),
 
