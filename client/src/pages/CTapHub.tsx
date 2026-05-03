@@ -238,7 +238,7 @@ export default function CTapHub() {
         <p className="text-amber-500 text-lg font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>& PIZZA</p>
         <div className="w-16 h-0.5 bg-amber-500 mx-auto mt-3 mb-3 rounded-full" />
         <p className="text-zinc-500 text-xs tracking-widest uppercase">Fort Dodge, Iowa · Est. 1976</p>
-        <p className="text-zinc-700 text-xs mt-8">Powered by Never 86'd</p>
+        <h2 className="text-zinc-700 text-xs mt-8 font-normal">Powered by Never 86'd — Restaurant People Platform</h2>
         <p className="text-zinc-800 text-[10px] mt-1">Active Beat Testing · v1</p>
       </div>
     </div>

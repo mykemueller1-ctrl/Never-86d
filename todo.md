@@ -410,3 +410,8 @@
 ## Gap Resolution
 - [x] Build explicit week-over-week price tracking per item — getWeekOverWeekPriceDeltas + skus.weekOverWeek endpoint
 - [x] Price comparison from invoice history — getInvoicePriceComparison + skus.invoicePriceComparison endpoint
+
+## SEO Fixes
+- [x] Trim keywords on home page from 13 to 6 focused keywords
+- [x] Add H2 heading to SplashScreen (initial render at /)
+- [x] Shorten meta description from 240 chars to 143 chars
