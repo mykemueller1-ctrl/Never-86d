@@ -431,3 +431,9 @@
 - [x] Update seedStaffData() — set lastClockIn to recent realistic dates (random within 7 days, all status: active)
 - [x] Re-activate all staff in production database — POST /api/scheduled/reactivate-staff endpoint (sets all inactive→active + lastClockIn=now)
 - [x] Verify app is functional after fixes (27 staff active, PIN login confirmed working, departments populated)
+
+## Wave 11 — SEO Fixes (Home Page)
+
+- [x] Reduce keywords from 13 to 3-8 focused keywords (4 phrases: restaurant workforce platform, Never 86'd, gamified shift management, restaurant staff app)
+- [x] Add H2 heading to the home page ("Gamified Workforce Management for Restaurants" in noscript + existing H2 in SPA splash)
+- [x] Shorten meta description from 240 to 126 characters, OG desc to 116, Twitter desc to 122
