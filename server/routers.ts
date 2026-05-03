@@ -47,8 +47,11 @@ import {
   // Price Comparison & Event Briefing
   getPriceComparisons,
   getEventAwareBriefingContext,
+  // Management Briefings
+  saveManagementBriefing, getManagementBriefings, markBriefingRead, markBriefingNotified, getBriefingDataSnapshot,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { notifyOwner } from "./_core/notification";
 import { processAchievementEvent } from "./achievementEngine";
 
 export const appRouter = router({
@@ -976,6 +979,164 @@ Respond in JSON format: { "days": [{ "date": "YYYY-MM-DD", "dayOfWeek": "Monday"
       const recommendations = content ? JSON.parse(content) : { days: [] };
       await saveScheduleIntelligence({ weekStart: input.weekStart, weekEnd: input.weekEnd, recommendations });
       return recommendations;
+    }),
+  }),
+
+  // ============ MANAGEMENT BRIEFINGS ============
+  briefings: router({
+    list: protectedProcedure.input(z.object({ role: z.string().optional() }).optional()).query(({ input }) => getManagementBriefings(input?.role)),
+    markRead: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => markBriefingRead(input.id)),
+
+    // Generate a comprehensive briefing for all roles using LLM
+    generate: protectedProcedure.mutation(async () => {
+      const snapshot = await getBriefingDataSnapshot();
+      if (!snapshot) return { error: 'No data available' };
+
+      const briefingIds: number[] = [];
+
+      // Generate role-specific briefings
+      const roles = [
+        { role: 'michael', label: 'Michael (Scheduler)', focus: 'Full schedule picture — staffing levels, revenue forecasts, event impacts, weather, all category trends, comp/promo/void patterns, and theories about anomalies. What days need extra staff? What days might be slow? Any upcoming events that could spike or kill traffic?' },
+        { role: 'ashley', label: 'Ashley (Bar)', focus: 'Bar-specific intelligence — beer and liquor sales trends, which drinks are moving, which are dying, bar hourly patterns (when is the rush?), any bar-related voids or comps, weather impact on bar traffic, events that drive bar business (game nights, concerts), and theories about what\'s changing in beverage sales.' },
+        { role: 'tom', label: 'Tom (BOH/Kitchen)', focus: 'Back-of-house intelligence — food sales trends, pizza volume, prep level recommendations, kitchen void patterns (remakes, wrong orders), food cost indicators, hourly kitchen volume patterns, weather impact on food orders vs delivery, and theories about what\'s weird in the kitchen numbers.' },
+      ];
+
+      for (const { role, label, focus } of roles) {
+        const prompt = `You are the intelligence engine for Community Tap & Pizza in Fort Dodge, Iowa.
+Generate a briefing for ${label}.
+
+FOCUS: ${focus}
+
+DATA SNAPSHOT:
+
+Recent Daily Sales (last 14 days):
+${JSON.stringify(snapshot.categoryTrends, null, 2)}
+
+Day-of-Week Revenue Patterns (Sun=0 thru Sat=6):
+${JSON.stringify(snapshot.dowPatterns, null, 2)}
+
+Product Mix — Top Beer:
+${JSON.stringify(snapshot.productMix.beer, null, 2)}
+
+Product Mix — Top Liquor:
+${JSON.stringify(snapshot.productMix.liquor, null, 2)}
+
+Product Mix — Top Food:
+${JSON.stringify(snapshot.productMix.food, null, 2)}
+
+Product Mix — Top Pop:
+${JSON.stringify(snapshot.productMix.pop, null, 2)}
+
+Weather (current + forecast):
+${JSON.stringify(snapshot.weather, null, 2)}
+
+Upcoming Events (within 30 miles):
+${JSON.stringify(snapshot.events, null, 2)}
+
+Void Summary by Employee:
+${JSON.stringify(snapshot.voidSummary, null, 2)}
+
+Recent Voids (last 7 days sample):
+${JSON.stringify(snapshot.recentVoids.slice(0, 10), null, 2)}
+
+Unacknowledged Anomalies:
+${JSON.stringify(snapshot.anomalies, null, 2)}
+
+Weather-Sales Correlation:
+${JSON.stringify(snapshot.weatherCorrelation, null, 2)}
+
+Respond in JSON with this exact structure:
+{
+  "title": "Brief headline for this briefing",
+  "summary": "2-3 sentence executive summary",
+  "sections": [
+    { "heading": "Section Title", "content": "Detailed analysis in markdown" }
+  ],
+  "theories": ["Theory about something unusual in the data"],
+  "actionItems": ["Specific action to take"],
+  "alerts": ["Urgent items needing immediate attention"]
+}`;
+
+        try {
+          const response = await invokeLLM({
+            messages: [
+              { role: 'system', content: 'You are a restaurant operations intelligence AI. Be specific with numbers. Call out what\'s weird. Give theories about WHY things are happening, not just what. Use plain language — these are busy restaurant managers, not data scientists.' },
+              { role: 'user', content: prompt },
+            ],
+            response_format: {
+              type: 'json_schema',
+              json_schema: {
+                name: 'management_briefing',
+                strict: true,
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    summary: { type: 'string' },
+                    sections: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          heading: { type: 'string' },
+                          content: { type: 'string' },
+                        },
+                        required: ['heading', 'content'],
+                        additionalProperties: false,
+                      },
+                    },
+                    theories: { type: 'array', items: { type: 'string' } },
+                    actionItems: { type: 'array', items: { type: 'string' } },
+                    alerts: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['title', 'summary', 'sections', 'theories', 'actionItems', 'alerts'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+
+          const rawContent = response.choices?.[0]?.message?.content;
+          const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : { title: 'Briefing', summary: 'No data', sections: [], theories: [], actionItems: [], alerts: [] };
+
+          // Build full markdown content from sections
+          const fullContent = parsed.sections.map((s: any) => `## ${s.heading}\n\n${s.content}`).join('\n\n');
+
+          const id = await saveManagementBriefing({
+            targetRole: role,
+            briefingType: 'daily',
+            title: parsed.title,
+            summary: parsed.summary,
+            fullContent,
+            dataSnapshot: snapshot.categoryTrends,
+            weatherContext: snapshot.weather.slice(0, 3),
+            eventsContext: snapshot.events,
+            salesTrends: snapshot.categoryTrends,
+            anomalies: snapshot.anomalies,
+            theories: parsed.theories,
+            actionItems: parsed.actionItems,
+          });
+
+          if (id) briefingIds.push(id);
+        } catch (err) {
+          console.error(`Failed to generate briefing for ${role}:`, err);
+        }
+      }
+
+      // Send notification to owner (Michael) with the scheduler briefing summary
+      if (briefingIds.length > 0) {
+        const michaelBriefings = await getManagementBriefings('michael', 1);
+        if (michaelBriefings.length > 0) {
+          const latest = michaelBriefings[0];
+          await notifyOwner({
+            title: `Schedule Intel: ${latest.title}`,
+            content: `${latest.summary}\n\n${(latest.theories as string[] || []).map((t: string) => `Theory: ${t}`).join('\n')}\n\n${(latest.actionItems as string[] || []).map((a: string) => `Action: ${a}`).join('\n')}`,
+          });
+          await markBriefingNotified(latest.id);
+        }
+      }
+
+      return { generated: briefingIds.length, ids: briefingIds };
     }),
   }),
 });

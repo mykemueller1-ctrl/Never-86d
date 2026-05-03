@@ -349,6 +349,16 @@
 - [x] Par level suggestions UI in OrderGuideScreen — Products/Par Suggestions toggle with actionable adjustments and on-target indicators
 
 ### Remaining Items
-- [ ] Push notification to Michael for schedule intelligence (needs deployed site + scheduled task)
+- [x] Push notification to Michael for schedule intelligence — briefings.generate + notifyOwner
 - [ ] Cross-station communication (kitchen ↔ bar 86'd broadcasts)
 - [ ] Smart notification batching (low-priority batch, critical instant)
+
+## Wave 6 — Schedule Intelligence Notifications
+
+### Role-Based Briefing System
+- [x] POST /api/scheduled/briefing endpoint for scheduled task to call (scheduledRoutes.ts)
+- [x] Comprehensive briefing generator: weather, events (30mi), hourly sales trends, food/beer/liquor/pop trends, comp/promo/void analysis, anomaly theories
+- [x] Role-based routing: Ashley = bar trends, Tom = BOH/kitchen trends, Michael = full schedule picture
+- [x] Store briefings in management_briefings table for in-app viewing
+- [x] notifyOwner integration for push notifications to Michael
+- [x] ManagementBriefingScreen with role filter tabs (Michael/Ashley/Tom), theories, action items, anomaly alerts, events context

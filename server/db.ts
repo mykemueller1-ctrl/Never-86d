@@ -19,6 +19,7 @@ import {
   localEvents,
   intelligenceAnomalies,
   scheduleIntelligence,
+  managementBriefings,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1577,4 +1578,152 @@ function generatePrepRecommendations(
   }
 
   return recs;
+}
+
+
+// ============ MANAGEMENT BRIEFING HELPERS ============
+
+/** Save a management briefing */
+export async function saveManagementBriefing(data: {
+  targetRole: string;
+  briefingType: string;
+  title: string;
+  summary: string;
+  fullContent: string;
+  dataSnapshot?: any;
+  weatherContext?: any;
+  eventsContext?: any;
+  salesTrends?: any;
+  anomalies?: any;
+  theories?: any;
+  actionItems?: any;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(managementBriefings).values({
+    targetRole: data.targetRole,
+    briefingType: data.briefingType,
+    title: data.title,
+    summary: data.summary,
+    fullContent: data.fullContent,
+    dataSnapshot: data.dataSnapshot || null,
+    weatherContext: data.weatherContext || null,
+    eventsContext: data.eventsContext || null,
+    salesTrends: data.salesTrends || null,
+    anomalies: data.anomalies || null,
+    theories: data.theories || null,
+    actionItems: data.actionItems || null,
+  });
+  return result.insertId;
+}
+
+/** Get recent briefings for a role */
+export async function getManagementBriefings(targetRole?: string, limit = 10) {
+  const db = await getDb();
+  if (!db) return [];
+  if (targetRole) {
+    return db.select().from(managementBriefings)
+      .where(sql`${managementBriefings.targetRole} = ${targetRole} OR ${managementBriefings.targetRole} = 'all'`)
+      .orderBy(desc(managementBriefings.generatedAt))
+      .limit(limit);
+  }
+  return db.select().from(managementBriefings)
+    .orderBy(desc(managementBriefings.generatedAt))
+    .limit(limit);
+}
+
+/** Mark a briefing as read */
+export async function markBriefingRead(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(managementBriefings).set({ readAt: new Date() }).where(eq(managementBriefings.id, id));
+}
+
+/** Mark a briefing as notification sent */
+export async function markBriefingNotified(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(managementBriefings).set({ notificationSent: true }).where(eq(managementBriefings.id, id));
+}
+
+/** Get comprehensive data snapshot for briefing generation */
+export async function getBriefingDataSnapshot() {
+  const db = await getDb();
+  if (!db) return null;
+
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoStr = weekAgo.toISOString().split("T")[0];
+
+  // Next 7 days for events
+  const nextWeek = new Date(today);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextWeekStr = nextWeek.toISOString().split("T")[0];
+
+  // 1. Recent daily sales (last 14 days for trend)
+  const recentSales = await getDailySales(undefined, undefined, 14);
+
+  // 2. Hourly sales patterns (last 7 days)
+  const hourlyRows = await db.select().from(hourlySales)
+    .where(sql`${hourlySales.businessDate} >= ${weekAgoStr}`)
+    .orderBy(hourlySales.businessDate, hourlySales.hour);
+
+  // 3. Product mix — food, beer, liquor, pop trends
+  const foodMix = await getProductMix('food');
+  const beerMix = await getProductMix('beer');
+  const liquorMix = await getProductMix('liquor');
+  const popMix = await getProductMix('pop');
+
+  // 4. Weather — current + forecast
+  const weather = await getWeatherData(true);
+
+  // 5. Events within 30 miles in next 7 days
+  const events = await db.select().from(localEvents)
+    .where(sql`${localEvents.eventDate} >= ${todayStr} AND ${localEvents.eventDate} <= ${nextWeekStr}`)
+    .orderBy(localEvents.eventDate);
+
+  // 6. Void/comp/promo analysis (last 7 days)
+  const recentVoids = await getVoidRecords({ startDate: weekAgoStr, endDate: todayStr });
+  const voidSummary = await getVoidSummaryByEmployee();
+
+  // 7. Anomalies (unacknowledged)
+  const anomalyList = await getAnomalies();
+
+  // 8. Day-of-week patterns
+  const dowPatterns = await Promise.all(
+    [0, 1, 2, 3, 4, 5, 6].map(d => getDayOfWeekPattern(d))
+  );
+
+  // 9. Weather-sales correlation
+  const weatherCorrelation = await getWeatherSalesCorrelation();
+
+  // Calculate category trends from daily sales
+  const categoryTrends = recentSales.map(s => ({
+    date: s.businessDate,
+    food: parseFloat(s.catFoodAmount?.toString() || '0'),
+    beer: parseFloat(s.catBeerAmount?.toString() || '0'),
+    liquor: parseFloat(s.catLiquorAmount?.toString() || '0'),
+    pop: parseFloat(s.catPopAmount?.toString() || '0'),
+    total: parseFloat(s.grandTotal?.toString() || '0'),
+    voids: s.voidsCount || 0,
+    voidsAmount: parseFloat(s.voidsAmount?.toString() || '0'),
+    discounts: s.discountCount || 0,
+    discountTotal: parseFloat(s.discountTotal?.toString() || '0'),
+  }));
+
+  return {
+    recentSales,
+    hourlyPatterns: hourlyRows,
+    productMix: { food: foodMix.slice(0, 10), beer: beerMix.slice(0, 10), liquor: liquorMix.slice(0, 10), pop: popMix.slice(0, 10) },
+    weather: weather.slice(0, 10),
+    events: events.filter(e => parseFloat(e.distance?.toString() || '999') <= 30),
+    recentVoids: recentVoids.slice(0, 20),
+    voidSummary: voidSummary.slice(0, 10),
+    anomalies: anomalyList.filter((a: any) => !a.acknowledged).slice(0, 10),
+    dowPatterns,
+    weatherCorrelation,
+    categoryTrends,
+  };
 }
