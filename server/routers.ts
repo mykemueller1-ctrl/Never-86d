@@ -52,6 +52,7 @@ import {
   // Food Cost Intelligence
   getAllSkus, getSkuById, getSkusByVendor, getSkusByCategory, createSku, updateSku,
   getSkuPriceHistory, addSkuPriceEntry, crossVendorPriceComparison,
+  getWeekOverWeekPriceDeltas, getInvoicePriceComparison,
   getAllRecipes, getRecipeById, createRecipe, updateRecipe,
   getRecipeIngredients, addRecipeIngredient, updateRecipeIngredient, deleteRecipeIngredient, recalculateRecipeCost,
   getAllMenuItems, createMenuItem, updateMenuItem, recalculateMenuItemMargin, getFoodCostSummary,
@@ -205,6 +206,24 @@ export const appRouter = router({
           }
         }
       }
+      // Auto-scan for price changes after updating vendor products
+      try {
+        const { scanForPriceChanges } = await import("./db");
+        const priceAlerts = await scanForPriceChanges();
+        if (priceAlerts.length > 0) {
+          // Queue notifications for price alerts
+          const { queueNotification } = await import("./db");
+          for (const alert of priceAlerts) {
+            await queueNotification({
+              targetRole: 'manager',
+              category: 'price_alert',
+              title: `Price ${alert.changeDirection === 'up' ? 'Increase' : 'Decrease'}: ${alert.productName}`,
+              body: `${alert.vendorName} ${alert.changeDirection === 'up' ? 'raised' : 'lowered'} ${alert.productName} by ${alert.changePercent}% (was $${alert.previousPrice}, now $${alert.currentPrice})`,
+              priority: parseFloat(alert.changePercent) > 15 ? 'critical' : 'high',
+            });
+          }
+        }
+      } catch { /* price scan is best-effort */ }
       return invoice;
     }),
   }),
@@ -1300,6 +1319,12 @@ Respond in JSON with this exact structure:
     }),
     crossVendorCompare: protectedProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
       return crossVendorPriceComparison(input.productName);
+    }),
+    weekOverWeek: protectedProcedure.query(async () => {
+      return getWeekOverWeekPriceDeltas();
+    }),
+    invoicePriceComparison: protectedProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
+      return getInvoicePriceComparison(input.productName);
     }),
   }),
 

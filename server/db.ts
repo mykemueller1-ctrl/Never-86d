@@ -2423,3 +2423,128 @@ export async function batchNotifications() {
 
   return batchedCount;
 }
+
+// ============ WEEK-OVER-WEEK PRICE TRACKING ============
+/**
+ * Compute week-over-week price deltas for all active SKUs.
+ * Groups price history entries by week and computes current vs prior week average price.
+ * Returns items sorted by absolute delta descending (biggest movers first).
+ */
+export async function getWeekOverWeekPriceDeltas() {
+  const db = await getDb();
+  if (!db) return [];
+  const allSkus = await db.select().from(skuCatalog).where(eq(skuCatalog.isActive, true));
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const results: Array<{
+    skuId: number;
+    vendorName: string;
+    productName: string;
+    category: string | null;
+    unitSize: string | null;
+    currentWeekAvg: number;
+    priorWeekAvg: number;
+    delta: number;
+    deltaPct: number;
+    direction: 'up' | 'down' | 'stable';
+    currentWeekEntries: number;
+    priorWeekEntries: number;
+  }> = [];
+
+  for (const sku of allSkus) {
+    const history = await db.select().from(skuPriceHistory)
+      .where(sql`${skuPriceHistory.skuId} = ${sku.id} AND ${skuPriceHistory.recordedAt} >= ${twoWeeksAgo}`)
+      .orderBy(desc(skuPriceHistory.recordedAt));
+
+    if (history.length === 0) continue;
+
+    const currentWeekPrices: number[] = [];
+    const priorWeekPrices: number[] = [];
+
+    for (const entry of history) {
+      const entryDate = entry.recordedAt ? new Date(entry.recordedAt) : null;
+      if (!entryDate) continue;
+      const price = parseFloat(entry.price);
+      if (isNaN(price) || price <= 0) continue;
+
+      if (entryDate >= oneWeekAgo) {
+        currentWeekPrices.push(price);
+      } else if (entryDate >= twoWeeksAgo) {
+        priorWeekPrices.push(price);
+      }
+    }
+
+    const currentAvg = currentWeekPrices.length > 0
+      ? currentWeekPrices.reduce((a, b) => a + b, 0) / currentWeekPrices.length
+      : parseFloat(sku.currentPricePerUnit || "0");
+    const priorAvg = priorWeekPrices.length > 0
+      ? priorWeekPrices.reduce((a, b) => a + b, 0) / priorWeekPrices.length
+      : 0;
+
+    if (priorAvg === 0 && currentWeekPrices.length === 0) continue;
+
+    const delta = currentAvg - priorAvg;
+    const deltaPct = priorAvg > 0 ? (delta / priorAvg) * 100 : 0;
+
+    results.push({
+      skuId: sku.id,
+      vendorName: sku.vendorName,
+      productName: sku.productName,
+      category: sku.category,
+      unitSize: sku.unitSize,
+      currentWeekAvg: Math.round(currentAvg * 100) / 100,
+      priorWeekAvg: Math.round(priorAvg * 100) / 100,
+      delta: Math.round(delta * 100) / 100,
+      deltaPct: Math.round(deltaPct * 10) / 10,
+      direction: deltaPct > 2 ? 'up' : deltaPct < -2 ? 'down' : 'stable',
+      currentWeekEntries: currentWeekPrices.length,
+      priorWeekEntries: priorWeekPrices.length,
+    });
+  }
+
+  return results.sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct));
+}
+
+/**
+ * Get price comparison from invoice history for a specific product.
+ * Compares the last 4-8 invoice prices for the product across all vendors.
+ */
+export async function getInvoicePriceComparison(productName: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+  
+  const priceEntries: Array<{
+    vendorName: string;
+    invoiceDate: string;
+    price: number;
+    quantity: string;
+    invoiceNumber: string | null;
+  }> = [];
+
+  for (const inv of allInvoices) {
+    try {
+      const items = typeof inv.items === "string" ? JSON.parse(inv.items as string) : inv.items;
+      if (!Array.isArray(items)) continue;
+      for (const item of items) {
+        const itemDesc = (item.description || item.name || "").toLowerCase();
+        if (itemDesc.includes(productName.toLowerCase())) {
+          const price = parseFloat(item.unitPrice || item.price || "0");
+          if (price > 0) {
+            priceEntries.push({
+              vendorName: inv.vendorName || "Unknown",
+              invoiceDate: inv.createdAt?.toISOString().split("T")[0] || "unknown",
+              price,
+              quantity: item.quantity || "1",
+              invoiceNumber: inv.invoiceNumber,
+            });
+          }
+        }
+      }
+    } catch { /* skip malformed */ }
+  }
+
+  return priceEntries.slice(0, 8);
+}

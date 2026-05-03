@@ -7,7 +7,7 @@ interface SKUTrackerScreenProps {
   staffUser?: { id: number; name: string; role: string } | null;
 }
 
-type Tab = 'catalog' | 'price-alerts' | 'compare' | 'add';
+type Tab = 'catalog' | 'price-alerts' | 'compare' | 'wow' | 'add';
 
 export default function SKUTrackerScreen({ onBack }: SKUTrackerScreenProps) {
   const [tab, setTab] = useState<Tab>('catalog');
@@ -87,6 +87,7 @@ export default function SKUTrackerScreen({ onBack }: SKUTrackerScreenProps) {
           { key: 'catalog' as Tab, label: 'Catalog' },
           { key: 'price-alerts' as Tab, label: 'Price Alerts', count: (priceAlerts.data || []).filter((a: any) => a.status === 'pending').length },
           { key: 'compare' as Tab, label: 'Compare' },
+          { key: 'wow' as Tab, label: 'WoW Δ' },
           { key: 'add' as Tab, label: '+ Add' },
         ].map(t => (
           <button
@@ -324,6 +325,76 @@ export default function SKUTrackerScreen({ onBack }: SKUTrackerScreenProps) {
             })()}
           </div>
         )}
+
+        {tab === 'wow' && (() => {
+          const wow = trpc.skus.weekOverWeek.useQuery();
+          const items = (wow.data || []) as any[];
+          const movers = items.filter((i: any) => i.direction !== 'stable');
+          const stable = items.filter((i: any) => i.direction === 'stable');
+          return (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-amber-900/30 to-orange-900/30 rounded-2xl p-4 border border-amber-500/20">
+                <h3 className="text-sm font-bold">Week-over-Week Price Changes</h3>
+                <p className="text-xs text-white/40 mt-1">Compares this week's average price vs last week for all tracked SKUs</p>
+                <div className="flex gap-4 mt-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-red-400">{movers.filter((m: any) => m.direction === 'up').length}</div>
+                    <div className="text-[10px] text-white/30">Price Up</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-emerald-400">{movers.filter((m: any) => m.direction === 'down').length}</div>
+                    <div className="text-[10px] text-white/30">Price Down</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-white/40">{stable.length}</div>
+                    <div className="text-[10px] text-white/30">Stable</div>
+                  </div>
+                </div>
+              </div>
+              {wow.isLoading && <div className="text-center py-8 text-white/30 text-xs">Loading price data...</div>}
+              {movers.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-white/50 uppercase">Price Movers</h4>
+                  {movers.map((item: any) => (
+                    <div key={item.skuId} className={`bg-white/5 rounded-xl p-3 border ${item.direction === 'up' ? 'border-red-500/20' : 'border-emerald-500/20'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold">{item.productName}</div>
+                          <div className="text-[10px] text-white/30">{item.vendorName} {item.unitSize ? `· ${item.unitSize}` : ''}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-bold flex items-center gap-1 ${item.direction === 'up' ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {item.direction === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {item.deltaPct > 0 ? '+' : ''}{item.deltaPct}%
+                          </div>
+                          <div className="text-[10px] text-white/30">
+                            ${item.priorWeekAvg.toFixed(2)} → ${item.currentWeekAvg.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {stable.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-white/50 uppercase">Stable Prices ({stable.length})</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {stable.slice(0, 10).map((item: any) => (
+                      <div key={item.skuId} className="bg-white/5 rounded-lg p-2 text-xs">
+                        <div className="font-medium truncate">{item.productName}</div>
+                        <div className="text-white/30">{item.vendorName} · ${item.currentWeekAvg.toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!wow.isLoading && items.length === 0 && (
+                <div className="text-center py-8 text-white/30 text-xs">No price history data yet. Add SKUs and log prices from invoices to see week-over-week trends.</div>
+              )}
+            </div>
+          );
+        })()}
 
         {tab === 'add' && (
           <div className="space-y-4">

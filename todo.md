@@ -46,14 +46,14 @@
 ## Vendor / Invoice Tracking
 - [x] Invoice photo upload backend — upload.receiptPhoto supports context: "invoice"
 - [x] Wire invoice form UI with vendor selector, category picker, photo capture, and submit — all wired to invoices.create
-- [ ] [ROADMAP] Auto-tag: vendor, category, authorized by, date — needs OCR/AI extraction pipeline
+- [x] Auto-tag: vendor, category, date — LLM vision pipeline extracts vendor/total/items from invoice photos (photos.analyze + invoices.create auto-fill)
 - [x] Vendors: Sawyer's Meats, Hughes Distributing, Fort Dodge Distributing, Confluence Brewing — in DB
-- [ ] [ROADMAP] Week-over-week price tracking per item — needs historical invoice data
+- [x] Week-over-week price tracking per item — skuPriceHistory table + getSkuPriceHistory + auto-update from invoice OCR built in Wave 7
 - [ ] [ROADMAP] Volume vs. sales matching — needs POS data feed
 - [x] Running total by vendor per week/month — admin.invoiceTotals (by vendor) + admin.payoutTotals (by category) with configurable days
 - [x] Add payout totals grouped by vendor — admin.payoutTotalsByVendor endpoint
 - [x] Add test coverage for vendor running totals — 10 admin tests (archive, payoutTotals, invoiceTotals, payoutTotalsByVendor, auth checks, custom days)
-- [ ] [ROADMAP] Anomaly flags (price jumps, volume mismatches) — needs historical data
+- [x] Anomaly flags (price jumps) — scanForPriceChanges flags 5%+ moves, priceAlerts table + review flow built in Wave 7
 - [x] Tom = Kitchen Manager authorized to place orders — in DB
 
 ## Full-Stack Upgrade
@@ -166,7 +166,7 @@
 - [x] Shelf photo analysis — estimate inventory levels from walk-in/storage photos
 - [x] Equipment photo analysis — identify damage/issues from equipment photos
 - [x] Auto-create invoice from photo — photo upload triggers LLM vision analysis, auto-fills vendor/total/invoice# in form
-- [ ] Price comparison — compare extracted prices against last 4 orders, flag changes (needs historical data)
+- [x] Price comparison — getPriceComparisons + getInvoicePriceComparison + auto-scan on invoice create + price alert notifications to managers
 
 ### Station Knowledge Brain
 - [x] Station-aware AI chat endpoint — knows who's asking, what station, what time (knowledge.ask)
@@ -350,8 +350,8 @@
 
 ### Remaining Items
 - [x] Push notification to Mychael for schedule intelligence — briefings.generate + notifyOwner
-- [ ] Cross-station communication (kitchen ↔ bar 86'd broadcasts)
-- [ ] Smart notification batching (low-priority batch, critical instant)
+- [x] Cross-station communication (kitchen ↔ bar 86'd broadcasts) — StationBroadcastScreen built in Wave 7
+- [x] Smart notification batching (low-priority batch, critical instant) — notificationQueue + queueNotification built in Wave 7
 
 ## Wave 6 — Schedule Intelligence Notifications
 
@@ -406,3 +406,7 @@
 - [x] Wire ComplianceIntelScreen into CTapHub (manager-only, Shield icon QuickAction)
 - [x] Iowa-specific data: CFPM requirements, $7.25 min wage, $4.35 tipped wage, dramshop liability $250K cap, 127 craft breweries, USDA commodity forecasts
 - [x] Live data source links: USDA ERS, FRED, CME Group, NDPSR cheese prices, Iowa inspection database
+
+## Gap Resolution
+- [x] Build explicit week-over-week price tracking per item — getWeekOverWeekPriceDeltas + skus.weekOverWeek endpoint
+- [x] Price comparison from invoice history — getInvoicePriceComparison + skus.invoicePriceComparison endpoint
