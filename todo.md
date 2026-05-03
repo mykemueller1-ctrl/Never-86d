@@ -101,3 +101,41 @@
 - [x] Owner/Manager flow: command center + leaderboard + issues
 - [x] Simple bottom nav: Home / My Tasks / Board / Profile (4 max)
 - [x] No hunting through tabs — the app knows who you are and surfaces your stuff
+
+## Intelligence Report
+- [ ] Synthesize all research into polished intelligence report (platforms, benchmarks, gaps, recommendations)
+
+## Social Media Content for Never 86'd
+- [ ] Find CTAP / Community Tap photos and videos online
+- [ ] Create Never 86'd branded short-form content for YouTube Shorts, Facebook Reels, Instagram Reels, TikTok
+- [ ] Package content assets ready for posting
+
+## QA Pass
+- [x] Test every button on every screen (splash, login, department select, staff select, PIN entry, welcome, briefing, home, checklists, leaderboard, profile, command center, EOD, feedback, payouts, invoices, voids)
+- [x] Fix any broken buttons or dead-end flows
+
+## Role-Based Permissions & Data Visibility
+- [x] Staff should NEVER see raw sales/revenue numbers — gamify instead
+- [x] Manager/Owner screens show command center with operational intelligence
+- [x] Regular staff see gamified metrics only (points, streaks, rank, badges)
+- [x] P&L data restricted to manager+ roles (owner, key_manager, kitchen_manager, bar_manager)
+- [x] Void counts hidden from non-managers on leaderboard and profile
+- [ ] Staff self-only view for their own voids (not yet implemented)
+- [x] Payout screen restricted to managers only
+- [ ] Staff self-only view for their own payouts (not yet implemented)
+
+## Gamified UI Polish
+- [x] Replace any raw dollar amounts with gamified equivalents for non-managers
+- [x] Make leaderboard feel rewarding (badges, rank visuals, gold/silver/bronze top 3, KEY badges, streak badges)
+- [x] Polish the overall look to feel premium, not like a spreadsheet
+
+## Demo Video
+- [ ] Create a walkthrough video showing all platform features
+
+## SEO / AEO (Answer Engine Optimization)
+- [x] Add structured data (JSON-LD) for SoftwareApplication schema
+- [x] Add FAQ schema markup for common restaurant tech questions
+- [x] Add meta tags (title, description, twitter:card) to index.html
+- [ ] Add og:image and twitter:image assets
+- [ ] Create Q&A content page targeting restaurant worker/operator search queries
+- [x] Optimize for AI answer engines (clear headings, structured answers, entity markup)

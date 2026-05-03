@@ -3,8 +3,9 @@
  * Community Tap & Pizza · Fort Dodge, Iowa · Powered by Never 86'd
  *
  * Design: Night Shift Industrial — True black OLED, amber primary
- * Security: No PINs, phone numbers, or emails exposed to frontend
+ * Security: No PINs/phone/email exposed. No raw sales for non-managers.
  * UX: Role-aware — staff sees what THEY need, not a wall of tabs
+ * Permissions: Manager-only screens have guards. Financial data gamified for staff.
  */
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -13,14 +14,15 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import type { SafeStaff } from "../../../shared/types";
 import {
-  CheckCircle2, Circle, AlertTriangle, Calendar,
+  CheckCircle2, Circle, AlertTriangle,
   Send, ChevronRight, ChevronLeft, Users,
-  Trophy, Flame, Wifi, Star, TrendingUp, Clock,
-  DollarSign, ShieldAlert, Truck, Camera,
-  Bell, BarChart3, Award, Zap, Coffee, Moon, Sun,
+  Trophy, Flame, Wifi, Star, TrendingUp,
+  ShieldAlert, Truck, Camera,
+  BarChart3, Zap, Coffee, Sun,
   ClipboardCheck, LogOut, Home, ArrowRight,
   Eye, EyeOff, Plus, Receipt,
-  Package, Loader2, UserCircle, Clipboard
+  Package, Loader2, UserCircle, Lock,
+  Sparkles, Target, ThumbsUp, MessageSquare
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -41,6 +43,9 @@ const DEPT_CONFIG: Record<Department, { label: string; desc: string; icon: any }
   driver: { label: "Driver", desc: "Deliveries · EOD reports", icon: Truck },
 };
 
+// Manager/owner roles that can see financial data
+const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"];
+
 function staffDisplayName(s: SafeStaff): string {
   return s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName;
 }
@@ -54,8 +59,18 @@ function roleLabel(jobRole: string): string {
   return labels[jobRole] || jobRole;
 }
 
-function isManagerOrOwner(s: SafeStaff): boolean {
-  return ["owner", "key_manager", "kitchen_manager", "bar_manager"].includes(s.jobRole);
+function isManagerOrOwner(s: SafeStaff | null): boolean {
+  if (!s) return false;
+  return MANAGER_ROLES.includes(s.jobRole);
+}
+
+/** Convert a sales number to a gamified "vibe" rating for non-managers */
+function salesVibe(amount: number | null | undefined): { label: string; emoji: string; color: string } {
+  if (!amount || amount === 0) return { label: "No data yet", emoji: "—", color: "text-zinc-500" };
+  if (amount >= 5000) return { label: "Legendary Night", emoji: "🔥", color: "text-amber-400" };
+  if (amount >= 3500) return { label: "Great Night", emoji: "⭐", color: "text-green-400" };
+  if (amount >= 2000) return { label: "Solid Night", emoji: "👍", color: "text-blue-400" };
+  return { label: "Steady Night", emoji: "📊", color: "text-zinc-400" };
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────
@@ -69,6 +84,13 @@ export default function CTapHub() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackCategory, setFeedbackCategory] = useState<string | null>(null);
   const [driverEOD, setDriverEOD] = useState({ outOfTown: "", specialRuns: "", cashFromTill: "", redeliveries: "", notes: "" });
+  const [issueTitle, setIssueTitle] = useState("");
+  const [issueDesc, setIssueDesc] = useState("");
+  const [issuePriority, setIssuePriority] = useState<string>("medium");
+  const [issueCategory, setIssueCategory] = useState<string>("equipment");
+  const [storeRunForm, setStoreRunForm] = useState({ description: "", amount: "", vendor: "", category: "food" });
+
+  const isManager = isManagerOrOwner(staffUser);
 
   // ─── Auth (Manus OAuth — needed for mutations) ──────────────────────
   const { user: authUser, isAuthenticated } = useAuth();
@@ -90,17 +112,18 @@ export default function CTapHub() {
   const leaderboardQuery = trpc.gamification.leaderboard.useQuery(undefined, {
     enabled: ["leaderboard", "home", "command"].includes(screen)
   });
+  // Manager-only queries — only fetch if user is a manager
   const payoutsQuery = trpc.payouts.list.useQuery(undefined, {
-    enabled: ["store-run", "command"].includes(screen)
+    enabled: isManager && ["store-run", "command"].includes(screen)
   });
   const invoicesQuery = trpc.invoices.list.useQuery(undefined, {
-    enabled: ["invoices", "command"].includes(screen)
+    enabled: isManager && ["invoices", "command"].includes(screen)
   });
   const voidsQuery = trpc.voids.list.useQuery(undefined, {
-    enabled: ["voids", "command"].includes(screen)
+    enabled: isManager && ["voids", "command"].includes(screen)
   });
   const staffListQuery = trpc.staff.list.useQuery(undefined, {
-    enabled: ["voids", "command"].includes(screen)
+    enabled: isManager && ["voids", "command"].includes(screen)
   });
 
   // ─── tRPC Mutations ──────────────────────────────────────────────────
@@ -108,6 +131,7 @@ export default function CTapHub() {
   const createFeedback = trpc.feedback.create.useMutation();
   const createDriverReport = trpc.driverReports.create.useMutation();
   const createIssue = trpc.issues.create.useMutation();
+  const createPayout = trpc.payouts.create.useMutation();
 
   // ─── Derived data ──────────────────────────────────────────────────
   const deptStaff = staffByDept.data || [];
@@ -115,10 +139,10 @@ export default function CTapHub() {
   const allChecklists = checklistsQuery.data || [];
   const openIssues = issuesQuery.data || [];
   const leaderboard = leaderboardQuery.data || [];
-  const allPayouts = payoutsQuery.data || [];
-  const allInvoices = invoicesQuery.data || [];
-  const allVoids = voidsQuery.data || [];
-  const allStaff = staffListQuery.data || [];
+  const allPayouts = isManager ? (payoutsQuery.data || []) : [];
+  const allInvoices = isManager ? (invoicesQuery.data || []) : [];
+  const allVoids = isManager ? (voidsQuery.data || []) : [];
+  const allStaff = isManager ? (staffListQuery.data || []) : [];
 
   const myChecklists = useMemo(() => {
     if (!staffUser) return [];
@@ -132,6 +156,16 @@ export default function CTapHub() {
       return () => clearTimeout(t);
     }
   }, [screen]);
+
+  // ─── Screen Guard — redirect non-managers away from financial screens ──
+  const navigateTo = (target: Screen) => {
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids"];
+    if (managerOnlyScreens.includes(target) && !isManager) {
+      toast.error("Manager access required");
+      return;
+    }
+    setScreen(target);
+  };
 
   // ─── PIN Login Handler ──────────────────────────────────────────────
   const handlePinLogin = async (fullPin: string) => {
@@ -220,7 +254,7 @@ export default function CTapHub() {
                         <span className="text-white text-sm">{staffDisplayName(s as SafeStaff)}</span>
                         <span className="text-zinc-500 text-[9px] ml-2">{roleLabel(s.jobRole)}</span>
                       </div>
-                      {s.isKeyEmployee && <span className="text-amber-500 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10">KEY</span>}
+                      {s.isKeyEmployee && <span className="text-amber-500 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">KEY</span>}
                     </button>
                   ))}
                   {deptStaff.filter(s => s.status === "active").length === 0 && (
@@ -236,7 +270,7 @@ export default function CTapHub() {
                   <div className="flex gap-1.5 flex-1">
                     {[0,1,2,3].map(i => (
                       <div key={i} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center text-lg font-bold ${pin.length > i ? 'border-amber-500 text-amber-500' : 'border-zinc-700 text-zinc-700'}`}>
-                        {pin.length > i ? (showPin ? pin[i] : "•") : ""}
+                        {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
                       </div>
                     ))}
                   </div>
@@ -245,9 +279,9 @@ export default function CTapHub() {
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {[1,2,3,4,5,6,7,8,9,null,0,"⌫"].map((n, i) => (
+                  {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
                     <button key={i} onClick={() => {
-                      if (n === "⌫") setPin(p => p.slice(0, -1));
+                      if (n === "\u232b") setPin(p => p.slice(0, -1));
                       else if (n !== null && pin.length < 4) {
                         const newPin = pin + n;
                         setPin(newPin);
@@ -316,13 +350,14 @@ export default function CTapHub() {
     );
   };
 
-  // ─── BRIEFING ──────────────────────────────────────────────────────
+  // ─── BRIEFING — Gamified for staff, raw numbers for managers ──────────
   const BriefingScreen = () => {
     const eightySixed: string[] = briefing?.eightySixedItems ? (briefing.eightySixedItems as string[]) : [];
     const specials: { name: string; description: string }[] = briefing?.specials ? (briefing.specials as any[]) : [];
     const openIssuesBriefing: { description: string; priority: string }[] = briefing?.openIssues ? (briefing.openIssues as any[]) : [];
     const shoutouts: { staffName: string; reason: string }[] = briefing?.shoutouts ? (briefing.shoutouts as any[]) : [];
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const vibe = salesVibe(briefing?.salesYesterday ? Number(briefing.salesYesterday) : null);
 
     return (
       <div className="h-screen bg-black flex flex-col overflow-y-auto pb-6">
@@ -341,18 +376,31 @@ export default function CTapHub() {
             </div>
           ) : briefing ? (
             <>
+              {/* Yesterday's recap — GAMIFIED for staff, raw for managers */}
               <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 mb-3">
                 <p className="text-zinc-400 text-[10px] uppercase mb-2">Yesterday</p>
-                <div className="flex gap-6">
-                  <div>
-                    <p className="text-xl font-bold text-white">${briefing.salesYesterday || "—"}</p>
-                    <p className="text-zinc-500 text-[10px]">sales</p>
+                {isManager ? (
+                  <div className="flex gap-6">
+                    <div>
+                      <p className="text-xl font-bold text-white">${briefing.salesYesterday || "—"}</p>
+                      <p className="text-zinc-500 text-[10px]">sales</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-white">{briefing.ordersYesterday || "—"}</p>
+                      <p className="text-zinc-500 text-[10px]">orders</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">{briefing.ordersYesterday || "—"}</p>
-                    <p className="text-zinc-500 text-[10px]">orders</p>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                      <Sparkles size={18} className="text-amber-500" />
+                    </div>
+                    <div>
+                      <p className={`text-lg font-bold ${vibe.color}`}>{vibe.label}</p>
+                      <p className="text-zinc-500 text-[10px]">Keep the energy going today</p>
+                    </div>
                   </div>
-                </div>
+                )}
                 {shoutouts.length > 0 && (
                   <p className="text-yellow-500 text-xs mt-2 flex items-center gap-1">
                     <Trophy size={10} />{shoutouts[0].staffName} — {shoutouts[0].reason}
@@ -362,7 +410,7 @@ export default function CTapHub() {
 
               {eightySixed.length > 0 && (
                 <div className="bg-red-950/30 rounded-xl p-3 border border-red-900/50 mb-3">
-                  <p className="text-red-400 text-[10px] uppercase mb-1 flex items-center gap-1"><AlertTriangle size={10} />86'd Today</p>
+                  <p className="text-red-400 text-[10px] uppercase mb-1 flex items-center gap-1 font-semibold"><AlertTriangle size={10} />86'd Today</p>
                   {eightySixed.map((item, i) => <p key={i} className="text-white text-sm">{item}</p>)}
                 </div>
               )}
@@ -370,7 +418,7 @@ export default function CTapHub() {
               {specials.length > 0 && (
                 <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 mb-3">
                   <p className="text-zinc-400 text-[10px] uppercase mb-1">Specials</p>
-                  {specials.map((s, i) => <p key={i} className="text-white text-sm">• {s.name}: {s.description}</p>)}
+                  {specials.map((s, i) => <p key={i} className="text-white text-sm">{s.name}: {s.description}</p>)}
                 </div>
               )}
 
@@ -410,10 +458,8 @@ export default function CTapHub() {
     }, 0);
     const doneTasks = Object.values(checklistProgress).filter(Boolean).length;
     const rank = leaderboard.findIndex(s => s.id === staffUser.id) + 1;
-    const isManager = isManagerOrOwner(staffUser);
     const isDriver = staffUser.department === "driver" || staffUser.jobRole === "driver";
 
-    // Personalized greeting based on time of day
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -444,7 +490,7 @@ export default function CTapHub() {
         </div>
 
         <div className="px-4 space-y-3">
-          {/* 86'd Alert — if any */}
+          {/* 86'd Alert — visible to everyone */}
           {briefing && (briefing.eightySixedItems as string[])?.length > 0 && (
             <div className="bg-red-950/30 rounded-xl p-3 border border-red-900/50">
               <p className="text-red-400 text-[10px] uppercase mb-1 flex items-center gap-1 font-semibold"><AlertTriangle size={10} />86'd Right Now</p>
@@ -454,7 +500,7 @@ export default function CTapHub() {
 
           {/* Your Tasks — Checklists */}
           {myChecklists.length > 0 && (
-            <button onClick={() => setScreen("checklist")} className="w-full bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
+            <button onClick={() => navigateTo("checklist")} className="w-full bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <ClipboardCheck size={16} className="text-green-500" />
@@ -469,14 +515,14 @@ export default function CTapHub() {
                 <span className="text-zinc-400 text-xs">{doneTasks}/{totalTasks}</span>
               </div>
               {myChecklists.map(cl => (
-                <p key={cl.id} className="text-zinc-500 text-[10px] mt-1">• {cl.name}</p>
+                <p key={cl.id} className="text-zinc-500 text-[10px] mt-1">{cl.name}</p>
               ))}
             </button>
           )}
 
           {/* Driver EOD — only for drivers */}
           {isDriver && (
-            <button onClick={() => setScreen("driver-eod")} className="w-full bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
+            <button onClick={() => navigateTo("driver-eod")} className="w-full bg-zinc-900 rounded-xl p-4 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Truck size={16} className="text-amber-500" />
@@ -492,13 +538,13 @@ export default function CTapHub() {
 
           {/* Command Center — only for managers/owners */}
           {isManager && (
-            <button onClick={() => setScreen("command")} className="w-full bg-gradient-to-r from-amber-500/10 to-amber-600/5 rounded-xl p-4 border border-amber-500/20 hover:border-amber-500/40 transition-all text-left">
+            <button onClick={() => navigateTo("command")} className="w-full bg-gradient-to-r from-amber-500/10 to-amber-600/5 rounded-xl p-4 border border-amber-500/20 hover:border-amber-500/40 transition-all text-left">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 size={16} className="text-amber-500" />
                   <div>
                     <span className="text-white font-semibold text-sm">Command Center</span>
-                    <p className="text-zinc-500 text-[10px]">Sales · Pay Outs · Voids · Issues</p>
+                    <p className="text-zinc-500 text-[10px]">Operations · Team · Issues</p>
                   </div>
                 </div>
                 <ChevronRight size={14} className="text-amber-500" />
@@ -506,21 +552,21 @@ export default function CTapHub() {
             </button>
           )}
 
-          {/* Quick Actions — contextual */}
+          {/* Quick Actions — contextual by role */}
           <div className="grid grid-cols-2 gap-2">
             {isManager && (
               <>
-                <QuickAction icon={Receipt} label="Store Runs" color="text-emerald-500" bg="bg-emerald-500/10" onClick={() => setScreen("store-run")} />
-                <QuickAction icon={Package} label="Invoices" color="text-teal-500" bg="bg-teal-500/10" onClick={() => setScreen("invoices")} />
+                <QuickAction icon={Receipt} label="Store Runs" color="text-emerald-500" bg="bg-emerald-500/10" onClick={() => navigateTo("store-run")} />
+                <QuickAction icon={Package} label="Invoices" color="text-teal-500" bg="bg-teal-500/10" onClick={() => navigateTo("invoices")} />
               </>
             )}
-            <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => setScreen("issues")} />
-            <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => setScreen("feedback")} subtitle="+5 pts" />
+            <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("issues")} />
+            <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => navigateTo("feedback")} subtitle="+5 pts" />
           </div>
 
           {/* Leaderboard Preview */}
           {leaderboard.length > 0 && (
-            <button onClick={() => setScreen("leaderboard")} className="w-full bg-zinc-900 rounded-xl p-3 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
+            <button onClick={() => navigateTo("leaderboard")} className="w-full bg-zinc-900 rounded-xl p-3 border border-zinc-800 hover:border-amber-500/30 transition-all text-left">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-yellow-500" />
@@ -529,7 +575,7 @@ export default function CTapHub() {
                 <span className="text-zinc-500 text-xs">#{rank || "—"} of {leaderboard.length}</span>
               </div>
               <div className="flex items-center gap-1">
-                {leaderboard.slice(0, 5).map((s, i) => (
+                {leaderboard.slice(0, 5).map((s) => (
                   <div key={s.id} className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold ${s.id === staffUser.id ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>
                     {s.firstName.charAt(0)}
                   </div>
@@ -550,7 +596,7 @@ export default function CTapHub() {
                 </div>
               ))}
               {openIssues.length > 2 && (
-                <button onClick={() => setScreen("issues")} className="text-amber-500 text-[10px] mt-1">View all →</button>
+                <button onClick={() => navigateTo("issues")} className="text-amber-500 text-[10px] mt-1">View all →</button>
               )}
             </div>
           )}
@@ -614,18 +660,55 @@ export default function CTapHub() {
     </div>
   );
 
-  // ─── STORE RUN / PAY OUT ──────────────────────────────────────────
+  // ─── STORE RUN / PAY OUT — Manager Only ──────────────────────────────
   const StoreRunScreen = () => {
+    if (!isManager) return <AccessDenied />;
+
     const weeklyTotal = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
     const flaggedCount = allPayouts.filter(p => p.flagged).length;
+
+    const handleSubmitStoreRun = async () => {
+      if (!isAuthenticated) { toast.error("Please sign in via Manus to log store runs"); return; }
+      if (!staffUser || !storeRunForm.amount || !storeRunForm.description) {
+        toast.error("Please fill in description and amount");
+        return;
+      }
+      try {
+        await createPayout.mutateAsync({
+          staffId: staffUser.id,
+          date: new Date(),
+          amount: storeRunForm.amount,
+          description: storeRunForm.description,
+          vendor: storeRunForm.vendor || undefined,
+          category: storeRunForm.category as any,
+          authorizedById: staffUser.isKeyEmployee ? staffUser.id : undefined,
+        });
+        toast.success("Store run logged");
+        setStoreRunForm({ description: "", amount: "", vendor: "", category: "food" });
+      } catch { toast.error("Failed to log — try again"); }
+    };
 
     return (
       <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
         <ScreenHeader title="STORE RUNS & PAY OUTS" subtitle="Receipt capture · Manager approval required" />
         <div className="p-4 space-y-3">
-          <button onClick={() => toast.info("Camera opening — snap receipt photo")} className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2">
-            <Camera size={16} /> Log New Store Run
-          </button>
+          {/* New Store Run Form */}
+          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 space-y-2">
+            <p className="text-zinc-400 text-[10px] uppercase font-semibold">Log New Store Run</p>
+            <input value={storeRunForm.description} onChange={e => setStoreRunForm(f => ({ ...f, description: e.target.value }))} placeholder="What was purchased?" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+            <div className="flex gap-2">
+              <input value={storeRunForm.amount} onChange={e => setStoreRunForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount ($)" type="number" step="0.01" className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+              <input value={storeRunForm.vendor} onChange={e => setStoreRunForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Where?" className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {["food", "supplies", "equipment", "misc"].map(cat => (
+                <button key={cat} onClick={() => setStoreRunForm(f => ({ ...f, category: cat }))} className={`px-2 py-1 rounded-full text-[9px] border capitalize ${storeRunForm.category === cat ? 'bg-amber-500/20 border-amber-500/50 text-amber-500' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{cat}</button>
+              ))}
+            </div>
+            <button onClick={handleSubmitStoreRun} disabled={createPayout.isPending} className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-50">
+              {createPayout.isPending ? "Saving..." : "Log Store Run"}
+            </button>
+          </div>
 
           <div className="bg-amber-500/10 rounded-xl p-3 border border-amber-500/30">
             <p className="text-amber-500 text-[10px] uppercase font-semibold mb-1">Authorization Rule</p>
@@ -670,8 +753,10 @@ export default function CTapHub() {
     );
   };
 
-  // ─── INVOICES ──────────────────────────────────────────────────────
+  // ─── INVOICES — Manager Only ──────────────────────────────────────────
   const InvoiceScreen = () => {
+    if (!isManager) return <AccessDenied />;
+
     const weeklyTotal = allInvoices.reduce((s, inv) => s + parseFloat(inv.totalAmount), 0);
     const vendorTotals = useMemo(() => {
       const map: Record<string, number> = {};
@@ -682,7 +767,7 @@ export default function CTapHub() {
 
     return (
       <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
-        <ScreenHeader title="VENDOR INVOICES" subtitle="Weekly spend tracking" />
+        <ScreenHeader title="VENDOR INVOICES" subtitle="Track spend · Flag anomalies" />
         <div className="p-4 space-y-3">
           <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
             <p className="text-zinc-400 text-[10px] uppercase mb-2">This Week's Vendor Spend</p>
@@ -721,8 +806,10 @@ export default function CTapHub() {
     );
   };
 
-  // ─── VOID HUNTER ──────────────────────────────────────────────────────
+  // ─── VOID HUNTER — Manager Only ──────────────────────────────────────
   const VoidScreen = () => {
+    if (!isManager) return <AccessDenied />;
+
     const voidCount = allVoids.filter(v => v.type === "void").length;
     const compCount = allVoids.filter(v => v.type === "comp").length;
     const promoCount = allVoids.filter(v => ["promo", "discount", "credit"].includes(v.type)).length;
@@ -878,36 +965,84 @@ export default function CTapHub() {
     );
   };
 
-  // ─── ISSUES ──────────────────────────────────────────────────────
-  const IssuesScreen = () => (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
-      <ScreenHeader title="ISSUES" subtitle="Report → Route → Resolve" />
-      <div className="p-4 space-y-3">
-        <button onClick={() => {
-          if (!isAuthenticated) { toast.error("Please sign in via Manus to report issues"); return; }
-          toast.info("Feature coming soon — issue reporting form");
-        }} className="w-full py-3 rounded-xl bg-red-600 text-white font-bold text-sm flex items-center justify-center gap-2"><Plus size={14} />Report Issue</button>
-        {issuesQuery.isLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
-        ) : openIssues.length === 0 ? (
-          <p className="text-zinc-500 text-sm text-center py-4">No open issues — all clear!</p>
-        ) : (
-          openIssues.map(issue => (
-            <div key={issue.id} className="p-3 rounded-xl border bg-zinc-900 border-zinc-800">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-white text-sm font-medium">{issue.title}</p>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/20 text-red-400' : issue.priority === 'high' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'}`}>{issue.priority}</span>
-              </div>
-              <p className="text-zinc-500 text-xs">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
-              {issue.description && <p className="text-zinc-400 text-[10px] mt-1">{issue.description}</p>}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
+  // ─── ISSUES — with real create form ──────────────────────────────────
+  const IssuesScreen = () => {
+    const handleSubmitIssue = async () => {
+      if (!isAuthenticated) { toast.error("Please sign in via Manus to report issues"); return; }
+      if (!staffUser || !issueTitle.trim()) { toast.error("Please enter an issue title"); return; }
+      try {
+        await createIssue.mutateAsync({
+          title: issueTitle,
+          description: issueDesc || undefined,
+          priority: issuePriority as any,
+          category: issueCategory as any,
+          reportedById: staffUser.id,
+          date: new Date(),
+        });
+        toast.success("Issue reported — management notified");
+        setIssueTitle("");
+        setIssueDesc("");
+        setIssuePriority("medium");
+        setIssueCategory("equipment");
+      } catch { toast.error("Failed to report — try again"); }
+    };
 
-  // ─── LEADERBOARD ──────────────────────────────────────────────────────
+    return (
+      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
+        <ScreenHeader title="ISSUES" subtitle="Report → Route → Resolve" />
+        <div className="p-4 space-y-3">
+          {/* Report Issue Form */}
+          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 space-y-2">
+            <p className="text-zinc-400 text-[10px] uppercase font-semibold">Report New Issue</p>
+            <input value={issueTitle} onChange={e => setIssueTitle(e.target.value)} placeholder="What's the issue?" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50" />
+            <textarea value={issueDesc} onChange={e => setIssueDesc(e.target.value)} placeholder="Details (optional)" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 min-h-[50px] resize-none" />
+            <div>
+              <p className="text-zinc-500 text-[9px] mb-1">Priority</p>
+              <div className="flex gap-1.5">
+                {["low", "medium", "high", "critical"].map(p => (
+                  <button key={p} onClick={() => setIssuePriority(p)} className={`px-2 py-1 rounded-full text-[9px] border capitalize ${issuePriority === p ? (p === 'critical' ? 'bg-red-500/20 border-red-500/50 text-red-400' : p === 'high' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-amber-500/20 border-amber-500/50 text-amber-500') : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{p}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-zinc-500 text-[9px] mb-1">Category</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {["equipment", "staffing", "inventory", "safety", "other"].map(c => (
+                  <button key={c} onClick={() => setIssueCategory(c)} className={`px-2 py-1 rounded-full text-[9px] border capitalize ${issueCategory === c ? 'bg-amber-500/20 border-amber-500/50 text-amber-500' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{c}</button>
+                ))}
+              </div>
+            </div>
+            <button onClick={handleSubmitIssue} disabled={createIssue.isPending || !issueTitle.trim()} className="w-full py-2.5 rounded-xl bg-red-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+              {createIssue.isPending ? <><Loader2 size={14} className="animate-spin" /> Reporting...</> : <><Plus size={14} /> Report Issue</>}
+            </button>
+          </div>
+
+          {/* Existing Issues */}
+          {issuesQuery.isLoading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+          ) : openIssues.length === 0 ? (
+            <p className="text-zinc-500 text-sm text-center py-4">No open issues — all clear!</p>
+          ) : (
+            <>
+              <p className="text-zinc-400 text-[10px] uppercase tracking-wider">{openIssues.length} Open</p>
+              {openIssues.map(issue => (
+                <div key={issue.id} className="p-3 rounded-xl border bg-zinc-900 border-zinc-800">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-white text-sm font-medium">{issue.title}</p>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/20 text-red-400' : issue.priority === 'high' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'}`}>{issue.priority}</span>
+                  </div>
+                  <p className="text-zinc-500 text-xs">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
+                  {issue.description && <p className="text-zinc-400 text-[10px] mt-1">{issue.description}</p>}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── LEADERBOARD — gamified, no void counts for non-managers ──────────
   const LeaderboardScreen = () => (
     <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
       <ScreenHeader title="LEADERBOARD" subtitle="Score = shift priority" />
@@ -932,7 +1067,8 @@ export default function CTapHub() {
                 </div>
                 <div className="text-right">
                   <p className="text-amber-500 font-bold text-sm">{s.totalPoints.toLocaleString()}</p>
-                  <p className="text-zinc-500 text-[9px]">{s.weeklyVoids}v</p>
+                  {/* Only show void count to managers */}
+                  {isManager && <p className="text-zinc-500 text-[9px]">{s.weeklyVoids}v</p>}
                 </div>
               </div>
             ))}
@@ -943,8 +1079,10 @@ export default function CTapHub() {
     </div>
   );
 
-  // ─── COMMAND CENTER ──────────────────────────────────────────────────────
+  // ─── COMMAND CENTER — Manager Only ──────────────────────────────────
   const CommandScreen = () => {
+    if (!isManager) return <AccessDenied />;
+
     const todayPayouts = allPayouts.reduce((s, p) => s + parseFloat(p.amount), 0);
     const vendorSpend = allInvoices.reduce((s, inv) => s + parseFloat(inv.totalAmount), 0);
     const voidCount = allVoids.length;
@@ -971,17 +1109,16 @@ export default function CTapHub() {
             ))}
           </div>
 
-          {/* Quick nav to detail screens */}
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => setScreen("store-run")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
+            <button onClick={() => navigateTo("store-run")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
               <Receipt size={16} className="text-emerald-500 mx-auto mb-1" />
               <span className="text-zinc-300 text-[10px]">Pay Outs</span>
             </button>
-            <button onClick={() => setScreen("voids")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
+            <button onClick={() => navigateTo("voids")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
               <ShieldAlert size={16} className="text-orange-500 mx-auto mb-1" />
               <span className="text-zinc-300 text-[10px]">Voids</span>
             </button>
-            <button onClick={() => setScreen("invoices")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
+            <button onClick={() => navigateTo("invoices")} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center hover:border-amber-500/30">
               <Package size={16} className="text-teal-500 mx-auto mb-1" />
               <span className="text-zinc-300 text-[10px]">Invoices</span>
             </button>
@@ -1022,7 +1159,7 @@ export default function CTapHub() {
             <div className="w-px h-6 bg-zinc-800" />
             <div><p className="text-white font-bold text-lg">{staffUser?.currentStreak}</p><p className="text-zinc-500 text-[9px]">Streak</p></div>
             <div className="w-px h-6 bg-zinc-800" />
-            <div><p className="text-white font-bold text-lg">{staffUser?.weeklyVoids}</p><p className="text-zinc-500 text-[9px]">Voids</p></div>
+            <div><p className="text-white font-bold text-lg">{staffUser?.schedulePriority}</p><p className="text-zinc-500 text-[9px]">Priority</p></div>
           </div>
         </div>
         <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
@@ -1031,7 +1168,6 @@ export default function CTapHub() {
             <p className="text-zinc-300 text-xs">Department: <span className="text-white capitalize">{staffUser?.department}</span></p>
             <p className="text-zinc-300 text-xs">Role: <span className="text-white">{staffUser ? roleLabel(staffUser.jobRole) : ""}</span></p>
             <p className="text-zinc-300 text-xs">Employee #: <span className="text-white">{staffUser?.employeeNumber || "—"}</span></p>
-            <p className="text-zinc-300 text-xs">Schedule Priority: <span className="text-white">{staffUser?.schedulePriority}</span></p>
           </div>
         </div>
         {!isAuthenticated && (
@@ -1046,6 +1182,24 @@ export default function CTapHub() {
       </div>
     </div>
   );
+
+  // ─── Access Denied Screen ──────────────────────────────────────────
+  function AccessDenied() {
+    return (
+      <div className="h-screen bg-black flex flex-col items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+            <Lock size={24} className="text-red-400" />
+          </div>
+          <h2 className="text-lg font-black text-white mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>MANAGER ACCESS ONLY</h2>
+          <p className="text-zinc-400 text-sm mb-4">This section requires manager or owner credentials.</p>
+          <button onClick={() => setScreen("home")} className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-bold text-sm">
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Shared Header ──────────────────────────────────────────────────────
   function ScreenHeader({ title, subtitle }: { title: string; subtitle: string }) {
@@ -1073,7 +1227,7 @@ export default function CTapHub() {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-900 px-1 py-1.5 flex items-center justify-around z-50">
         {items.map((nav, i) => (
-          <button key={i} onClick={() => setScreen(nav.s)} className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg ${screen === nav.s ? 'text-amber-500' : 'text-zinc-500'}`}>
+          <button key={i} onClick={() => navigateTo(nav.s)} className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg ${screen === nav.s ? 'text-amber-500' : 'text-zinc-500'}`}>
             <nav.icon size={18} />
             <span className="text-[9px]">{nav.label}</span>
           </button>
