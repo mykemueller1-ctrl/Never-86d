@@ -16,7 +16,7 @@ import {
   createIssue, getOpenIssues,
   getLatestBriefing, createBriefing,
   seedStaffData,
-  archiveInactiveStaff, getPayoutTotalsByCategory, getPayoutTotalsByVendor, getInvoiceTotalsByVendor,
+  archiveInactiveStaff, syncStaffFromDriveData, getPayoutTotalsByCategory, getPayoutTotalsByVendor, getInvoiceTotalsByVendor,
   // AI-Native Intelligence Layer
   createKnowledgeEntry, getKnowledgeByStation, getKnowledgeByCategory, searchKnowledge, updateKnowledgeEntry, getAllKnowledge,
   createKnowledgeCorrection, getPendingCorrections, approveCorrection, rejectCorrection,
@@ -394,6 +394,14 @@ export const appRouter = router({
   // ============ ADMIN OPERATIONS ============
   admin: router({
     archiveInactive: adminProcedure.mutation(() => archiveInactiveStaff()),
+    syncStaffFromDrive: adminProcedure.input(z.object({
+      employees: z.array(z.object({
+        name: z.string(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        role: z.string().optional(),
+      })),
+    })).mutation(({ input }) => syncStaffFromDriveData(input.employees)),
     payoutTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
     payoutTotalsByVendor: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByVendor(input?.days ?? 7)),
     invoiceTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),

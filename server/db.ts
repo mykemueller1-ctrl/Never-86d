@@ -162,6 +162,83 @@ export async function updateStaffStatus(staffId: number, status: "active" | "ina
   await db.update(staff).set({ status }).where(eq(staff.id, staffId));
 }
 
+// ============ GOOGLE DRIVE STAFF SYNC ============
+
+/** Sync staff phone/email from Google Drive employee data. Updates existing staff, creates new ones. */
+export async function syncStaffFromDriveData(employees: Array<{
+  name: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  let updated = 0;
+  let created = 0;
+  let skipped = 0;
+
+  for (const emp of employees) {
+    const nameParts = emp.name.trim().split(/\s+/);
+    if (nameParts.length < 2) { skipped++; continue; }
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(" ");
+
+    // Try to match existing staff by first+last name
+    const existing = await db.select().from(staff)
+      .where(and(
+        sql`LOWER(${staff.firstName}) = LOWER(${firstName})`,
+        sql`LOWER(${staff.lastName}) = LOWER(${lastName})`
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update phone/email if provided and not already set
+      const updates: Record<string, string> = {};
+      if (emp.phone && !existing[0].phone) updates.phone = emp.phone;
+      if (emp.email && !existing[0].email) updates.email = emp.email;
+      if (Object.keys(updates).length > 0) {
+        await db.update(staff).set(updates as any).where(eq(staff.id, existing[0].id));
+        updated++;
+      } else {
+        skipped++;
+      }
+    } else {
+      // Map Drive role to DB department/jobRole
+      const roleLower = (emp.role || "").toLowerCase().trim();
+      let department: "bar" | "kitchen" | "driver" | "server" | "management" = "kitchen";
+      let jobRole: "owner" | "key_manager" | "kitchen_manager" | "kitchen_key" | "bartender" | "bar_manager" | "server" | "driver" | "line_cook" | "pizza" = "line_cook";
+
+      if (roleLower.includes("owner")) { department = "management"; jobRole = "owner"; }
+      else if (roleLower.includes("kitchen manager")) { department = "kitchen"; jobRole = "kitchen_manager"; }
+      else if (roleLower.includes("bar manager")) { department = "bar"; jobRole = "bar_manager"; }
+      else if (roleLower.includes("bar")) { department = "bar"; jobRole = "bartender"; }
+      else if (roleLower.includes("driver")) { department = "driver"; jobRole = "driver"; }
+      else if (roleLower.includes("kitchen") || roleLower.includes("dishwasher")) { department = "kitchen"; jobRole = "line_cook"; }
+      else if (roleLower.includes("server")) { department = "server"; jobRole = "server"; }
+
+      // Generate a random 4-digit PIN
+      const pin = String(Math.floor(1000 + Math.random() * 9000));
+
+      await db.insert(staff).values({
+        firstName,
+        lastName,
+        phone: emp.phone || null,
+        email: emp.email || null,
+        department,
+        jobRole,
+        isKeyEmployee: false,
+        canAuthPayouts: false,
+        pin,
+        status: "active",
+      });
+      created++;
+    }
+  }
+
+  return { updated, created, skipped, total: employees.length };
+}
+
 // ============ AUTO-ARCHIVE HELPERS ============
 
 /** Archive staff who haven't clocked in for 30+ days */

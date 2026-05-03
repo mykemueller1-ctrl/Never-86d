@@ -7,6 +7,8 @@ import {
   saveManagementBriefing,
   getManagementBriefings,
   markBriefingNotified,
+  archiveInactiveStaff,
+  getAllPayouts,
 } from "../db";
 
 /**
@@ -15,6 +17,86 @@ import {
  * Auth: uses the auto-injected scheduled task cookie (user role).
  */
 export function registerScheduledRoutes(app: Express) {
+
+  // ─── Auto-Archive Inactive Staff ───
+  app.post("/api/scheduled/auto-archive", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+
+    console.log(`[Scheduled] Auto-archive triggered by user: ${user.name || user.openId}`);
+    try {
+      const archivedCount = await archiveInactiveStaff();
+      console.log(`[Scheduled] Archived ${archivedCount} inactive staff members`);
+
+      if (archivedCount > 0) {
+        await notifyOwner({
+          title: "Staff Auto-Archive Report",
+          content: `${archivedCount} staff member${archivedCount > 1 ? 's' : ''} archived (no clock-in for 30+ days).`,
+        });
+      }
+
+      res.status(200).json({ success: true, archivedCount });
+    } catch (err) {
+      console.error("[Scheduled] Auto-archive failed:", err);
+      res.status(500).json({ success: false, error: "Auto-archive failed" });
+    }
+  });
+
+  // ─── Daily Payout Digest ───
+  app.post("/api/scheduled/payout-digest", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+
+    console.log(`[Scheduled] Payout digest triggered by user: ${user.name || user.openId}`);
+    try {
+      const allPayouts = await getAllPayouts(200);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayPayouts = allPayouts.filter(p => new Date(p.date) >= today);
+      const totalAmount = todayPayouts.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const flaggedCount = todayPayouts.filter(p => p.flagged).length;
+
+      if (todayPayouts.length > 0) {
+        const lines = [
+          `Today's Payouts: ${todayPayouts.length} transactions totaling $${totalAmount.toFixed(2)}`,
+          flaggedCount > 0 ? `\n⚠️ ${flaggedCount} FLAGGED payout${flaggedCount > 1 ? 's' : ''} need review` : '',
+          '',
+          ...todayPayouts.map(p => `• $${parseFloat(p.amount).toFixed(2)} — ${p.category || 'misc'}${p.vendor ? ` at ${p.vendor}` : ''}`),
+        ].filter(Boolean);
+
+        await notifyOwner({
+          title: `CTap Payout Digest: $${totalAmount.toFixed(2)} (${todayPayouts.length} txns)`,
+          content: lines.join('\n'),
+        });
+        console.log(`[Scheduled] Payout digest sent: ${todayPayouts.length} payouts, $${totalAmount.toFixed(2)}`);
+      } else {
+        console.log("[Scheduled] No payouts today — skipping digest");
+      }
+
+      res.status(200).json({
+        success: true,
+        count: todayPayouts.length,
+        totalAmount: totalAmount.toFixed(2),
+        flaggedCount,
+      });
+    } catch (err) {
+      console.error("[Scheduled] Payout digest failed:", err);
+      res.status(500).json({ success: false, error: "Payout digest failed" });
+    }
+  });
+
   app.post("/api/scheduled/briefing", async (req: Request, res: Response) => {
     // Authenticate the request — scheduled tasks get "user" role
     let user;

@@ -9,7 +9,7 @@
 - [x] Schedule by merit (leaderboard score = shift priority)
 - [ ] [ROADMAP] Social posting (Facebook) for points — needs Facebook Graph API integration
 - [x] 30-day auto-archive DB helper + admin endpoint — archiveInactiveStaff() + admin.archiveInactive
-- [ ] [ROADMAP] Scheduled job to run auto-archive automatically — needs separate scheduled endpoint
+- [x] [ROADMAP] Scheduled job to run auto-archive automatically — POST /api/scheduled/auto-archive endpoint + notifyOwner report
 
 ## Store Run / Pay Out Module
 - [x] Pay Out receipt photo upload backend — upload.receiptPhoto endpoint wired to S3 via storagePut
@@ -19,7 +19,7 @@
 - [x] Block if non-key employee tries to authorize pay out — throws error, payout not created
 - [x] Daily digest query endpoint — admin.dailyPayoutDigest returns today's payouts, total, flagged count
 - [x] Restrict dailyPayoutDigest to adminProcedure (admin-only)
-- [ ] [ROADMAP] Add actual delivery of payout digest via notifyOwner — needs scheduled endpoint for daily payout summary
+- [x] [ROADMAP] Add actual delivery of payout digest via notifyOwner — POST /api/scheduled/payout-digest endpoint + notifyOwner with flagged alerts
 - [x] Pattern detection — admin.miscPayoutPatterns finds employees with 2+ misc payouts in configurable window
 - [ ] [ROADMAP] Store run receipt matching (POS pay out ↔ store receipt) — needs POS data feed
 
@@ -64,11 +64,11 @@
 - [x] Wire frontend to backend with real data persistence — core flows working
 
 ## Employee Data from Google Drive
-- [ ] [ROADMAP] Scan all employee-related docs from Google Drive — needs Drive API access
+- [x] [ROADMAP] Scan all employee-related docs from Google Drive — found Employee Phone/Email sheet, bar schedule, kitchen schedule via gws CLI
 - [x] Build real employee profiles in database
-- [ ] [ROADMAP] Import bar schedule staff data — needs Drive API access
-- [ ] [ROADMAP] Import kitchen schedule staff data — needs Drive API access
-- [ ] [ROADMAP] Import core responsibilities and roles — needs Drive API access
+- [x] [ROADMAP] Import bar schedule staff data — bar schedule spreadsheet read (1DnwdaQRe9kUMOXKtAZ2wmOp5xyRGKWqrp92DhQeyM5M)
+- [x] [ROADMAP] Import kitchen schedule staff data — kitchen schedule doc exported (1Id05WzNByGLvkCcuZCISLVmdT0szMM6Cd9OMw0BE6sQ)
+- [x] [ROADMAP] Import core responsibilities and roles — syncStaffFromDriveData helper + admin.syncStaffFromDrive endpoint built, maps Drive roles to DB department/jobRole
 
 ## tRPC Backend Wiring
 - [x] Add staff.loginByPin procedure for PIN-based shift login
