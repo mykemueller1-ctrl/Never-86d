@@ -23,9 +23,11 @@ import {
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
   Sparkles, Target, ThumbsUp, MessageSquare,
-  Brain, Gift
+  Brain, Gift, ShoppingCart
 } from "lucide-react";
 import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
+import OrderGuideScreen from "./OrderGuideScreen";
+import ShiftHandoffScreen from "./ShiftHandoffScreen";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -34,7 +36,8 @@ type Screen =
   | "voids" | "feedback" | "driver-eod"
   | "command" | "leaderboard" | "profile"
   | "store-run" | "invoices"
-  | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop";
+  | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop"
+  | "order-guide" | "shift-handoff";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -185,7 +188,7 @@ export default function CTapHub() {
 
   // ─── Screen Guard — redirect non-managers away from financial screens ──
   const navigateTo = (target: Screen) => {
-    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids"];
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide"];
     if (managerOnlyScreens.includes(target) && !isManager) {
       toast.error("Manager access required");
       return;
@@ -584,8 +587,10 @@ export default function CTapHub() {
               <>
                 <QuickAction icon={Receipt} label="Store Runs" color="text-emerald-500" bg="bg-emerald-500/10" onClick={() => navigateTo("store-run")} />
                 <QuickAction icon={Package} label="Invoices" color="text-teal-500" bg="bg-teal-500/10" onClick={() => navigateTo("invoices")} />
+                <QuickAction icon={ShoppingCart} label="Order Guide" color="text-cyan-500" bg="bg-cyan-500/10" onClick={() => navigateTo("order-guide")} />
               </>
             )}
+            <QuickAction icon={ArrowRight} label="Shift Handoff" color="text-orange-500" bg="bg-orange-500/10" onClick={() => navigateTo("shift-handoff")} />
             <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("issues")} />
             <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => navigateTo("feedback")} subtitle="+5 pts" />
           </div>
@@ -1543,6 +1548,8 @@ export default function CTapHub() {
         {screen === "photo-missions" && staffUser && <PhotoMissionsScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
         {screen === "achievements" && staffUser && <AchievementsScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
         {screen === "rewards-shop" && staffUser && <RewardsShopScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
+        {screen === "order-guide" && staffUser && <OrderGuideScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
+        {screen === "shift-handoff" && staffUser && <ShiftHandoffScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
       </div>
       <BottomNav />
     </>

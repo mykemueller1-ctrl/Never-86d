@@ -227,3 +227,26 @@
 - [x] Escalation chain — issue severity determines who gets notified (void alerts auto-create issues)
 - [ ] Cross-station communication — kitchen tells bar about 86'd item, system broadcasts (future)
 - [ ] Smart notifications — don't spam, batch low-priority, instant for critical (future)
+
+## Wave 2 Features
+
+### Achievement Auto-Progression
+- [x] Wire checklist completion → auto-update "Machine" achievement progress
+- [x] Wire void creation → auto-reset "Clean Hands" achievement window
+- [x] Wire feedback submission → auto-update "Voice" achievement progress
+- [x] Wire PIN login → auto-update "Rookie" shift count progress
+- [x] Auto-unlock achievements when threshold reached (create unlock + award bonus points)
+- [x] Add vitest for achievement auto-progression (19 tests in achievement-engine.test.ts)
+
+### Dynamic Order Guide UI
+- [x] Order Guide screen — browse vendor products by vendor with par levels and last prices
+- [x] Price change indicators — show up/down/new badges from OCR-updated prices
+- [x] Tom's food guide (PFG/Sysco) and Ashley's bar guide (Hy-Vee/liquor) views
+- [x] Add to CTapHub screen routing (manager-only)
+
+### Shift Handoff Screen
+- [x] End-of-shift notes form — outgoing shift writes key notes before clocking out
+- [x] AI-structured handoff — auto-categorizes notes into 86'd, prep, equipment, customers, staffing
+- [x] Incoming shift reads structured handoff on briefing screen
+- [x] Add to CTapHub screen routing
+- [x] Add vitest for shift handoff flow (covered by briefingMemory tests in intelligence.test.ts)

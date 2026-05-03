@@ -28,6 +28,7 @@ import {
   getRelevantMemories, createBriefingMemory,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { processAchievementEvent } from "./achievementEngine";
 
 export const appRouter = router({
   system: systemRouter,
@@ -52,6 +53,8 @@ export const appRouter = router({
       ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
       // Strip sensitive fields before returning to client
       const { pin, phone, email, ...safeStaff } = found;
+      // Auto-progress achievements on shift login
+      processAchievementEvent(found.id, "shift_login").catch(() => {});
       return { success: true as const, staff: safeStaff };
     }),
     logout: publicProcedure.mutation(async ({ ctx }) => {
@@ -188,6 +191,8 @@ export const appRouter = router({
       reason: z.string(),
     })).mutation(async ({ input }) => {
       const result = await createVoid(input);
+      // Auto-reset "Clean Hands" achievement (void breaks the window)
+      processAchievementEvent(input.staffId, "void_created").catch(() => {});
       // Check if this employee now has 3+ voids this week — flag for manager nudge
       const weeklyVoids = await getWeeklyVoidsByStaff(input.staffId);
       // Only create alert at exact thresholds (3 and 5) to avoid duplicate issues
@@ -221,7 +226,12 @@ export const appRouter = router({
       totalTimeSeconds: z.number().optional(),
       percentComplete: z.number(),
       flaggedRush: z.boolean().optional(),
-    })).mutation(({ input }) => createChecklistCompletion(input)),
+    })).mutation(async ({ input }) => {
+      const result = await createChecklistCompletion(input);
+      // Auto-progress "Machine" achievement
+      processAchievementEvent(input.staffId, "checklist_complete").catch(() => {});
+      return result;
+    }),
   }),
 
   // ============ DRIVER REPORTS ============
@@ -268,7 +278,12 @@ export const appRouter = router({
       comment: z.string().optional(),
       category: z.enum(["equipment", "staffing", "inventory", "customer", "management", "other"]).optional(),
       urgency: z.enum(["low", "medium", "high", "critical"]).optional(),
-    })).mutation(({ input }) => createFeedback(input)),
+    })).mutation(async ({ input }) => {
+      const result = await createFeedback(input);
+      // Auto-progress "Voice" achievement
+      processAchievementEvent(input.staffId, "feedback_submitted").catch(() => {});
+      return result;
+    }),
   }),
 
   // ============ GAMIFICATION ============
