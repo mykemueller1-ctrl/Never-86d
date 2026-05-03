@@ -46,6 +46,7 @@ vi.mock("./db", () => ({
   getVendorProducts: vi.fn().mockResolvedValue([]),
   createVendorProduct: vi.fn(),
   updateVendorProductPrice: vi.fn(),
+  upsertVendorProductFromOCR: vi.fn().mockResolvedValue({ action: "updated", id: 1 }),
   getOrderGuides: vi.fn().mockResolvedValue([]),
   createOrderGuide: vi.fn(),
   createBriefingMemory: vi.fn(),
@@ -387,5 +388,83 @@ describe("Briefing Memory", () => {
       fact: "Friday nights average 40% more revenue than weekdays",
       relevanceScore: 80,
     }));
+  });
+});
+
+describe("Invoice OCR → Vendor Price Update", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("invoices.create with items array calls upsertVendorProductFromOCR for each valid item", async () => {
+    const db = await import("./db");
+    vi.mocked(db.createInvoice).mockResolvedValueOnce([{ insertId: 1 }] as any);
+    vi.mocked(db.upsertVendorProductFromOCR).mockResolvedValue({ action: "updated", id: 1 });
+
+    const caller = createCaller();
+    await caller.invoices.create({
+      vendorName: "PFG",
+      invoiceNumber: "INV-001",
+      date: new Date(),
+      totalAmount: "2850.00",
+      category: "meat",
+      items: [
+        { product: "Bacon 15lb", unitPrice: "45.99", unit: "case" },
+        { product: "Mozzarella 5lb", unitPrice: "32.50", unit: "case" },
+        { product: "Mushrooms Sliced", unitPrice: "18.75", unit: "case" },
+      ],
+    });
+
+    expect(db.createInvoice).toHaveBeenCalledWith(expect.objectContaining({
+      vendorName: "PFG",
+      totalAmount: "2850.00",
+    }));
+    // Should call upsertVendorProductFromOCR for each of the 3 items
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledTimes(3);
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledWith("PFG", "Bacon 15lb", "45.99", "case", "meat");
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledWith("PFG", "Mozzarella 5lb", "32.50", "case", "meat");
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledWith("PFG", "Mushrooms Sliced", "18.75", "case", "meat");
+  });
+
+  it("invoices.create without items does not call upsertVendorProductFromOCR", async () => {
+    const db = await import("./db");
+    vi.mocked(db.createInvoice).mockResolvedValueOnce([{ insertId: 2 }] as any);
+
+    const caller = createCaller();
+    await caller.invoices.create({
+      vendorName: "Sysco",
+      invoiceNumber: "INV-002",
+      date: new Date(),
+      totalAmount: "1200.00",
+      category: "bread",
+    });
+
+    expect(db.createInvoice).toHaveBeenCalled();
+    expect(db.upsertVendorProductFromOCR).not.toHaveBeenCalled();
+  });
+
+  it("invoices.create handles items with missing product/unitPrice gracefully", async () => {
+    const db = await import("./db");
+    vi.mocked(db.createInvoice).mockResolvedValueOnce([{ insertId: 3 }] as any);
+    vi.mocked(db.upsertVendorProductFromOCR).mockResolvedValue({ action: "created", id: 5 });
+
+    const caller = createCaller();
+    await caller.invoices.create({
+      vendorName: "PFG",
+      invoiceNumber: "INV-003",
+      date: new Date(),
+      totalAmount: "500.00",
+      category: "produce",
+      items: [
+        { product: null, unitPrice: "10.00" },
+        { product: "Lettuce", unitPrice: null },
+        { product: "Tomatoes", unitPrice: "12.50" },
+      ],
+    });
+
+    expect(db.createInvoice).toHaveBeenCalled();
+    // Only "Tomatoes" has both product AND unitPrice, so only 1 call
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledTimes(1);
+    expect(db.upsertVendorProductFromOCR).toHaveBeenCalledWith("PFG", "Tomatoes", "12.50", undefined, "produce");
   });
 });

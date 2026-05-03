@@ -95,6 +95,7 @@ export default function CTapHub() {
   const [invoiceForm, setInvoiceForm] = useState({ vendorName: "", totalAmount: "", category: "meat", invoiceNumber: "", customVendor: false });
   const [receiptPhotoUrl, setReceiptPhotoUrl] = useState<string | null>(null);
   const [invoicePhotoUrl, setInvoicePhotoUrl] = useState<string | null>(null);
+  const [invoiceExtractedItems, setInvoiceExtractedItems] = useState<any[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingInvoicePhoto, setUploadingInvoicePhoto] = useState(false);
 
@@ -750,6 +751,9 @@ export default function CTapHub() {
             if (ext.invoiceNumber && !invoiceForm.invoiceNumber) {
               setInvoiceForm(f => ({ ...f, invoiceNumber: ext.invoiceNumber }));
             }
+            if (ext.items && Array.isArray(ext.items)) {
+              setInvoiceExtractedItems(ext.items);
+            }
             toast.success("AI extracted invoice data — review and submit");
           }
         } catch {
@@ -931,10 +935,12 @@ export default function CTapHub() {
           category: invoiceForm.category as any,
           invoiceNumber: invoiceForm.invoiceNumber || undefined,
           receiptPhotoUrl: invoicePhotoUrl || undefined,
+          items: invoiceExtractedItems.length > 0 ? invoiceExtractedItems : undefined,
         });
-        toast.success("Invoice logged");
+        toast.success("Invoice logged" + (invoiceExtractedItems.length > 0 ? ` — ${invoiceExtractedItems.length} product prices updated` : ""));
         setInvoiceForm({ vendorName: "", totalAmount: "", category: "meat", invoiceNumber: "", customVendor: false });
         setInvoicePhotoUrl(null);
+        setInvoiceExtractedItems([]);
         invoicesQuery.refetch();
       } catch { toast.error("Failed to log invoice"); }
     };

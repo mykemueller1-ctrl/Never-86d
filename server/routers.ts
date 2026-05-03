@@ -144,7 +144,29 @@ export const appRouter = router({
       items: z.any().optional(),
       receiptPhotoUrl: z.string().optional(),
       orderedById: z.number().optional(),
-    })).mutation(({ input }) => createInvoice(input)),
+    })).mutation(async ({ input }) => {
+      const invoice = await createInvoice(input);
+      // Auto-update vendor product prices from OCR-extracted line items
+      if (input.items && Array.isArray(input.items)) {
+        const { upsertVendorProductFromOCR } = await import("./db");
+        for (const item of input.items) {
+          if (item.product && item.unitPrice) {
+            try {
+              await upsertVendorProductFromOCR(
+                input.vendorName,
+                item.product,
+                String(item.unitPrice),
+                item.unit,
+                input.category
+              );
+            } catch {
+              // Silently continue — price update is best-effort
+            }
+          }
+        }
+      }
+      return invoice;
+    }),
   }),
 
   // ============ VOIDS ============

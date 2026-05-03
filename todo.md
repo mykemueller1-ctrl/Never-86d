@@ -165,7 +165,7 @@
 - [x] Invoice photo OCR — extract line items, prices, vendor, quantities from invoice photos
 - [x] Shelf photo analysis — estimate inventory levels from walk-in/storage photos
 - [x] Equipment photo analysis — identify damage/issues from equipment photos
-- [ ] Auto-create invoice from photo — OCR extracts data, pre-fills invoice form (frontend wiring needed)
+- [x] Auto-create invoice from photo — photo upload triggers LLM vision analysis, auto-fills vendor/total/invoice# in form
 - [ ] Price comparison — compare extracted prices against last 4 orders, flag changes (needs historical data)
 
 ### Station Knowledge Brain
@@ -203,7 +203,8 @@
 - [x] Create orderGuideTemplates table (assignedTo staffId, vendorName, products JSON, lastUpdated)
 - [x] Tom's food order guide — PFG + Sysco SKUs with par levels — seeded in knowledge base
 - [x] Ashley's bar order guide — Hy-Vee liquor + beer with Iowa ABD pricing — seeded in knowledge base
-- [ ] Auto-update prices from invoice photo OCR (needs frontend wiring)
+- [x] Auto-update vendor product prices from invoice OCR — invoices.create calls upsertVendorProductFromOCR for each extracted line item
+- [x] Add vitest for invoice OCR price update flow — 3 tests covering items update, no-items skip, and malformed items handling (8 tests in invoice-ocr.test.ts)
 - [ ] Par level suggestions based on sales patterns (needs historical data)
 
 ### Persistent Memory / Briefing Intelligence

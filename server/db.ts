@@ -769,6 +769,32 @@ export async function updateVendorProductPrice(id: number, newPrice: string) {
   }).where(eq(vendorProducts.id, id));
 }
 
+export async function upsertVendorProductFromOCR(vendorName: string, productName: string, price: string, unit?: string, category?: string) {
+  const db = await getDb();
+  if (!db) return;
+  // Try to find existing product by vendor + product name (fuzzy match)
+  const existing = await db.select().from(vendorProducts)
+    .where(and(eq(vendorProducts.vendorName, vendorName), eq(vendorProducts.productName, productName)))
+    .limit(1);
+  if (existing[0]) {
+    // Update price
+    await updateVendorProductPrice(existing[0].id, price);
+    return { action: "updated", id: existing[0].id };
+  }
+  // Create new product
+  const validCategories = ["meat", "dairy", "produce", "bread", "frozen", "dry_goods", "paper", "chemicals", "liquor", "beer", "wine", "soda", "other"] as const;
+  const cat = validCategories.includes(category as any) ? (category as typeof validCategories[number]) : "other";
+  const result = await db.insert(vendorProducts).values({
+    vendorName,
+    productName,
+    lastPrice: price,
+    unit: unit || "each",
+    category: cat,
+    lastOrderedAt: new Date(),
+  });
+  return { action: "created", id: Number(result[0].insertId) };
+}
+
 // ============ ORDER GUIDE TEMPLATES ============
 
 export async function getOrderGuides(staffId?: number) {
