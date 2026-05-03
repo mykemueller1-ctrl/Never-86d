@@ -311,7 +311,7 @@
 ### Schedule Intelligence Briefing
 - [x] Combine all signals: weather + events + historical patterns + trends
 - [x] Generate weekly scheduling recommendation for owner (LLM-powered)
-- [ ] Push notification to Michael with staffing suggestions (needs deployed site + scheduled task)
+- [ ] Push notification to Mychael with staffing suggestions (needs deployed site + scheduled task)
 - [x] Build Schedule Intelligence UI screen in CTapHub
 
 ### Backend & UI
@@ -349,7 +349,7 @@
 - [x] Par level suggestions UI in OrderGuideScreen — Products/Par Suggestions toggle with actionable adjustments and on-target indicators
 
 ### Remaining Items
-- [x] Push notification to Michael for schedule intelligence — briefings.generate + notifyOwner
+- [x] Push notification to Mychael for schedule intelligence — briefings.generate + notifyOwner
 - [ ] Cross-station communication (kitchen ↔ bar 86'd broadcasts)
 - [ ] Smart notification batching (low-priority batch, critical instant)
 
@@ -358,7 +358,10 @@
 ### Role-Based Briefing System
 - [x] POST /api/scheduled/briefing endpoint for scheduled task to call (scheduledRoutes.ts)
 - [x] Comprehensive briefing generator: weather, events (30mi), hourly sales trends, food/beer/liquor/pop trends, comp/promo/void analysis, anomaly theories
-- [x] Role-based routing: Ashley = bar trends, Tom = BOH/kitchen trends, Michael = full schedule picture
+- [x] Role-based routing: Ashley = bar trends, Tom = BOH/kitchen trends, Mychael = full schedule picture
 - [x] Store briefings in management_briefings table for in-app viewing
-- [x] notifyOwner integration for push notifications to Michael
-- [x] ManagementBriefingScreen with role filter tabs (Michael/Ashley/Tom), theories, action items, anomaly alerts, events context
+- [x] notifyOwner integration for push notifications to Mychael
+- [x] ManagementBriefingScreen with role filter tabs (Mychael/Ashley/Tom), theories, action items, anomaly alerts, events context
+
+## Bug Fix — Name Correction
+- [x] Fix all "Michael" references to "Mychael" (owner's actual name spelling) across briefing system, role labels, LLM prompts, and todo.md

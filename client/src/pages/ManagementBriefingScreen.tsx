@@ -10,7 +10,7 @@ interface Props {
 type RoleFilter = "all" | "michael" | "ashley" | "tom";
 
 const ROLE_CONFIG: Record<string, { label: string; icon: typeof Brain; color: string; description: string }> = {
-  michael: { label: "Michael", icon: CalendarClock, color: "text-amber-400", description: "Full Schedule Picture" },
+  michael: { label: "Mychael", icon: CalendarClock, color: "text-amber-400", description: "Full Schedule Picture" },
   ashley: { label: "Ashley", icon: Beer, color: "text-blue-400", description: "Bar Intelligence" },
   tom: { label: "Tom", icon: ChefHat, color: "text-green-400", description: "BOH / Kitchen" },
   all: { label: "All", icon: Brain, color: "text-white", description: "All Briefings" },

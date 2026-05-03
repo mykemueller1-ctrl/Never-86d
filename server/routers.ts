@@ -996,7 +996,7 @@ Respond in JSON format: { "days": [{ "date": "YYYY-MM-DD", "dayOfWeek": "Monday"
 
       // Generate role-specific briefings
       const roles = [
-        { role: 'michael', label: 'Michael (Scheduler)', focus: 'Full schedule picture — staffing levels, revenue forecasts, event impacts, weather, all category trends, comp/promo/void patterns, and theories about anomalies. What days need extra staff? What days might be slow? Any upcoming events that could spike or kill traffic?' },
+        { role: 'michael', label: 'Mychael (Scheduler)', focus: 'Full schedule picture — staffing levels, revenue forecasts, event impacts, weather, all category trends, comp/promo/void patterns, and theories about anomalies. What days need extra staff? What days might be slow? Any upcoming events that could spike or kill traffic?' },
         { role: 'ashley', label: 'Ashley (Bar)', focus: 'Bar-specific intelligence — beer and liquor sales trends, which drinks are moving, which are dying, bar hourly patterns (when is the rush?), any bar-related voids or comps, weather impact on bar traffic, events that drive bar business (game nights, concerts), and theories about what\'s changing in beverage sales.' },
         { role: 'tom', label: 'Tom (BOH/Kitchen)', focus: 'Back-of-house intelligence — food sales trends, pizza volume, prep level recommendations, kitchen void patterns (remakes, wrong orders), food cost indicators, hourly kitchen volume patterns, weather impact on food orders vs delivery, and theories about what\'s weird in the kitchen numbers.' },
       ];
@@ -1123,7 +1123,7 @@ Respond in JSON with this exact structure:
         }
       }
 
-      // Send notification to owner (Michael) with the scheduler briefing summary
+      // Send notification to owner (Mychael) with the scheduler briefing summary
       if (briefingIds.length > 0) {
         const michaelBriefings = await getManagementBriefings('michael', 1);
         if (michaelBriefings.length > 0) {

@@ -41,11 +41,11 @@ export function registerScheduledRoutes(app: Express) {
 
       const briefingIds: number[] = [];
 
-      // Role definitions: Ashley = bar, Tom = BOH, Michael = full schedule picture
+      // Role definitions: Ashley = bar, Tom = BOH, Mychael = full schedule picture
       const roles = [
         {
           role: "michael",
-          label: "Michael (Scheduler)",
+          label: "Mychael (Scheduler)",
           focus: `Full schedule picture — staffing levels, revenue forecasts, event impacts, weather, all category trends (food, beer, liquor, pop), comp/promo/void patterns, and theories about anomalies. What days need extra staff? What days might be slow? Any upcoming events within 30 miles that could spike or kill traffic? What's weird in the numbers and why?`,
         },
         {
@@ -109,7 +109,7 @@ INSTRUCTIONS:
 2. Call out what's WEIRD — unusual patterns, unexpected drops/spikes
 3. Give THEORIES about WHY things are happening, not just what
 4. Use plain language — these are busy restaurant managers, not data scientists
-5. For Michael: focus on staffing decisions for the coming week
+5. For Mychael: focus on staffing decisions for the coming week
 6. For Ashley: focus on what to stock, what's trending, bar prep
 7. For Tom: focus on food prep, kitchen efficiency, what to expect
 
@@ -198,7 +198,7 @@ Respond in JSON:
         }
       }
 
-      // Send push notification to Michael with the scheduler briefing
+      // Send push notification to Mychael with the scheduler briefing
       if (briefingIds.length > 0) {
         const michaelBriefings = await getManagementBriefings("michael", 1);
         if (michaelBriefings.length > 0) {
