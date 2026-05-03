@@ -12,16 +12,16 @@
 
 ## Store Run / Pay Out Module
 - [ ] Pay Out tracking with receipt photo capture — UI form exists, photo upload not wired to S3
-- [ ] Required fields: WHO ran it, WHAT they bought, WHERE, WHO authorized, amount — form exists but validation not tested
-- [ ] Authorization rule: Only key employees can hand cash — DB field exists, enforcement not tested
-- [ ] Flag if non-key employee processes pay out — not implemented
+- [x] Required fields: WHO ran it, WHAT they bought, WHERE (required), WHO authorized (key employee selector), amount — all enforced in frontend validation
+- [x] Authorization rule: Only key employees can hand cash — payout.create REJECTS if authorizer missing or not key employee
+- [x] Block if non-key employee tries to authorize pay out — throws error, payout not created
 - [ ] Daily digest to manager/owner of all pay outs
 - [ ] Pattern detection on repeated misc pay outs
 - [ ] Store run receipt matching (POS pay out ↔ store receipt)
 
 ## Void / Comp Tracking
 - [x] Pattern by employee per week — DB query groups by employee
-- [ ] Manager nudge on 3+ voids — not implemented
+- [x] Manager nudge on 3+ voids — auto-creates issue alert at exactly 3 and 5 weekly voids (deduplicated, high priority at 5+)
 - [x] Reason logging required — DB field exists
 - [x] Running weekly total — query exists
 
@@ -81,7 +81,7 @@
 - [x] Bottom nav z-index fixed — moved outside overflow-hidden container (preview mode overlay still intercepts in dev)
 - [ ] Driver EOD and Feedback forms require Manus OAuth session (protected procedures)
 - [ ] Photo upload for invoices/payouts needs S3 wiring
-- [ ] Command Center KPIs need end-to-end verification
+- [x] Command Center KPIs verified — sales, payouts, voids, staff count, vendor spend, issues all pulling from real DB
 
 ## Security Hardening
 - [x] Strip PINs from all public API responses (staff.list, staff.active, staff.byDepartment, staff.byId, leaderboard)
@@ -138,5 +138,5 @@
 - [x] Add FAQ schema markup for common restaurant tech questions
 - [x] Add meta tags (title, description, twitter:card) to index.html
 - [x] Add og:image and twitter:image assets (generated Never 86'd branded card)
-- [ ] Create Q&A content page targeting restaurant worker/operator search queries
+- [x] Create Q&A content page (/faq) with 12 SEO-optimized questions targeting restaurant worker/operator search queries, with schema.org Question/Answer markup
 - [x] Optimize for AI answer engines (clear headings, structured answers, entity markup)

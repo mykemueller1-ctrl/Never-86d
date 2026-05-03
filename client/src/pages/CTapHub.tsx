@@ -88,7 +88,7 @@ export default function CTapHub() {
   const [issueDesc, setIssueDesc] = useState("");
   const [issuePriority, setIssuePriority] = useState<string>("medium");
   const [issueCategory, setIssueCategory] = useState<string>("equipment");
-  const [storeRunForm, setStoreRunForm] = useState({ description: "", amount: "", vendor: "", category: "food" });
+  const [storeRunForm, setStoreRunForm] = useState({ description: "", amount: "", vendor: "", category: "food", authorizedById: 0 });
 
   const isManager = isManagerOrOwner(staffUser);
 
@@ -123,7 +123,7 @@ export default function CTapHub() {
     enabled: isManager && ["voids", "command"].includes(screen)
   });
   const staffListQuery = trpc.staff.list.useQuery(undefined, {
-    enabled: isManager && ["voids", "command"].includes(screen)
+    enabled: isManager && ["voids", "command", "store-run"].includes(screen)
   });
 
   // ─── tRPC Mutations ──────────────────────────────────────────────────
@@ -143,6 +143,7 @@ export default function CTapHub() {
   const allInvoices = isManager ? (invoicesQuery.data || []) : [];
   const allVoids = isManager ? (voidsQuery.data || []) : [];
   const allStaff = isManager ? (staffListQuery.data || []) : [];
+  const keyEmployees = useMemo(() => allStaff.filter(s => s.isKeyEmployee || s.canAuthPayouts), [allStaff]);
 
   const myChecklists = useMemo(() => {
     if (!staffUser) return [];
@@ -669,8 +670,13 @@ export default function CTapHub() {
 
     const handleSubmitStoreRun = async () => {
       if (!isAuthenticated) { toast.error("Please sign in via Manus to log store runs"); return; }
-      if (!staffUser || !storeRunForm.amount || !storeRunForm.description) {
-        toast.error("Please fill in description and amount");
+      if (!staffUser || !storeRunForm.amount || !storeRunForm.description || !storeRunForm.vendor) {
+        toast.error("Please fill in all required fields: what, amount, and where");
+        return;
+      }
+      const authId = storeRunForm.authorizedById || (staffUser.isKeyEmployee ? staffUser.id : 0);
+      if (!authId) {
+        toast.error("A key employee must authorize this payout");
         return;
       }
       try {
@@ -679,12 +685,12 @@ export default function CTapHub() {
           date: new Date(),
           amount: storeRunForm.amount,
           description: storeRunForm.description,
-          vendor: storeRunForm.vendor || undefined,
+          vendor: storeRunForm.vendor,
           category: storeRunForm.category as any,
-          authorizedById: staffUser.isKeyEmployee ? staffUser.id : undefined,
+          authorizedById: authId,
         });
         toast.success("Store run logged");
-        setStoreRunForm({ description: "", amount: "", vendor: "", category: "food" });
+        setStoreRunForm({ description: "", amount: "", vendor: "", category: "food", authorizedById: 0 });
       } catch { toast.error("Failed to log — try again"); }
     };
 
@@ -704,6 +710,19 @@ export default function CTapHub() {
               {["food", "supplies", "equipment", "misc"].map(cat => (
                 <button key={cat} onClick={() => setStoreRunForm(f => ({ ...f, category: cat }))} className={`px-2 py-1 rounded-full text-[9px] border capitalize ${storeRunForm.category === cat ? 'bg-amber-500/20 border-amber-500/50 text-amber-500' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{cat}</button>
               ))}
+            </div>
+            <div>
+              <label className="text-zinc-400 text-[10px] uppercase block mb-1">Authorized By (Key Employee)</label>
+              <select
+                value={storeRunForm.authorizedById}
+                onChange={e => setStoreRunForm(f => ({ ...f, authorizedById: Number(e.target.value) }))}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-amber-500/50"
+              >
+                <option value={0}>{staffUser?.isKeyEmployee ? `${staffDisplayName(staffUser)} (me)` : "Select authorizer..."}</option>
+                {keyEmployees.filter(k => k.id !== staffUser?.id).map(k => (
+                  <option key={k.id} value={k.id}>{staffDisplayName(k)} ({roleLabel(k.jobRole)})</option>
+                ))}
+              </select>
             </div>
             <button onClick={handleSubmitStoreRun} disabled={createPayout.isPending} className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm disabled:opacity-50">
               {createPayout.isPending ? "Saving..." : "Log Store Run"}

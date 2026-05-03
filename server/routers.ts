@@ -80,17 +80,25 @@ export const appRouter = router({
       const discrepancy = input.posPayoutAmount
         ? (parseFloat(input.posPayoutAmount) - parseFloat(input.amount)).toFixed(2)
         : undefined;
-      const flagged = !input.authorizedById || (discrepancy && Math.abs(parseFloat(discrepancy)) > 1);
-      const flagReason = !input.authorizedById
-        ? "No key employee authorization"
-        : discrepancy && Math.abs(parseFloat(discrepancy)) > 1
-          ? `POS/receipt discrepancy: $${discrepancy}`
-          : undefined;
+      // ENFORCE: Only key employees can authorize payouts
+      if (!input.authorizedById) {
+        throw new Error("Payout requires authorization by a key employee");
+      }
+      const authorizer = await getStaffById(input.authorizedById);
+      if (!authorizer || (!authorizer.isKeyEmployee && !authorizer.canAuthPayouts)) {
+        throw new Error("Authorizer is not a key employee — payout rejected");
+      }
+      // Check for POS discrepancy (flag but allow)
+      let flagReasons: string[] = [];
+      if (discrepancy && Math.abs(parseFloat(discrepancy)) > 1) {
+        flagReasons.push(`POS/receipt discrepancy: $${discrepancy}`);
+      }
+      const flagged = flagReasons.length > 0;
       return createPayout({
         ...input,
         discrepancy: discrepancy || undefined,
-        flagged: !!flagged,
-        flagReason: flagReason || undefined,
+        flagged,
+        flagReason: flagReasons.join("; ") || undefined,
       });
     }),
   }),
@@ -125,7 +133,27 @@ export const appRouter = router({
       type: z.enum(["void", "comp", "promo", "discount", "credit"]),
       amount: z.string(),
       reason: z.string(),
-    })).mutation(({ input }) => createVoid(input)),
+    })).mutation(async ({ input }) => {
+      const result = await createVoid(input);
+      // Check if this employee now has 3+ voids this week — flag for manager nudge
+      const weeklyVoids = await getWeeklyVoidsByStaff(input.staffId);
+      // Only create alert at exact thresholds (3 and 5) to avoid duplicate issues
+      if (weeklyVoids.length === 3 || weeklyVoids.length === 5) {
+        const staffMember = await getStaffById(input.staffId);
+        const name = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : `Staff #${input.staffId}`;
+        const severity = weeklyVoids.length >= 5 ? "high" : "medium";
+        const label = weeklyVoids.length >= 5 ? "URGENT" : "ATTENTION";
+        await createIssue({
+          reportedById: input.staffId,
+          date: new Date(),
+          title: `[${label}] Void Alert: ${name} — ${weeklyVoids.length} voids this week`,
+          description: `${name} has reached ${weeklyVoids.length} voids/comps this week. Latest: ${input.type} for $${input.amount} — "${input.reason}". Manager review recommended.`,
+          category: "other",
+          priority: severity,
+        });
+      }
+      return result;
+    }),
   }),
 
   // ============ CHECKLISTS ============
