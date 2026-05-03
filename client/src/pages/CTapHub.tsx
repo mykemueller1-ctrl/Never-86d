@@ -23,13 +23,14 @@ import {
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
   Sparkles, Target, ThumbsUp, MessageSquare,
-  Brain, Gift, ShoppingCart
+  Brain, Gift, ShoppingCart, GraduationCap
 } from "lucide-react";
 import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
 import OrderGuideScreen from "./OrderGuideScreen";
 import ShiftHandoffScreen from "./ShiftHandoffScreen";
 import WorkerProfileScreen from "./WorkerProfileScreen";
 import SalesIntelligenceScreen from "./SalesIntelligenceScreen";
+import POSTrainingScreen from "./POSTrainingScreen";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -40,7 +41,7 @@ type Screen =
   | "store-run" | "invoices"
   | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop"
   | "order-guide" | "shift-handoff"
-  | "worker-profile" | "sales-intel";
+  | "worker-profile" | "sales-intel" | "pos-training";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -598,6 +599,7 @@ export default function CTapHub() {
             <QuickAction icon={ArrowRight} label="Shift Handoff" color="text-orange-500" bg="bg-orange-500/10" onClick={() => navigateTo("shift-handoff")} />
             <QuickAction icon={AlertTriangle} label="Report Issue" color="text-red-500" bg="bg-red-500/10" onClick={() => navigateTo("issues")} />
             <QuickAction icon={Send} label="Feedback" color="text-pink-500" bg="bg-pink-500/10" onClick={() => navigateTo("feedback")} subtitle="+5 pts" />
+            <QuickAction icon={GraduationCap} label="POS Training" color="text-sky-500" bg="bg-sky-500/10" onClick={() => navigateTo("pos-training")} />
           </div>
 
           {/* AI Intelligence Actions */}
@@ -1557,6 +1559,7 @@ export default function CTapHub() {
         {screen === "shift-handoff" && staffUser && <ShiftHandoffScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
         {screen === "worker-profile" && staffUser && <WorkerProfileScreen staffUser={staffUser} allStaff={allStaff} onBack={() => navigateTo("home")} />}
         {screen === "sales-intel" && staffUser && <SalesIntelligenceScreen staffUser={staffUser} onBack={() => navigateTo("home")} />}
+        {screen === "pos-training" && <POSTrainingScreen staffId={staffUser?.id} staffName={staffUser?.firstName} onBack={() => navigateTo("home")} />}
       </div>
       <BottomNav />
     </>

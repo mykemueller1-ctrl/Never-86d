@@ -1132,10 +1132,17 @@ export async function getParLevelSuggestions() {
   // Get recent daily sales for pattern analysis (last 90 days)
   const sales = await getDailySales(undefined, undefined, 90);
   if (sales.length < 14) return products.map(p => ({
-    ...p,
-    suggestedPar: p.parLevel,
+    id: p.id,
+    vendorName: p.vendorName,
+    productName: p.productName,
+    category: p.category,
+    unit: p.unit,
+    currentPar: p.parLevel || 0,
+    suggestedPar: p.parLevel || 0,
     confidence: "low" as const,
-    reason: "Insufficient sales data (need 14+ days)"
+    reason: "Insufficient sales data (need 14+ days)",
+    orderFrequency: p.orderFrequency,
+    lastPrice: p.lastPrice,
   }));
 
   // Calculate day-of-week revenue averages
@@ -1414,4 +1421,160 @@ export async function getHourlySalesHeatmap() {
     avgRevenue: Math.round(h.total / h.count),
     dataPoints: h.count,
   }));
+}
+
+
+// ============ PRICE COMPARISON ============
+
+/**
+ * Compare current vendor product prices against historical invoice data.
+ * Flags items with significant price changes (>5%) over last 4 invoices.
+ */
+export async function getPriceComparisons() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const products = await db.select().from(vendorProducts).orderBy(vendorProducts.vendorName);
+  if (products.length === 0) return [];
+
+  // Get all invoices with OCR line items
+  const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+
+  // Build price history per product from invoice line items
+  const comparisons = products.map(product => {
+    // Find invoices from same vendor
+    const vendorInvoices = allInvoices.filter(inv =>
+      inv.vendorName?.toLowerCase() === product.vendorName.toLowerCase()
+    );
+
+    // Extract prices from OCR line items
+    const priceHistory: { date: string; price: number }[] = [];
+    for (const inv of vendorInvoices.slice(0, 8)) {
+      try {
+        const items = typeof inv.items === "string" ? JSON.parse(inv.items as string) : inv.items;
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            if (item.description?.toLowerCase().includes(product.productName.toLowerCase().split(" ")[0])) {
+              const price = parseFloat(item.unitPrice || item.price || "0");
+              if (price > 0) {
+                priceHistory.push({
+                  date: inv.createdAt?.toISOString().split("T")[0] || "unknown",
+                  price,
+                });
+              }
+            }
+          }
+        }
+      } catch { /* skip malformed OCR data */ }
+    }
+
+    const currentPrice = parseFloat(product.lastPrice || "0");
+    const previousPrice = parseFloat(product.previousPrice || "0");
+    const priceDelta = previousPrice > 0 ? ((currentPrice - previousPrice) / previousPrice * 100) : 0;
+
+    return {
+      id: product.id,
+      vendorName: product.vendorName,
+      productName: product.productName,
+      category: product.category,
+      currentPrice,
+      previousPrice,
+      priceDelta: Math.round(priceDelta * 10) / 10,
+      direction: priceDelta > 5 ? "up" as const : priceDelta < -5 ? "down" as const : "stable" as const,
+      flagged: Math.abs(priceDelta) > 5,
+      priceHistory: priceHistory.slice(0, 4),
+      lastUpdated: product.updatedAt,
+    };
+  });
+
+  return comparisons.sort((a, b) => Math.abs(b.priceDelta) - Math.abs(a.priceDelta));
+}
+
+// ============ EVENT-AWARE BRIEFING ============
+
+/**
+ * Get event-aware context for daily briefings.
+ * Combines upcoming events, weather, and historical patterns for today.
+ */
+export async function getEventAwareBriefingContext() {
+  const db = await getDb();
+  if (!db) return null;
+
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+  // Get today's and tomorrow's events
+  const events = await db.select().from(localEvents)
+    .where(sql`${localEvents.eventDate} >= ${todayStr} AND ${localEvents.eventDate} <= ${tomorrowStr}`)
+    .orderBy(localEvents.eventDate);
+
+  // Get today's weather
+  const weatherResults = await db.select().from(weatherData)
+    .where(eq(weatherData.date, todayStr))
+    .limit(1);
+
+  // Get historical pattern for today's day of week
+  const dayPattern = await getDayOfWeekPattern(today.getDay());
+
+  // Get any high-severity anomalies from last 7 days
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const recentAnomalies = await db.select().from(intelligenceAnomalies)
+    .where(sql`${intelligenceAnomalies.severity} = 'high' AND ${intelligenceAnomalies.acknowledged} = false AND ${intelligenceAnomalies.createdAt} >= ${weekAgo}`)
+    .orderBy(desc(intelligenceAnomalies.createdAt))
+    .limit(5);
+
+  return {
+    todayEvents: events.filter(e => e.eventDate === todayStr),
+    tomorrowEvents: events.filter(e => e.eventDate === tomorrowStr),
+    weather: weatherResults[0] || null,
+    dayPattern,
+    recentAnomalies,
+    prepRecommendations: generatePrepRecommendations(events, dayPattern, weatherResults[0]),
+  };
+}
+
+function generatePrepRecommendations(
+  events: any[],
+  dayPattern: any,
+  weather: any
+): string[] {
+  const recs: string[] = [];
+
+  if (dayPattern?.avgRevenue > 8000) {
+    recs.push(`High-volume day expected ($${Math.round(dayPattern.avgRevenue).toLocaleString()} avg). Double-check prep levels.`);
+  }
+
+  if (events.length > 0) {
+    for (const event of events) {
+      if (event.estimatedImpact === "high") {
+        recs.push(`${event.eventName} today — expect 15-25% surge. Extra prep on wings, pizza dough, and bar stock.`);
+      } else if (event.estimatedImpact === "medium") {
+        recs.push(`${event.eventName} nearby — may see 10-15% bump. Monitor and be ready to flex.`);
+      }
+    }
+  }
+
+  if (weather) {
+    const temp = parseFloat(weather.tempHigh || "0");
+    const precip = parseFloat(weather.precipitation || "0");
+    if (precip > 0.5) {
+      recs.push("Rain/snow expected — delivery volume likely up 15-20%. Staff extra drivers.");
+    }
+    if (temp > 85) {
+      recs.push("Hot day — expect higher bar traffic, more cold drinks. Extra ice, check keg levels.");
+    }
+    if (temp < 20) {
+      recs.push("Extreme cold — delivery heavy, dine-in light. Comfort food (soups, hot sandwiches) will move.");
+    }
+  }
+
+  if (recs.length === 0) {
+    recs.push("Standard day expected. Follow normal prep levels.");
+  }
+
+  return recs;
 }

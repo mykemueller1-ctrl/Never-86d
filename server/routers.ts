@@ -44,6 +44,9 @@ import {
   getUpcomingEvents, addLocalEvent,
   getScheduleIntelligence, saveScheduleIntelligence,
   getHourlySalesHeatmap,
+  // Price Comparison & Event Briefing
+  getPriceComparisons,
+  getEventAwareBriefingContext,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { processAchievementEvent } from "./achievementEngine";
@@ -876,6 +879,16 @@ Rules:
       avgPerGuest: z.string().optional(),
       totalLastYear: z.string().optional(),
     })).mutation(({ input }) => upsertDailySales(input)),
+  }),
+
+  // ============ PRICE COMPARISON ============
+  priceComparison: router({
+    list: protectedProcedure.query(() => getPriceComparisons()),
+  }),
+
+  // ============ EVENT-AWARE BRIEFING ============
+  eventBriefing: router({
+    context: protectedProcedure.query(() => getEventAwareBriefingContext()),
   }),
 
   // ============ INTELLIGENCE ENGINE ============

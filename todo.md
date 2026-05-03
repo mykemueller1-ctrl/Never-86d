@@ -205,12 +205,12 @@
 - [x] Ashley's bar order guide — Hy-Vee liquor + beer with Iowa ABD pricing — seeded in knowledge base
 - [x] Auto-update vendor product prices from invoice OCR — invoices.create calls upsertVendorProductFromOCR for each extracted line item
 - [x] Add vitest for invoice OCR price update flow — 3 tests covering items update, no-items skip, and malformed items handling (8 tests in invoice-ocr.test.ts)
-- [ ] Par level suggestions based on sales patterns (needs historical data)
+- [x] Par level suggestions backend helper — getPriceComparisons + getParLevelSuggestions in db.ts
 
 ### Persistent Memory / Briefing Intelligence
 - [x] Upgrade briefing to reference its own history (not stateless) — briefingMemory table + procedures
-- [ ] Event-aware briefings (check local events, adjust prep recommendations) — needs event calendar integration
-- [ ] Historical pattern references ("last game night we sold 47 lbs wings") — needs POS data
+- [x] Event-aware briefings — getEventAwareBriefingContext helper + vendorProducts.getPriceHistory / intelligence endpoints
+- [x] Historical pattern references — getDayOfWeekPattern + getRecentSalesTrend wired into knowledge.ask LLM briefings
 - [x] Briefing memory table — store key facts that persist across briefings
 
 ### POS Knowledge System
@@ -219,11 +219,11 @@
 - [x] POS close-out process — end-of-day cash out, credit card batching, report printing — seeded
 - [x] POS troubleshooting — common errors, printer issues, card reader problems, network drops — seeded
 - [x] POS menu navigation — where every menu item lives, how to find it, modifier trees — seeded
-- [ ] POS training mode — AI walks new hires through POS operations step by step (future enhancement)
+- [x] POS training mode — 5 interactive training modules (phone orders, bar service, closing, voids, delivery) with step-by-step walkthroughs
 
 ### Communication Logic
 - [x] Contextual routing — station-aware knowledge.ask routes answers by department/role
-- [ ] Shift handoff intelligence — outgoing shift writes notes, AI structures and routes to incoming (future)
+- [x] Shift handoff intelligence — ShiftHandoffScreen with write/read modes, auto-categorization, 24hr expiry
 - [x] Escalation chain — issue severity determines who gets notified (void alerts auto-create issues)
 - [ ] Cross-station communication — kitchen tells bar about 86'd item, system broadcasts (future)
 - [ ] Smart notifications — don't spam, batch low-priority, instant for critical (future)
@@ -319,3 +319,36 @@
 - [x] Build backend tRPC procedures for all intelligence endpoints
 - [x] Build Intelligence Dashboard UI with 7 tabs: Daily, Mix, Voids, Weather, Hours, Anomalies, Schedule
 - [x] Add vitest for intelligence engine (mocks updated, 127 tests passing)
+
+## Wave 5 — Knowledge & Training Integration
+
+### Training Module Seeding
+- [x] Seed 18 training modules from SOP documents into workerTrainingModules table
+- [x] Modules cover: kitchen (6), FOH (6), driver (3), all-staff (2), pizza (1)
+
+### POS Training Mode
+- [x] Build POSTrainingScreen.tsx with 5 interactive training modules
+- [x] Phone Order module — step-by-step phone order taking workflow
+- [x] Bar Service module — drink making, tab management, ID checking
+- [x] Closing Procedures module — end-of-night cash out, batch, cleanup
+- [x] Void/Comp Processing module — when/how to void, manager approval flow
+- [x] Delivery Driver module — order verification, cash handling, route tips
+- [x] Wire POSTrainingScreen into CTapHub routing + home screen QuickAction
+- [x] Map POS training modules to real DB training module IDs (phone→4, bar→16, closing→7, voids→3, driver→5)
+- [ ] Add answer validation logic (currently self-assessment only)
+
+### Intelligence Briefing Enhancements
+- [x] Wire historical sales patterns into knowledge.ask LLM briefings (getDayOfWeekPattern + getRecentSalesTrend)
+- [x] Add event-aware briefing context (getEventAwareBriefingContext)
+- [x] Add price comparison helper (getPriceComparisons) for vendor product price tracking
+- [x] Add vendorProducts.getPriceHistory endpoint
+- [x] Add intelligence.getEventBriefing endpoint (eventBriefing.context)
+
+### Par Level Suggestions
+- [x] Backend helper getParLevelSuggestions in db.ts
+- [x] Par level suggestions UI in OrderGuideScreen — Products/Par Suggestions toggle with actionable adjustments and on-target indicators
+
+### Remaining Items
+- [ ] Push notification to Michael for schedule intelligence (needs deployed site + scheduled task)
+- [ ] Cross-station communication (kitchen ↔ bar 86'd broadcasts)
+- [ ] Smart notification batching (low-priority batch, critical instant)
