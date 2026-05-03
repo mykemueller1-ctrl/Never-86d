@@ -66,6 +66,8 @@ export const appRouter = router({
     list: protectedProcedure.query(() => getAllPayouts()),
     flagged: protectedProcedure.query(() => getFlaggedPayouts()),
     byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
+    // Public endpoint for staff to see their own payouts only (no auth required, just staffId)
+    myPayouts: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       authorizedById: z.number().optional(),
@@ -125,6 +127,8 @@ export const appRouter = router({
   voids: router({
     list: protectedProcedure.query(() => getAllVoids()),
     byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
+    // Public endpoint for staff to see their own voids only (no auth required, just staffId)
+    myVoids: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
     weeklyByStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
@@ -186,7 +190,22 @@ export const appRouter = router({
       totalTips: z.string().optional(),
       managerHandedCash: z.boolean(),
       handedByStaffId: z.number().optional(),
-    })).mutation(({ input }) => createDriverReport(input)),
+    })).mutation(async ({ input }) => {
+      // ENFORCE: Manager must hand driver cash, not front staff
+      if (input.cashFromTill && parseFloat(input.cashFromTill) > 0) {
+        if (!input.managerHandedCash) {
+          throw new Error("Cash from till requires manager handoff — not front staff");
+        }
+        if (!input.handedByStaffId) {
+          throw new Error("Must specify which manager handed the cash");
+        }
+        const hander = await getStaffById(input.handedByStaffId);
+        if (!hander || (!hander.isKeyEmployee && !hander.canAuthPayouts)) {
+          throw new Error("Cash must be handed by a manager or key employee");
+        }
+      }
+      return createDriverReport(input);
+    }),
   }),
 
   // ============ FEEDBACK ============

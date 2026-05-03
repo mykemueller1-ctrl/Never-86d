@@ -125,6 +125,15 @@ export default function CTapHub() {
   const staffListQuery = trpc.staff.list.useQuery(undefined, {
     enabled: isManager && ["voids", "command", "store-run"].includes(screen)
   });
+  // Self-only queries for non-managers
+  const myVoidsQuery = trpc.voids.myVoids.useQuery(
+    { staffId: staffUser?.id || 0 },
+    { enabled: !isManager && !!staffUser && ["profile", "home"].includes(screen) }
+  );
+  const myPayoutsQuery = trpc.payouts.myPayouts.useQuery(
+    { staffId: staffUser?.id || 0 },
+    { enabled: !isManager && !!staffUser && ["profile", "home"].includes(screen) }
+  );
 
   // ─── tRPC Mutations ──────────────────────────────────────────────────
   const loginByPin = trpc.staff.loginByPin.useMutation();
@@ -142,6 +151,8 @@ export default function CTapHub() {
   const allPayouts = isManager ? (payoutsQuery.data || []) : [];
   const allInvoices = isManager ? (invoicesQuery.data || []) : [];
   const allVoids = isManager ? (voidsQuery.data || []) : [];
+  const myVoids = !isManager ? (myVoidsQuery.data || []) : [];
+  const myPayouts = !isManager ? (myPayoutsQuery.data || []) : [];
   const allStaff = isManager ? (staffListQuery.data || []) : [];
   const keyEmployees = useMemo(() => allStaff.filter(s => s.isKeyEmployee || s.canAuthPayouts), [allStaff]);
 
@@ -1189,6 +1200,33 @@ export default function CTapHub() {
             <p className="text-zinc-300 text-xs">Employee #: <span className="text-white">{staffUser?.employeeNumber || "—"}</span></p>
           </div>
         </div>
+        {/* Self-only activity — staff sees their own voids/payouts */}
+        {!isManager && (
+          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+            <p className="text-zinc-400 text-[10px] uppercase mb-2">Your Activity</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-zinc-800 rounded-lg p-2.5 text-center">
+                <p className="text-white font-bold text-lg">{myVoids.length}</p>
+                <p className="text-zinc-500 text-[9px]">Your Voids</p>
+              </div>
+              <div className="bg-zinc-800 rounded-lg p-2.5 text-center">
+                <p className="text-white font-bold text-lg">{myPayouts.length}</p>
+                <p className="text-zinc-500 text-[9px]">Your Payouts</p>
+              </div>
+            </div>
+            {myVoids.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-zinc-400 text-[9px] uppercase">Recent Voids</p>
+                {myVoids.slice(0, 3).map((v: any) => (
+                  <div key={v.id} className="bg-zinc-800/50 rounded-lg p-2 flex items-center justify-between">
+                    <span className="text-zinc-300 text-xs">{v.type} · {v.reason}</span>
+                    <span className="text-red-400 text-xs font-medium">${v.amount}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {!isAuthenticated && (
           <div className="bg-amber-500/10 rounded-xl p-3 border border-amber-500/30">
             <p className="text-amber-500 text-xs">Sign in with Manus to unlock feedback, issue reporting, and other write features.</p>

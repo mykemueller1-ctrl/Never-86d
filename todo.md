@@ -30,7 +30,7 @@
 - [ ] Special runs — form exists, requires Manus auth to submit
 - [ ] Cash from till with reason — form exists, requires Manus auth to submit
 - [ ] Redeliveries with ticket # and excuse — form exists, requires Manus auth to submit
-- [ ] Manager must hand driver cash (not front staff) — not enforced
+- [x] Manager must hand driver cash (not front staff) — enforced in driverReports.create (rejects if cash without manager handoff, verifies hander is key employee)
 
 ## Command Center (Owner/Manager)
 - [x] 10 Intelligence Buckets overview — UI built
@@ -120,9 +120,11 @@
 - [x] Regular staff see gamified metrics only (points, streaks, rank, badges)
 - [x] P&L data restricted to manager+ roles (owner, key_manager, kitchen_manager, bar_manager)
 - [x] Void counts hidden from non-managers on leaderboard and profile
-- [ ] Staff self-only view for their own voids (not yet implemented)
+- [x] Staff self-only view for their own voids (myVoids query + profile display — frontend-filtered by staffId)
+- [ ] Server-side self-only enforcement for voids (requires staff session/token after PIN login, not just client-supplied staffId)
 - [x] Payout screen restricted to managers only
-- [ ] Staff self-only view for their own payouts (not yet implemented)
+- [x] Staff self-only view for their own payouts (myPayouts query + profile display — frontend-filtered by staffId)
+- [ ] Server-side self-only enforcement for payouts (requires staff session/token after PIN login, not just client-supplied staffId)
 
 ## Gamified UI Polish
 - [x] Replace any raw dollar amounts with gamified equivalents for non-managers
