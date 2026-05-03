@@ -34,6 +34,16 @@ import {
   getCareerTrack, upsertCareerTrack,
   // Sales Intelligence
   getDailySales, upsertDailySales, getHourlySales, insertHourlySales,
+  // Historical Pattern Intelligence
+  getDayOfWeekPattern, getYesterdaySales, getRecentSalesTrend,
+  getParLevelSuggestions,
+  // Intelligence Engine
+  getVoidRecords, getVoidSummaryByEmployee, getProductMix,
+  getWeatherData, getWeatherSalesCorrelation,
+  getAnomalies, acknowledgeAnomaly,
+  getUpcomingEvents, addLocalEvent,
+  getScheduleIntelligence, saveScheduleIntelligence,
+  getHourlySalesHeatmap,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { processAchievementEvent } from "./achievementEngine";
@@ -433,6 +443,18 @@ export const appRouter = router({
       const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
       const timeContext = hour < 11 ? "morning prep" : hour < 14 ? "lunch rush" : hour < 17 ? "afternoon lull" : hour < 21 ? "dinner rush" : "closing";
 
+      // Historical sales pattern for today's day of week
+      const dayPattern = await getDayOfWeekPattern(now.getDay());
+      const recentTrend = await getRecentSalesTrend(7);
+      let salesContext = "";
+      if (dayPattern && dayPattern.sampleSize >= 3) {
+        salesContext = `\nHistorical ${dayOfWeek} pattern (based on ${dayPattern.sampleSize} ${dayOfWeek}s):\n- Average revenue: $${dayPattern.avgRevenue.toLocaleString()}\n- Range: $${dayPattern.minRevenue.toLocaleString()} to $${dayPattern.maxRevenue.toLocaleString()}\n- Last ${dayOfWeek}: $${dayPattern.lastSameDayRevenue.toLocaleString()} (${dayPattern.lastSameDayDate})`;
+      }
+      if (recentTrend.length > 0) {
+        const trendSummary = recentTrend.slice(0, 5).map(d => `${d.businessDate}: $${parseFloat(d.grandTotal || "0").toLocaleString()}`).join(", ");
+        salesContext += `\nRecent trend: ${trendSummary}`;
+      }
+
       const knowledgeContext = relevantKnowledge.map(k =>
         `[${k.station}/${k.category}] Q: ${k.question}\nA: ${k.answer} (confidence: ${k.confidence})`
       ).join("\n\n");
@@ -452,6 +474,8 @@ ${knowledgeContext || "No specific knowledge entries found for this query."}
 
 Recent restaurant memories:
 ${memoryContext || "No recent memories."}
+
+${salesContext ? `Sales intelligence:\n${salesContext}` : ""}
 
 Rules:
 1. Answer based on the knowledge entries above when available
@@ -682,6 +706,7 @@ Rules:
       notes: z.string().optional(),
     })).mutation(({ input }) => createVendorProduct(input)),
     updatePrice: protectedProcedure.input(z.object({ id: z.number(), newPrice: z.string() })).mutation(({ input }) => updateVendorProductPrice(input.id, input.newPrice)),
+    parSuggestions: protectedProcedure.query(() => getParLevelSuggestions()),
   }),
   orderGuides: router({
     list: protectedProcedure.input(z.object({ staffId: z.number().optional() }).optional()).query(({ input }) => getOrderGuides(input?.staffId)),
@@ -851,6 +876,94 @@ Rules:
       avgPerGuest: z.string().optional(),
       totalLastYear: z.string().optional(),
     })).mutation(({ input }) => upsertDailySales(input)),
+  }),
+
+  // ============ INTELLIGENCE ENGINE ============
+  intelligence: router({
+    // Void Analysis
+    voidRecords: protectedProcedure.input(z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      employeeName: z.string().optional(),
+    }).optional()).query(({ input }) => getVoidRecords(input)),
+    voidSummary: protectedProcedure.query(() => getVoidSummaryByEmployee()),
+
+    // Product Mix
+    productMix: protectedProcedure.input(z.object({ category: z.string().optional() }).optional()).query(({ input }) => getProductMix(input?.category)),
+
+    // Weather
+    weather: protectedProcedure.query(() => getWeatherData()),
+    weatherCorrelation: protectedProcedure.query(() => getWeatherSalesCorrelation()),
+
+    // Hourly Heatmap
+    hourlyHeatmap: protectedProcedure.query(() => getHourlySalesHeatmap()),
+
+    // Anomalies
+    anomalies: protectedProcedure.input(z.object({ severity: z.string().optional() }).optional()).query(({ input }) => getAnomalies(input?.severity)),
+    acknowledgeAnomaly: protectedProcedure.input(z.object({ id: z.number(), acknowledgedBy: z.string() })).mutation(({ input }) => acknowledgeAnomaly(input.id, input.acknowledgedBy)),
+
+    // Events
+    upcomingEvents: protectedProcedure.query(() => getUpcomingEvents()),
+    addEvent: protectedProcedure.input(z.object({
+      eventName: z.string(),
+      eventDate: z.string(),
+      eventTime: z.string().optional(),
+      venue: z.string().optional(),
+      city: z.string().optional(),
+      distance: z.number().optional(),
+      category: z.string().optional(),
+      estimatedImpact: z.string().optional(),
+      attendanceEstimate: z.number().optional(),
+      notes: z.string().optional(),
+      source: z.string().optional(),
+    })).mutation(({ input }) => addLocalEvent(input)),
+
+    // Schedule Intelligence
+    scheduleIntel: protectedProcedure.input(z.object({ weekStart: z.string() })).query(({ input }) => getScheduleIntelligence(input.weekStart)),
+
+    // Generate schedule intelligence using LLM
+    generateScheduleIntel: protectedProcedure.input(z.object({ weekStart: z.string(), weekEnd: z.string() })).mutation(async ({ input }) => {
+      const [dowPattern, weatherData, events, anomalies, voidSummary] = await Promise.all([
+        getDayOfWeekPattern(new Date().getDay()),
+        getWeatherData(true),
+        getUpcomingEvents(),
+        getAnomalies('high'),
+        getVoidSummaryByEmployee(),
+      ]);
+
+      const prompt = `You are a restaurant scheduling intelligence AI for Community Tap & Pizza in Fort Dodge, Iowa.
+
+Analyze the following data and generate staffing recommendations for the week of ${input.weekStart} to ${input.weekEnd}.
+
+Historical Revenue by Day of Week:\n${JSON.stringify(dowPattern, null, 2)}
+
+Upcoming Weather:\n${JSON.stringify(weatherData?.slice(0, 7), null, 2)}
+
+Upcoming Events:\n${JSON.stringify(events, null, 2)}
+
+High-Severity Anomalies:\n${JSON.stringify(anomalies?.slice(0, 5), null, 2)}
+
+Void Summary (top 5):\n${JSON.stringify(voidSummary?.slice(0, 5), null, 2)}
+
+For each day of the week, provide:
+1. Expected revenue range
+2. Recommended staffing level (light/normal/heavy)
+3. Key reasoning (weather, events, historical patterns)
+4. Any alerts or special considerations
+
+Respond in JSON format: { "days": [{ "date": "YYYY-MM-DD", "dayOfWeek": "Monday", "expectedRevenue": { "low": 3000, "high": 5000 }, "staffingLevel": "normal", "reasoning": "...", "alerts": ["..."] }] }`;
+
+      const response = await invokeLLM({
+        messages: [{ role: 'system', content: 'You are a restaurant operations intelligence AI.' }, { role: 'user', content: prompt }],
+        response_format: { type: 'json_schema', json_schema: { name: 'schedule_intel', strict: true, schema: { type: 'object', properties: { days: { type: 'array', items: { type: 'object', properties: { date: { type: 'string' }, dayOfWeek: { type: 'string' }, expectedRevenue: { type: 'object', properties: { low: { type: 'number' }, high: { type: 'number' } }, required: ['low', 'high'], additionalProperties: false }, staffingLevel: { type: 'string' }, reasoning: { type: 'string' }, alerts: { type: 'array', items: { type: 'string' } } }, required: ['date', 'dayOfWeek', 'expectedRevenue', 'staffingLevel', 'reasoning', 'alerts'], additionalProperties: false } } }, required: ['days'], additionalProperties: false } } },
+      });
+
+      const rawContent = response.choices?.[0]?.message?.content;
+      const content = typeof rawContent === 'string' ? rawContent : '';
+      const recommendations = content ? JSON.parse(content) : { days: [] };
+      await saveScheduleIntelligence({ weekStart: input.weekStart, weekEnd: input.weekEnd, recommendations });
+      return recommendations;
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

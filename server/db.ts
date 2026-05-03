@@ -1,4 +1,4 @@
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { eq, desc, asc, and, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -13,6 +13,12 @@ import {
   dailyBriefings,
   gamificationEvents,
   issues,
+  voidRecords,
+  productMixEntries,
+  weatherData,
+  localEvents,
+  intelligenceAnomalies,
+  scheduleIntelligence,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1027,4 +1033,385 @@ export async function insertHourlySales(data: (typeof hourlySales.$inferInsert)[
   if (!db) throw new Error("Database not available");
   if (data.length === 0) return;
   return db.insert(hourlySales).values(data);
+}
+
+// ============ HISTORICAL PATTERN INTELLIGENCE ============
+
+/**
+ * Get historical sales patterns for a specific day of week.
+ * Returns avg revenue, avg orders, peak hour, and comparison data
+ * for the same day-of-week across all available history.
+ */
+export async function getDayOfWeekPattern(dayOfWeek: number) {
+  const db = await getDb();
+  if (!db) return null;
+  // dayOfWeek: 0=Sunday, 1=Monday, ... 6=Saturday
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayName = dayNames[dayOfWeek];
+
+  const results = await db.select().from(dailySales)
+    .orderBy(desc(dailySales.businessDate));
+
+  if (results.length === 0) return null;
+
+  // Filter to matching day of week
+  const matchingDays = results.filter(r => {
+    const d = new Date(r.businessDate + "T12:00:00");
+    return d.getDay() === dayOfWeek;
+  });
+
+  if (matchingDays.length === 0) return null;
+
+  const revenues = matchingDays.map(d => parseFloat(d.grandTotal || "0")).filter(v => !isNaN(v));
+  const avgRevenue = revenues.length > 0 ? revenues.reduce((a, b) => a + b, 0) / revenues.length : 0;
+  const maxRevenue = Math.max(...revenues);
+  const minRevenue = Math.min(...revenues);
+
+  // Get the most recent same-day for comparison
+  const lastSameDay = matchingDays[0];
+  const lastSameDayRevenue = parseFloat(lastSameDay?.grandTotal || "0");
+
+  return {
+    dayName,
+    sampleSize: matchingDays.length,
+    avgRevenue: Math.round(avgRevenue * 100) / 100,
+    maxRevenue: Math.round(maxRevenue * 100) / 100,
+    minRevenue: Math.round(minRevenue * 100) / 100,
+    lastSameDayDate: lastSameDay?.businessDate,
+    lastSameDayRevenue: Math.round(lastSameDayRevenue * 100) / 100,
+  };
+}
+
+/**
+ * Get yesterday's sales data for briefing context.
+ */
+export async function getYesterdaySales() {
+  const db = await getDb();
+  if (!db) return null;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateStr = yesterday.toISOString().split("T")[0];
+
+  const results = await db.select().from(dailySales)
+    .where(eq(dailySales.businessDate, dateStr))
+    .limit(1);
+
+  return results[0] || null;
+}
+
+/**
+ * Get recent sales trend (last 7 days) for briefing.
+ */
+export async function getRecentSalesTrend(days = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().split("T")[0];
+
+  return db.select().from(dailySales)
+    .where(sql`${dailySales.businessDate} >= ${cutoffStr}`)
+    .orderBy(desc(dailySales.businessDate));
+}
+
+// ============ PAR LEVEL SUGGESTIONS ============
+
+/**
+ * Suggest par levels for vendor products based on historical sales patterns.
+ * Uses day-of-week averages + safety margin to recommend stock levels.
+ * Returns suggestions for products that have sales correlation data.
+ */
+export async function getParLevelSuggestions() {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get all vendor products
+  const products = await db.select().from(vendorProducts).orderBy(vendorProducts.vendorName);
+  if (products.length === 0) return [];
+
+  // Get recent daily sales for pattern analysis (last 90 days)
+  const sales = await getDailySales(undefined, undefined, 90);
+  if (sales.length < 14) return products.map(p => ({
+    ...p,
+    suggestedPar: p.parLevel,
+    confidence: "low" as const,
+    reason: "Insufficient sales data (need 14+ days)"
+  }));
+
+  // Calculate day-of-week revenue averages
+  const dayRevenues: Record<number, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+  for (const day of sales) {
+    const d = new Date(day.businessDate + "T12:00:00");
+    const dow = d.getDay();
+    const rev = parseFloat(day.grandTotal || "0");
+    if (rev > 0) dayRevenues[dow].push(rev);
+  }
+
+  // Overall average daily revenue
+  const allRevenues = sales.map(s => parseFloat(s.grandTotal || "0")).filter(v => v > 0);
+  const avgDailyRevenue = allRevenues.reduce((a, b) => a + b, 0) / allRevenues.length;
+
+  // Peak day multiplier (Friday/Saturday typically 1.3-1.5x)
+  const peakDayAvg = Math.max(
+    ...[0, 1, 2, 3, 4, 5, 6].map(d => {
+      const revs = dayRevenues[d];
+      return revs.length > 0 ? revs.reduce((a, b) => a + b, 0) / revs.length : 0;
+    })
+  );
+  const peakMultiplier = avgDailyRevenue > 0 ? peakDayAvg / avgDailyRevenue : 1.3;
+
+  return products.map(product => {
+    const currentPar = product.parLevel || 0;
+
+    // Category-based usage estimation
+    // High-volume categories need more buffer
+    const categoryMultiplier: Record<string, number> = {
+      meat: 1.2, dairy: 1.1, produce: 1.3, bread: 1.2, frozen: 1.0,
+      dry_goods: 0.8, paper: 0.7, chemicals: 0.5, liquor: 1.1,
+      beer: 1.2, wine: 0.9, soda: 1.0, other: 1.0,
+    };
+
+    const catMult = categoryMultiplier[product.category] || 1.0;
+
+    // Order frequency determines how many days of stock to keep
+    const daysOfStock: Record<string, number> = {
+      daily: 1.5, twice_weekly: 4, weekly: 8, biweekly: 16, monthly: 35, as_needed: 7,
+    };
+    const targetDays = daysOfStock[product.orderFrequency || "weekly"] || 8;
+
+    // If we have a current par, suggest adjustment based on peak multiplier
+    let suggestedPar = currentPar;
+    let confidence: "high" | "medium" | "low" = "medium";
+    let reason = "";
+
+    if (currentPar > 0) {
+      // Adjust existing par based on peak day patterns
+      const adjustedPar = Math.ceil(currentPar * peakMultiplier * catMult / (peakMultiplier));
+      if (adjustedPar > currentPar * 1.15) {
+        suggestedPar = adjustedPar;
+        reason = `Peak day revenue is ${Math.round(peakMultiplier * 100)}% of average — consider increasing par for ${product.category} items`;
+        confidence = "medium";
+      } else if (adjustedPar < currentPar * 0.85) {
+        suggestedPar = adjustedPar;
+        reason = `Current par may be high for typical volume — consider reducing to avoid waste`;
+        confidence = "medium";
+      } else {
+        suggestedPar = currentPar;
+        reason = "Current par level aligns with sales patterns";
+        confidence = "high";
+      }
+    } else {
+      // No par set — suggest based on category and frequency
+      reason = "No par level set — suggestion based on category and order frequency";
+      confidence = "low";
+    }
+
+    return {
+      id: product.id,
+      vendorName: product.vendorName,
+      productName: product.productName,
+      category: product.category,
+      unit: product.unit,
+      currentPar: currentPar,
+      suggestedPar,
+      confidence,
+      reason,
+      orderFrequency: product.orderFrequency,
+      lastPrice: product.lastPrice,
+    };
+  });
+}
+
+
+// ============ INTELLIGENCE ENGINE HELPERS ============
+
+/** Get void records with optional filters */
+export async function getVoidRecords(filters?: { startDate?: string; endDate?: string; employeeName?: string; recordType?: string }) {
+  const db = await getDb();
+  if (!db) return [];
+  let query = db.select().from(voidRecords).orderBy(desc(voidRecords.businessDate));
+  // Note: Drizzle doesn't support dynamic where chaining easily, use raw for complex filters
+  const rows = await query.limit(500);
+  if (filters?.employeeName) {
+    return rows.filter(r => r.employeeName?.toLowerCase().includes(filters.employeeName!.toLowerCase()));
+  }
+  if (filters?.startDate && filters?.endDate) {
+    return rows.filter(r => r.businessDate >= filters.startDate! && r.businessDate <= filters.endDate!);
+  }
+  return rows;
+}
+
+/** Get void summary by employee — total voids, amount, avg per day */
+export async function getVoidSummaryByEmployee() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(voidRecords);
+  const byEmployee: Record<string, { name: string; count: number; total: number; days: Set<string> }> = {};
+  for (const r of rows) {
+    const name = r.employeeName || 'Unknown';
+    if (!byEmployee[name]) byEmployee[name] = { name, count: 0, total: 0, days: new Set() };
+    byEmployee[name].count++;
+    byEmployee[name].total += parseFloat(r.amount?.toString() || '0');
+    byEmployee[name].days.add(r.businessDate);
+  }
+  return Object.values(byEmployee).map(e => ({
+    name: e.name,
+    totalVoids: e.count,
+    totalAmount: Math.round(e.total * 100) / 100,
+    daysWorked: e.days.size,
+    avgPerDay: Math.round((e.count / e.days.size) * 10) / 10,
+  })).sort((a, b) => b.totalAmount - a.totalAmount);
+}
+
+/** Get product mix with category filtering */
+export async function getProductMix(category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  let rows;
+  if (category && category !== 'all') {
+    rows = await db.select().from(productMixEntries).where(eq(productMixEntries.category, category as any)).orderBy(desc(productMixEntries.totalAmount)).limit(100);
+  } else {
+    rows = await db.select().from(productMixEntries).orderBy(desc(productMixEntries.totalAmount)).limit(200);
+  }
+  // Aggregate by item name
+  const byItem: Record<string, { name: string; category: string; totalAmount: number; totalQty: number }> = {};
+  for (const r of rows) {
+    const key = r.itemName;
+    if (!byItem[key]) byItem[key] = { name: r.itemName, category: r.category || 'other', totalAmount: 0, totalQty: 0 };
+    byItem[key].totalAmount += parseFloat(r.totalAmount?.toString() || '0');
+    byItem[key].totalQty += r.totalQty || 0;
+  }
+  return Object.values(byItem).sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 50);
+}
+
+/** Get weather data with optional forecast */
+export async function getWeatherData(includeForecast = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(weatherData).orderBy(desc(weatherData.date)).limit(30);
+  return rows;
+}
+
+/** Get weather correlation with sales — join weather + daily sales */
+export async function getWeatherSalesCorrelation() {
+  const db = await getDb();
+  if (!db) return { rainyDays: { avg: 0, count: 0 }, dryDays: { avg: 0, count: 0 }, snowDays: { avg: 0, count: 0 }, deliveryImpact: { badWeather: 0, goodWeather: 0 } };
+  
+  const weather = await db.select().from(weatherData).where(eq(weatherData.isForecast, false));
+  const sales = await db.select().from(dailySales);
+  
+  const salesByDate: Record<string, any> = {};
+  for (const s of sales) salesByDate[s.businessDate] = s;
+  
+  let rainyTotal = 0, rainyCount = 0, dryTotal = 0, dryCount = 0, snowTotal = 0, snowCount = 0;
+  let badDeliveryPct = 0, badDeliveryCount = 0, goodDeliveryPct = 0, goodDeliveryCount = 0;
+  
+  for (const w of weather) {
+    const s = salesByDate[w.date];
+    if (!s) continue;
+    const rev = parseFloat(s.grandTotal?.toString() || '0');
+    const precip = parseFloat(w.precipitation?.toString() || '0');
+    const snow = parseFloat(w.snowfall?.toString() || '0');
+    const deliveryPct = parseFloat(s.deliveryAmount?.toString() || '0') / (rev || 1) * 100;
+    
+    if (snow > 0) { snowTotal += rev; snowCount++; }
+    if (precip > 0) { rainyTotal += rev; rainyCount++; badDeliveryPct += deliveryPct; badDeliveryCount++; }
+    else { dryTotal += rev; dryCount++; goodDeliveryPct += deliveryPct; goodDeliveryCount++; }
+  }
+  
+  return {
+    rainyDays: { avg: rainyCount ? Math.round(rainyTotal / rainyCount) : 0, count: rainyCount },
+    dryDays: { avg: dryCount ? Math.round(dryTotal / dryCount) : 0, count: dryCount },
+    snowDays: { avg: snowCount ? Math.round(snowTotal / snowCount) : 0, count: snowCount },
+    deliveryImpact: {
+      badWeather: badDeliveryCount ? Math.round(badDeliveryPct / badDeliveryCount * 10) / 10 : 0,
+      goodWeather: goodDeliveryCount ? Math.round(goodDeliveryPct / goodDeliveryCount * 10) / 10 : 0,
+    },
+  };
+}
+
+/** Get anomalies with severity filter */
+export async function getAnomalies(severity?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (severity) {
+    return db.select().from(intelligenceAnomalies).where(eq(intelligenceAnomalies.severity, severity as any)).orderBy(desc(intelligenceAnomalies.createdAt)).limit(100);
+  }
+  return db.select().from(intelligenceAnomalies).orderBy(desc(intelligenceAnomalies.createdAt)).limit(100);
+}
+
+/** Acknowledge an anomaly */
+export async function acknowledgeAnomaly(id: number, acknowledgedBy: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(intelligenceAnomalies).set({ acknowledged: true, acknowledgedBy }).where(eq(intelligenceAnomalies.id, id));
+}
+
+/** Get local events for upcoming week */
+export async function getUpcomingEvents() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(localEvents).orderBy(asc(localEvents.eventDate)).limit(20);
+}
+
+/** Add a local event */
+export async function addLocalEvent(event: { eventName: string; eventDate: string; eventTime?: string; venue?: string; city?: string; distance?: number; category?: string; estimatedImpact?: string; attendanceEstimate?: number; notes?: string; source?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(localEvents).values(event as any);
+}
+
+/** Get schedule intelligence for a week */
+export async function getScheduleIntelligence(weekStart: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(scheduleIntelligence).where(eq(scheduleIntelligence.weekStart, weekStart)).limit(1);
+  return rows[0] || null;
+}
+
+/** Save schedule intelligence */
+export async function saveScheduleIntelligence(data: { weekStart: string; weekEnd: string; recommendations: any }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(scheduleIntelligence).values(data);
+}
+
+/** Get hourly sales heatmap data — average revenue by hour and day of week */
+export async function getHourlySalesHeatmap() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(hourlySales);
+  
+  // Parse hours and aggregate by DOW + hour
+  const heatmap: Record<string, { dow: number; hour: number; avgRevenue: number; count: number; total: number }> = {};
+  
+  for (const r of rows) {
+    const dt = new Date(r.businessDate + 'T12:00:00');
+    const dow = dt.getDay(); // 0=Sun
+    
+    // Parse hour from "1 PM-2 PM" format
+    let hour = 0;
+    const hourStr = r.hour || '';
+    try {
+      const parts = hourStr.split('-')[0].trim().split(' ');
+      let h = parseInt(parts[0]);
+      const ampm = parts[1]?.toUpperCase() || '';
+      if (ampm === 'PM' && h !== 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      hour = h;
+    } catch { continue; }
+    
+    const key = `${dow}-${hour}`;
+    const total = parseFloat(r.total?.toString() || '0');
+    if (!heatmap[key]) heatmap[key] = { dow, hour, avgRevenue: 0, count: 0, total: 0 };
+    heatmap[key].total += total;
+    heatmap[key].count++;
+  }
+  
+  return Object.values(heatmap).map(h => ({
+    dow: h.dow,
+    hour: h.hour,
+    avgRevenue: Math.round(h.total / h.count),
+    dataPoints: h.count,
+  }));
 }

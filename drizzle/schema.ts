@@ -737,3 +737,111 @@ export const hourlySales = mysqlTable("hourly_sales", {
 
 export type HourlySales = typeof hourlySales.$inferSelect;
 export type InsertHourlySales = typeof hourlySales.$inferInsert;
+
+
+// ============ INTELLIGENCE ENGINE TABLES ============
+
+/**
+ * Void/Promo Records — parsed from PDQ Void_Promo_Report PDFs.
+ * Tracks every void item, employee meal, manager meal, and promo.
+ */
+export const voidRecords = mysqlTable("void_records", {
+  id: int("id").autoincrement().primaryKey(),
+  businessDate: varchar("businessDate", { length: 20 }).notNull(),
+  orderId: varchar("orderId", { length: 20 }),
+  recordType: mysqlEnum("recordType", ["void_item", "void_order"]).notNull(),
+  itemType: varchar("itemType", { length: 50 }),
+  itemDesc: varchar("itemDesc", { length: 300 }),
+  employeeName: varchar("employeeName", { length: 200 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  timeIn: varchar("timeIn", { length: 50 }),
+  timeApplied: varchar("timeApplied", { length: 50 }),
+  reason: text("reason"),
+  sourceFile: varchar("sourceFile", { length: 300 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type VoidRecord = typeof voidRecords.$inferSelect;
+
+/**
+ * Product Mix Entries — historical menu sales data from PDQ.
+ */
+export const productMixEntries = mysqlTable("product_mix_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  periodStart: varchar("periodStart", { length: 20 }).notNull(),
+  periodEnd: varchar("periodEnd", { length: 20 }).notNull(),
+  itemName: varchar("itemName", { length: 300 }).notNull(),
+  itemId: varchar("itemId", { length: 20 }),
+  category: mysqlEnum("category", ["food", "pizza", "beer", "liquor", "pop", "other"]).default("other"),
+  totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }),
+  totalQty: int("totalQty"),
+  sourceFile: varchar("sourceFile", { length: 300 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProductMixEntry = typeof productMixEntries.$inferSelect;
+
+/**
+ * Weather Data — daily weather conditions for Fort Dodge, Iowa.
+ */
+export const weatherData = mysqlTable("weather_data", {
+  id: int("id").autoincrement().primaryKey(),
+  date: varchar("date", { length: 20 }).notNull(),
+  tempMax: decimal("tempMax", { precision: 5, scale: 1 }),
+  tempMin: decimal("tempMin", { precision: 5, scale: 1 }),
+  precipitation: decimal("precipitation", { precision: 6, scale: 2 }),
+  snowfall: decimal("snowfall", { precision: 6, scale: 2 }),
+  windMax: decimal("windMax", { precision: 5, scale: 1 }),
+  weatherCode: int("weatherCode"),
+  isForecast: boolean("isForecast").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WeatherData = typeof weatherData.$inferSelect;
+
+/**
+ * Local Events — events within 30 miles of Fort Dodge.
+ */
+export const localEvents = mysqlTable("local_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventName: varchar("eventName", { length: 500 }).notNull(),
+  eventDate: varchar("eventDate", { length: 20 }).notNull(),
+  eventTime: varchar("eventTime", { length: 50 }),
+  venue: varchar("venue", { length: 300 }),
+  city: varchar("city", { length: 100 }),
+  distance: decimal("distance", { precision: 5, scale: 1 }),
+  category: mysqlEnum("category", ["sports", "school", "community", "concert", "festival", "holiday", "other"]).default("other"),
+  estimatedImpact: mysqlEnum("estimatedImpact", ["high", "medium", "low"]).default("low"),
+  attendanceEstimate: int("attendanceEstimate"),
+  notes: text("notes"),
+  source: varchar("source", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type LocalEvent = typeof localEvents.$inferSelect;
+
+/**
+ * Intelligence Anomalies — detected anomalies from void/sales analysis.
+ */
+export const intelligenceAnomalies = mysqlTable("intelligence_anomalies", {
+  id: int("id").autoincrement().primaryKey(),
+  anomalyType: varchar("anomalyType", { length: 100 }).notNull(),
+  severity: mysqlEnum("severity", ["high", "medium", "low"]).notNull(),
+  employeeName: varchar("employeeName", { length: 200 }),
+  detail: text("detail").notNull(),
+  theory: text("theory"),
+  businessDate: varchar("businessDate", { length: 20 }),
+  acknowledged: boolean("acknowledged").default(false),
+  acknowledgedBy: varchar("acknowledgedBy", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type IntelligenceAnomaly = typeof intelligenceAnomalies.$inferSelect;
+
+/**
+ * Schedule Intelligence — weekly scheduling recommendations.
+ */
+export const scheduleIntelligence = mysqlTable("schedule_intelligence", {
+  id: int("id").autoincrement().primaryKey(),
+  weekStart: varchar("weekStart", { length: 20 }).notNull(),
+  weekEnd: varchar("weekEnd", { length: 20 }).notNull(),
+  recommendations: json("recommendations"),
+  generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+  acknowledgedBy: varchar("acknowledgedBy", { length: 200 }),
+});
+export type ScheduleIntelligence = typeof scheduleIntelligence.$inferSelect;

@@ -257,7 +257,7 @@
 - [x] Add 8 new tables to schema (6 worker profile + 2 sales intelligence: dailySales, hourlySales)
 - [x] Add primaryTrack and secondaryTracks fields to staff table
 - [x] Run db:push to migrate new schema
-- [ ] Seed training modules from SOP documents (18 modules) — needs seed script run
+- [x] Seed training modules from SOP documents (18 modules) — seeded: kitchen 6, foh 6, driver 3, all 2, pizza 1
 - [x] Build backend procedures — training completion CRUD
 - [x] Build backend procedures — evaluation CRUD (9-category scoring)
 - [x] Build backend procedures — write-up workflow (verbal → written → final → termination)
@@ -275,3 +275,47 @@
 - [x] Build product mix analysis — 8,939 item records, 1,069 unique products analyzed
 - [x] Build Sales Intelligence UI — daily trends, channel breakdown, labor analysis, role-based access
 - [ ] Machine learning — predict daily sales by product, day of week, seasonality (future: needs more data)
+
+## Wave 4 — Intelligence Engine
+
+### Product Mix Intelligence
+- [x] Analyze food/beer/pop/liquor category trends from 196 days of POS data
+- [x] Day-of-week patterns per category (e.g., wings spike Fridays)
+- [x] Seasonal/monthly trend detection
+- [x] Top sellers and declining items identification
+- [x] Category revenue share over time
+
+### Hourly Sales Patterns
+- [x] Hourly heatmap by day-of-week (when does the rush actually hit)
+- [x] Channel breakdown by hour (pickup vs delivery vs bar vs dine-in)
+- [x] Labor cost % by hour analysis
+- [x] Dead hours identification for scheduling
+
+### Comp/Promo/Void Anomaly Detection
+- [x] Parse void/promo data from PDQ reports (4,954 records from 431 PDFs)
+- [x] Flag anomalies: repeated voids by same employee, high-value voids, late-night voids (59 anomalies detected)
+- [x] Comp/promo tracking with theories on patterns
+- [x] Shrinkage risk scoring
+
+### Weather Correlation
+- [x] Integrate weather API for Fort Dodge, Iowa (202 days of weather data)
+- [x] Correlate historical weather with daily sales
+- [x] Weather forecast → sales prediction
+- [x] Rainy day vs sunny day revenue patterns (rain -6.4%, snow +6.2%)
+
+### Local Events Radar (30-mile radius)
+- [x] Pull upcoming events near Fort Dodge (high school sports, Iowa Central, county events)
+- [x] Event impact estimation on sales
+- [x] Calendar view of upcoming events with staffing recommendations
+
+### Schedule Intelligence Briefing
+- [x] Combine all signals: weather + events + historical patterns + trends
+- [x] Generate weekly scheduling recommendation for owner (LLM-powered)
+- [ ] Push notification to Michael with staffing suggestions (needs deployed site + scheduled task)
+- [x] Build Schedule Intelligence UI screen in CTapHub
+
+### Backend & UI
+- [x] Build intelligence analysis engine (server-side) — 6 new tables, full analysis pipeline
+- [x] Build backend tRPC procedures for all intelligence endpoints
+- [x] Build Intelligence Dashboard UI with 7 tabs: Daily, Mix, Voids, Weather, Hours, Anomalies, Schedule
+- [x] Add vitest for intelligence engine (mocks updated, 127 tests passing)
