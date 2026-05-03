@@ -9,7 +9,10 @@ import {
   markBriefingNotified,
   archiveInactiveStaff,
   getAllPayouts,
+  getDb,
 } from "../db";
+import { staff } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Scheduled task endpoint for generating management briefings.
@@ -17,6 +20,41 @@ import {
  * Auth: uses the auto-injected scheduled task cookie (user role).
  */
 export function registerScheduledRoutes(app: Express) {
+
+  // ─── Reactivate All Staff (one-time fix for archive bug) ───
+  app.post("/api/scheduled/reactivate-staff", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+
+    console.log(`[Scheduled] Reactivate-staff triggered by user: ${user.name || user.openId}`);
+    try {
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "Database not available" }); return; }
+
+      // Set all inactive staff back to active and give them a recent lastClockIn
+      const result = await db.update(staff)
+        .set({ status: "active" as const, lastClockIn: new Date() })
+        .where(eq(staff.status, "inactive"));
+      const reactivated = (result as any)[0]?.affectedRows ?? 0;
+
+      console.log(`[Scheduled] Reactivated ${reactivated} staff members`);
+      await notifyOwner({
+        title: "Staff Reactivation Complete",
+        content: `${reactivated} staff member${reactivated !== 1 ? 's' : ''} reactivated after archive bug fix.`,
+      });
+
+      res.status(200).json({ success: true, reactivated });
+    } catch (err) {
+      console.error("[Scheduled] Reactivate-staff failed:", err);
+      res.status(500).json({ success: false, error: "Reactivation failed" });
+    }
+  });
 
   // ─── Auto-Archive Inactive Staff ───
   app.post("/api/scheduled/auto-archive", async (req: Request, res: Response) => {

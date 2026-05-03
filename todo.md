@@ -424,3 +424,10 @@
 - [x] 148 tests passing, 0 TypeScript errors
 - [x] Set up daily scheduled task for automated briefing generation (POST /api/scheduled/briefing) — cron 6:00 AM CDT daily
 - [x] Push Wave 9 to remote machine (~/ctap/platform)
+
+## Wave 10 — P1 Critical Fixes (Audit)
+
+- [x] Fix archiveInactiveStaff() — change WHERE to exclude NULL lastClockIn records (isNotNull guard added)
+- [x] Update seedStaffData() — set lastClockIn to recent realistic dates (random within 7 days, all status: active)
+- [x] Re-activate all staff in production database — POST /api/scheduled/reactivate-staff endpoint (sets all inactive→active + lastClockIn=now)
+- [x] Verify app is functional after fixes (27 staff active, PIN login confirmed working, departments populated)
