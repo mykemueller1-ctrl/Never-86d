@@ -87,8 +87,8 @@
 - [x] Strip PINs from all public API responses (staff.list, staff.active, staff.byDepartment, staff.byId, leaderboard)
 - [x] loginByPin response must NOT return the PIN back to the client
 - [x] Staff list endpoints return only safe fields (id, firstName, lastName, department, jobRole, status, totalPoints, currentStreak)
-- [ ] Protect sensitive endpoints (payouts, voids, invoices, feedback) — move reads to protectedProcedure
-- [ ] Remove staff.seed from production (or restrict to admin only)
+- [x] Protect sensitive endpoints (payouts, voids, invoices, feedback, driver reports) — all reads moved to protectedProcedure
+- [x] staff.seed restricted to adminProcedure
 - [x] Ensure no employee phone/email leaks through public endpoints
 
 ## UX Simplification
@@ -130,12 +130,13 @@
 - [x] Polish the overall look to feel premium, not like a spreadsheet
 
 ## Demo Video
-- [ ] Create a walkthrough video showing all platform features
+- [x] Create a short teaser/demo video showing key screens (8s portrait: splash → login → home → leaderboard)
+- [x] Create 24s demo video covering key staff screens (splash → login → briefing → home) and manager screens (command center → leaderboard) — 3 clips concatenated
 
 ## SEO / AEO (Answer Engine Optimization)
 - [x] Add structured data (JSON-LD) for SoftwareApplication schema
 - [x] Add FAQ schema markup for common restaurant tech questions
 - [x] Add meta tags (title, description, twitter:card) to index.html
-- [ ] Add og:image and twitter:image assets
+- [x] Add og:image and twitter:image assets (generated Never 86'd branded card)
 - [ ] Create Q&A content page targeting restaurant worker/operator search queries
 - [x] Optimize for AI answer engines (clear headings, structured answers, entity markup)

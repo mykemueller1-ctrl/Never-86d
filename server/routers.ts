@@ -63,9 +63,9 @@ export const appRouter = router({
 
   // ============ PAYOUTS ============
   payouts: router({
-    list: publicProcedure.query(() => getAllPayouts()),
-    flagged: publicProcedure.query(() => getFlaggedPayouts()),
-    byStaff: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
+    list: protectedProcedure.query(() => getAllPayouts()),
+    flagged: protectedProcedure.query(() => getFlaggedPayouts()),
+    byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       authorizedById: z.number().optional(),
@@ -97,8 +97,8 @@ export const appRouter = router({
 
   // ============ INVOICES ============
   invoices: router({
-    list: publicProcedure.query(() => getAllInvoices()),
-    byVendor: publicProcedure.input(z.object({ vendorName: z.string() })).query(({ input }) => getInvoicesByVendor(input.vendorName)),
+    list: protectedProcedure.query(() => getAllInvoices()),
+    byVendor: protectedProcedure.input(z.object({ vendorName: z.string() })).query(({ input }) => getInvoicesByVendor(input.vendorName)),
     create: protectedProcedure.input(z.object({
       vendorName: z.string(),
       vendorAddress: z.string().optional(),
@@ -115,9 +115,9 @@ export const appRouter = router({
 
   // ============ VOIDS ============
   voids: router({
-    list: publicProcedure.query(() => getAllVoids()),
-    byStaff: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
-    weeklyByStaff: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
+    list: protectedProcedure.query(() => getAllVoids()),
+    byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
+    weeklyByStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
@@ -145,7 +145,7 @@ export const appRouter = router({
 
   // ============ DRIVER REPORTS ============
   driverReports: router({
-    list: publicProcedure.query(() => getDriverReports()),
+    list: protectedProcedure.query(() => getDriverReports()),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
@@ -163,7 +163,7 @@ export const appRouter = router({
 
   // ============ FEEDBACK ============
   feedback: router({
-    list: publicProcedure.query(() => getAllFeedback()),
+    list: protectedProcedure.query(() => getAllFeedback()),
     create: protectedProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
