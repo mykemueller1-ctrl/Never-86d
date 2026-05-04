@@ -23,7 +23,7 @@ import {
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
   Sparkles, Target, ThumbsUp, MessageSquare,
-  Brain, Gift, ShoppingCart, GraduationCap, Shield
+  Brain, Gift, ShoppingCart, GraduationCap, Shield, Calendar
 } from "lucide-react";
 import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
 import OrderGuideScreen from "./OrderGuideScreen";
@@ -38,6 +38,8 @@ import SKUTrackerScreen from "./SKUTrackerScreen";
 import StationBroadcastScreen from "./StationBroadcastScreen";
 import WasteLogScreen from "./WasteLogScreen";
 import ComplianceIntelScreen from "./ComplianceIntelScreen";
+import ScheduleScreen from "./ScheduleScreen";
+import ClockWidget from "./ClockWidget";
 
 // ─── Types ──────────────────────────────────────────────────────
 type Screen =
@@ -49,7 +51,8 @@ type Screen =
   | "ask-brain" | "photo-missions" | "achievements" | "rewards-shop"
   | "order-guide" | "shift-handoff"
   | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing"
-  | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel";
+  | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel"
+  | "schedule";
 
 type Department = "bar" | "kitchen" | "driver" | "server" | "management";
 
@@ -143,7 +146,7 @@ export default function CTapHub() {
     enabled: isManager && ["voids", "command"].includes(screen)
   });
   const staffListQuery = trpc.staff.list.useQuery(undefined, {
-    enabled: isManager && ["voids", "command", "store-run"].includes(screen)
+    enabled: isManager && ["voids", "command", "store-run", "schedule"].includes(screen)
   });
   const myVoidsQuery = trpc.voids.myVoids.useQuery(
     undefined,
@@ -546,6 +549,9 @@ export default function CTapHub() {
         </div>
 
         <div className="px-6 space-y-4 mt-4">
+          {/* Clock In/Out Widget */}
+          <ClockWidget staffId={staffUser.id} staffName={staffUser.firstName} />
+
           {/* 86'd Alert */}
           {briefing && (briefing.eightySixedItems as string[])?.length > 0 && (
             <div className="bg-red-950/20 rounded-xl p-4">
@@ -625,6 +631,7 @@ export default function CTapHub() {
                   <QuickAction icon={Shield} label="Compliance" onClick={() => navigateTo("compliance-intel")} />
                 </>
               )}
+              <QuickAction icon={Calendar} label="Schedule" onClick={() => navigateTo("schedule")} />
               <QuickAction icon={UserCircle} label="My Profile" onClick={() => navigateTo("worker-profile")} />
               <QuickAction icon={ArrowRight} label="Shift Handoff" onClick={() => navigateTo("shift-handoff")} />
               <QuickAction icon={AlertTriangle} label="Report Issue" onClick={() => navigateTo("issues")} />
@@ -1555,6 +1562,7 @@ export default function CTapHub() {
       case "station-broadcast": return <StationBroadcastScreen staffUser={staffUser ? { id: staffUser.id, name: staffDisplayName(staffUser), role: staffUser.jobRole } : null} onBack={() => setScreen("home")} />;
       case "waste-log": return <WasteLogScreen staffUser={staffUser ? { id: staffUser.id, name: staffDisplayName(staffUser), role: staffUser.jobRole } : null} onBack={() => setScreen("home")} />;
       case "compliance-intel": return <ComplianceIntelScreen staffRole={staffUser?.jobRole} onBack={() => setScreen("home")} />;
+      case "schedule": return <ScheduleScreen staffUser={staffUser!} allStaff={allStaff as SafeStaff[]} onBack={() => setScreen("home")} />;
       default: return <HomeScreen />;
     }
   };

@@ -57,6 +57,13 @@
       "when": 1777834617223,
       "tag": "0007_strange_forgotten_one",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1777913410483,
+      "tag": "0008_damp_raider",
+      "breakpoints": true
     }
   ]
 }

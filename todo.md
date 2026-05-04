@@ -486,3 +486,45 @@
 - [x] Add subtle hover/press states — transition-all on buttons, surface-interactive class
 - [x] Add loading skeleton screens — animate-pulse zinc surfaces
 - [x] Ensure consistent border-radius, padding, and margin across all components
+
+## Wave 14 — Schedule System, Clock In/Out, EOD Digest, PWA
+
+### Schedule System
+- [ ] Create scheduleShifts table (staffId, date, startTime, endTime, position, createdBy, status)
+- [ ] Create availabilityWindows table (staffId, dayOfWeek, startTime, endTime, preference)
+- [ ] Create timeOffRequests table (staffId, startDate, endDate, reason, status, approvedBy)
+- [ ] Create shiftSwapRequests table (requesterId, targetId, shiftId, status, approvedBy)
+- [ ] Build schedule backend — CRUD for shifts, availability, time-off, swaps
+- [ ] Build Schedule Builder UI (manager) — weekly grid, drag-to-assign, leaderboard priority hints
+- [ ] Build Schedule View UI (staff) — my upcoming shifts, request time off, request swap
+- [ ] Leaderboard score influences shift priority (higher score = first pick on preferred shifts)
+
+### Clock In/Out
+- [ ] Create timeEntries table (staffId, clockIn, clockOut, hoursWorked, breakMinutes, overtime)
+- [ ] PIN login triggers clock-in (or prompts "Start shift?")
+- [ ] Explicit clock-out button on profile/home screen
+- [ ] Break tracking (start break / end break)
+- [ ] Daily hours summary on profile screen
+- [ ] Weekly hours report for managers
+- [ ] Overtime alert (approaching 40 hrs)
+
+### End-of-Day Digest Email
+- [ ] Build EOD digest generator — today's sales, staff who worked, checklists %, voids, 86'd, issues, leaderboard changes
+- [ ] POST /api/scheduled/eod-digest endpoint
+- [ ] Set up scheduled task (10:30 PM CDT daily) to send digest to Mychael via notifyOwner
+- [ ] Include tomorrow's forecast + staffing recommendation in digest
+
+### PWA Install
+- [ ] Add manifest.json (app name, icons, theme color, display: standalone)
+- [ ] Add service worker for offline caching (app shell + API cache)
+- [ ] Add install prompt UI (banner for staff to add to home screen)
+- [ ] Cache checklists and schedule for offline viewing
+
+## Wave 14b — Schedule UI + Clock In/Out
+- [x] Build ScheduleScreen.tsx with manager schedule builder (weekly grid, add/edit/delete shifts)
+- [x] Build staff schedule view (My Schedule — upcoming shifts)
+- [x] Build Clock In button on home screen
+- [x] Build Clock Out button + break tracking
+- [x] Build time tracking display (hours this week)
+- [x] Wire schedule and clock screens into CTapHub router + navigation
+- [x] Add Schedule to quick actions for easy access

@@ -1039,3 +1039,82 @@ export const wasteLog = mysqlTable("waste_log", {
 });
 export type WasteLogEntry = typeof wasteLog.$inferSelect;
 export type InsertWasteLogEntry = typeof wasteLog.$inferInsert;
+
+// ─── Schedule Shifts ───────────────────────────────────────────────────────
+export const scheduleShifts = mysqlTable("schedule_shifts", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  date: timestamp("date").notNull(),
+  startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00" HH:MM
+  endTime: varchar("endTime", { length: 5 }).notNull(), // "17:00" HH:MM
+  position: varchar("position", { length: 50 }), // station/role for this shift
+  department: mysqlEnum("department", ["bar", "kitchen", "driver", "server", "management"]),
+  status: mysqlEnum("status", ["scheduled", "confirmed", "completed", "no_show", "cancelled"]).default("scheduled").notNull(),
+  notes: text("notes"),
+  createdBy: int("createdBy"), // manager who scheduled
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ScheduleShift = typeof scheduleShifts.$inferSelect;
+export type InsertScheduleShift = typeof scheduleShifts.$inferInsert;
+
+// ─── Staff Availability Windows ────────────────────────────────────────────
+export const availabilityWindows = mysqlTable("availability_windows", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  dayOfWeek: int("dayOfWeek").notNull(), // 0=Sunday, 1=Monday, ..., 6=Saturday
+  startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00"
+  endTime: varchar("endTime", { length: 5 }).notNull(), // "22:00"
+  preference: mysqlEnum("preference", ["preferred", "available", "unavailable"]).default("available").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AvailabilityWindow = typeof availabilityWindows.$inferSelect;
+export type InsertAvailabilityWindow = typeof availabilityWindows.$inferInsert;
+
+// ─── Time Off Requests ─────────────────────────────────────────────────────
+export const timeOffRequests = mysqlTable("time_off_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  reason: text("reason"),
+  status: mysqlEnum("status", ["pending", "approved", "denied"]).default("pending").notNull(),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
+export type InsertTimeOffRequest = typeof timeOffRequests.$inferInsert;
+
+// ─── Shift Swap Requests ───────────────────────────────────────────────────
+export const shiftSwapRequests = mysqlTable("shift_swap_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requesterId: int("requesterId").notNull(), // staff who wants to swap
+  targetId: int("targetId"), // staff they want to swap with (null = open request)
+  shiftId: int("shiftId").notNull(), // the shift being offered
+  reason: text("reason"),
+  status: mysqlEnum("status", ["pending", "accepted", "denied", "cancelled"]).default("pending").notNull(),
+  approvedBy: int("approvedBy"), // manager approval
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ShiftSwapRequest = typeof shiftSwapRequests.$inferSelect;
+export type InsertShiftSwapRequest = typeof shiftSwapRequests.$inferInsert;
+
+// ─── Time Entries (Clock In/Out) ───────────────────────────────────────────
+export const timeEntries = mysqlTable("time_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  clockIn: timestamp("clockIn").notNull(),
+  clockOut: timestamp("clockOut"),
+  breakStarted: timestamp("breakStarted"),
+  breakEnded: timestamp("breakEnded"),
+  breakMinutes: int("breakMinutes").default(0),
+  hoursWorked: decimal("hoursWorked", { precision: 5, scale: 2 }),
+  overtime: decimal("overtime", { precision: 5, scale: 2 }).default("0"),
+  status: mysqlEnum("status", ["clocked_in", "on_break", "clocked_out"]).default("clocked_in").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type InsertTimeEntry = typeof timeEntries.$inferInsert;

@@ -1,4 +1,4 @@
-import { eq, desc, asc, and, gte, sql, isNotNull } from "drizzle-orm";
+import { eq, desc, asc, and, gte, lte, or, sql, isNotNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -30,6 +30,11 @@ import {
   recipeIngredients, InsertRecipeIngredient,
   menuItems, InsertMenuItem,
   wasteLog, InsertWasteLogEntry,
+  scheduleShifts, InsertScheduleShift,
+  availabilityWindows, InsertAvailabilityWindow,
+  timeOffRequests, InsertTimeOffRequest,
+  shiftSwapRequests, InsertShiftSwapRequest,
+  timeEntries, InsertTimeEntry,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2872,5 +2877,359 @@ export async function getMLSalesPrediction(daysAhead = 14) {
       overallAvgSales: Math.round(overallAvg * 100) / 100,
     },
     trends: categoryTrends,
+  };
+}
+
+
+// ============ SCHEDULE HELPERS ============
+
+export async function createScheduleShift(data: InsertScheduleShift) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(scheduleShifts).values(data).$returningId();
+  return result;
+}
+
+export async function getScheduleByDateRange(startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scheduleShifts)
+    .where(and(gte(scheduleShifts.date, startDate), lte(scheduleShifts.date, endDate)))
+    .orderBy(asc(scheduleShifts.date), asc(scheduleShifts.startTime));
+}
+
+export async function getScheduleByStaff(staffId: number, startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scheduleShifts)
+    .where(and(
+      eq(scheduleShifts.staffId, staffId),
+      gte(scheduleShifts.date, startDate),
+      lte(scheduleShifts.date, endDate)
+    ))
+    .orderBy(asc(scheduleShifts.date), asc(scheduleShifts.startTime));
+}
+
+export async function getScheduleByDepartment(department: string, startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scheduleShifts)
+    .where(and(
+      eq(scheduleShifts.department, department as any),
+      gte(scheduleShifts.date, startDate),
+      lte(scheduleShifts.date, endDate)
+    ))
+    .orderBy(asc(scheduleShifts.date), asc(scheduleShifts.startTime));
+}
+
+export async function updateScheduleShift(id: number, data: Partial<InsertScheduleShift>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(scheduleShifts).set(data).where(eq(scheduleShifts.id, id));
+  return { id };
+}
+
+export async function deleteScheduleShift(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.delete(scheduleShifts).where(eq(scheduleShifts.id, id));
+  return { id };
+}
+
+export async function bulkCreateScheduleShifts(shifts: InsertScheduleShift[]) {
+  const db = await getDb();
+  if (!db) return [];
+  if (shifts.length === 0) return [];
+  await db.insert(scheduleShifts).values(shifts);
+  return shifts;
+}
+
+// ============ AVAILABILITY HELPERS ============
+
+export async function setAvailability(data: InsertAvailabilityWindow) {
+  const db = await getDb();
+  if (!db) return null;
+  // Upsert: delete existing for same staff+day, then insert
+  await db.delete(availabilityWindows)
+    .where(and(
+      eq(availabilityWindows.staffId, data.staffId),
+      eq(availabilityWindows.dayOfWeek, data.dayOfWeek)
+    ));
+  const [result] = await db.insert(availabilityWindows).values(data).$returningId();
+  return result;
+}
+
+export async function getAvailabilityByStaff(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(availabilityWindows)
+    .where(eq(availabilityWindows.staffId, staffId))
+    .orderBy(asc(availabilityWindows.dayOfWeek));
+}
+
+export async function getAllAvailability() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(availabilityWindows)
+    .orderBy(asc(availabilityWindows.staffId), asc(availabilityWindows.dayOfWeek));
+}
+
+// ============ TIME OFF HELPERS ============
+
+export async function createTimeOffRequest(data: InsertTimeOffRequest) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(timeOffRequests).values(data).$returningId();
+  return result;
+}
+
+export async function getTimeOffByStaff(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeOffRequests)
+    .where(eq(timeOffRequests.staffId, staffId))
+    .orderBy(desc(timeOffRequests.createdAt));
+}
+
+export async function getPendingTimeOff() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeOffRequests)
+    .where(eq(timeOffRequests.status, "pending"))
+    .orderBy(asc(timeOffRequests.startDate));
+}
+
+export async function approveTimeOff(id: number, approvedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(timeOffRequests).set({ status: "approved", approvedBy, approvedAt: new Date() }).where(eq(timeOffRequests.id, id));
+  return { id };
+}
+
+export async function denyTimeOff(id: number, approvedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(timeOffRequests).set({ status: "denied", approvedBy, approvedAt: new Date() }).where(eq(timeOffRequests.id, id));
+  return { id };
+}
+
+// ============ SHIFT SWAP HELPERS ============
+
+export async function createShiftSwapRequest(data: InsertShiftSwapRequest) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(shiftSwapRequests).values(data).$returningId();
+  return result;
+}
+
+export async function getPendingSwaps() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(shiftSwapRequests)
+    .where(eq(shiftSwapRequests.status, "pending"))
+    .orderBy(desc(shiftSwapRequests.createdAt));
+}
+
+export async function getSwapsByStaff(staffId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(shiftSwapRequests)
+    .where(or(
+      eq(shiftSwapRequests.requesterId, staffId),
+      eq(shiftSwapRequests.targetId, staffId)
+    ))
+    .orderBy(desc(shiftSwapRequests.createdAt));
+}
+
+export async function approveSwap(id: number, approvedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  // Get the swap request
+  const [swap] = await db.select().from(shiftSwapRequests).where(eq(shiftSwapRequests.id, id));
+  if (!swap || !swap.targetId) return null;
+  // Update the shift to the new staff
+  await db.update(scheduleShifts).set({ staffId: swap.targetId }).where(eq(scheduleShifts.id, swap.shiftId));
+  // Mark swap as accepted
+  await db.update(shiftSwapRequests).set({ status: "accepted", approvedBy, approvedAt: new Date() }).where(eq(shiftSwapRequests.id, id));
+  return { id };
+}
+
+export async function denySwap(id: number, approvedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(shiftSwapRequests).set({ status: "denied", approvedBy, approvedAt: new Date() }).where(eq(shiftSwapRequests.id, id));
+  return { id };
+}
+
+// ============ TIME ENTRY (CLOCK IN/OUT) HELPERS ============
+
+export async function clockIn(staffId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  // Check if already clocked in
+  const existing = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      eq(timeEntries.status, "clocked_in")
+    ));
+  if (existing.length > 0) return existing[0]; // Already clocked in
+  const [result] = await db.insert(timeEntries).values({
+    staffId,
+    clockIn: new Date(),
+    status: "clocked_in",
+  }).$returningId();
+  return { id: result.id, staffId, clockIn: new Date(), status: "clocked_in" };
+}
+
+export async function clockOut(staffId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  // Find the active time entry
+  const [active] = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      eq(timeEntries.status, "clocked_in")
+    ));
+  if (!active) return null; // Not clocked in
+  const clockOutTime = new Date();
+  const hoursWorked = ((clockOutTime.getTime() - active.clockIn.getTime()) / 3600000).toFixed(2);
+  const breakMins = active.breakMinutes || 0;
+  const netHours = (parseFloat(hoursWorked) - breakMins / 60).toFixed(2);
+  const overtime = Math.max(0, parseFloat(netHours) - 8).toFixed(2);
+  await db.update(timeEntries).set({
+    clockOut: clockOutTime,
+    hoursWorked: netHours,
+    overtime,
+    status: "clocked_out",
+  }).where(eq(timeEntries.id, active.id));
+  return { id: active.id, staffId, clockIn: active.clockIn, clockOut: clockOutTime, hoursWorked: netHours, overtime, status: "clocked_out" };
+}
+
+export async function startBreak(staffId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [active] = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      eq(timeEntries.status, "clocked_in")
+    ));
+  if (!active) return null;
+  await db.update(timeEntries).set({ breakStarted: new Date(), status: "on_break" }).where(eq(timeEntries.id, active.id));
+  return { id: active.id, status: "on_break" };
+}
+
+export async function endBreak(staffId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [active] = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      eq(timeEntries.status, "on_break")
+    ));
+  if (!active || !active.breakStarted) return null;
+  const breakMins = Math.round((new Date().getTime() - active.breakStarted.getTime()) / 60000);
+  const totalBreak = (active.breakMinutes || 0) + breakMins;
+  await db.update(timeEntries).set({ breakEnded: new Date(), breakMinutes: totalBreak, status: "clocked_in" }).where(eq(timeEntries.id, active.id));
+  return { id: active.id, breakMinutes: totalBreak, status: "clocked_in" };
+}
+
+export async function getActiveTimeEntry(staffId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [active] = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      or(eq(timeEntries.status, "clocked_in"), eq(timeEntries.status, "on_break"))
+    ));
+  return active || null;
+}
+
+export async function getTimeEntriesByStaff(staffId: number, startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      gte(timeEntries.clockIn, startDate),
+      lte(timeEntries.clockIn, endDate)
+    ))
+    .orderBy(desc(timeEntries.clockIn));
+}
+
+export async function getWeeklyHours(staffId: number) {
+  const db = await getDb();
+  if (!db) return { totalHours: 0, overtime: 0, shifts: 0 };
+  // Get start of current week (Monday)
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  monday.setHours(0, 0, 0, 0);
+  const entries = await db.select().from(timeEntries)
+    .where(and(
+      eq(timeEntries.staffId, staffId),
+      gte(timeEntries.clockIn, monday),
+      eq(timeEntries.status, "clocked_out")
+    ));
+  const totalHours = entries.reduce((sum, e) => sum + parseFloat(e.hoursWorked || "0"), 0);
+  const overtime = Math.max(0, totalHours - 40);
+  return { totalHours: Math.round(totalHours * 100) / 100, overtime: Math.round(overtime * 100) / 100, shifts: entries.length };
+}
+
+export async function getAllActiveClocks() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timeEntries)
+    .where(or(eq(timeEntries.status, "clocked_in"), eq(timeEntries.status, "on_break")));
+}
+
+// ============ EOD DIGEST HELPERS ============
+
+export async function getEodDigestData() {
+  const db = await getDb();
+  if (!db) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Who worked today
+  const todayEntries = await db.select().from(timeEntries)
+    .where(and(gte(timeEntries.clockIn, today), lte(timeEntries.clockIn, tomorrow)));
+
+  // Checklists completed today
+  const todayChecklists = await db.select().from(checklistCompletions)
+    .where(and(gte(checklistCompletions.createdAt, today), lte(checklistCompletions.createdAt, tomorrow)));
+
+  // Voids today
+  const todayVoids = await db.select().from(voids)
+    .where(and(gte(voids.date, today), lte(voids.date, tomorrow)));
+
+  // Issues reported today
+  const todayIssues = await db.select().from(issues)
+    .where(and(gte(issues.createdAt, today), lte(issues.createdAt, tomorrow)));
+
+  // Active 86'd broadcasts (not resolved)
+  const active86d = await db.select().from(stationBroadcasts)
+    .where(and(
+      eq(stationBroadcasts.broadcastType, "86d"),
+      sql`${stationBroadcasts.resolvedAt} IS NULL`
+    ));
+
+  // Tomorrow's schedule
+  const tomorrowEnd = new Date(tomorrow);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  const tomorrowSchedule = await db.select().from(scheduleShifts)
+    .where(and(gte(scheduleShifts.date, tomorrow), lte(scheduleShifts.date, tomorrowEnd)));
+
+  return {
+    staffWorked: todayEntries.length,
+    totalHoursToday: todayEntries.reduce((sum, e) => sum + parseFloat(e.hoursWorked || "0"), 0).toFixed(1),
+    checklistsCompleted: todayChecklists.length,
+    voidsToday: todayVoids.length,
+    voidTotal: todayVoids.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0).toFixed(2),
+    issuesReported: todayIssues.length,
+    active86dItems: active86d.map(b => b.itemName).filter(Boolean),
+    tomorrowShiftsScheduled: tomorrowSchedule.length,
   };
 }

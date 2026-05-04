@@ -65,6 +65,14 @@ import {
   generateSalesForecast, getEventImpactHistory,
   // ML Sales Prediction
   getMLSalesPrediction,
+  // Schedule & Time Tracking
+  createScheduleShift, getScheduleByDateRange, getScheduleByStaff, getScheduleByDepartment,
+  updateScheduleShift, deleteScheduleShift, bulkCreateScheduleShifts,
+  setAvailability, getAvailabilityByStaff, getAllAvailability,
+  createTimeOffRequest, getTimeOffByStaff, getPendingTimeOff, approveTimeOff, denyTimeOff,
+  createShiftSwapRequest, getPendingSwaps, getSwapsByStaff, approveSwap, denySwap,
+  clockIn, clockOut, startBreak, endBreak, getActiveTimeEntry, getTimeEntriesByStaff, getWeeklyHours, getAllActiveClocks,
+  getEodDigestData,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -1471,6 +1479,128 @@ Respond in JSON with this exact structure:
     batchPending: protectedProcedure.mutation(async () => {
       return batchNotifications();
     }),
+  }),
+
+  // ============ SCHEDULE ============
+  schedule: router({
+    getWeek: protectedProcedure.input(z.object({
+      startDate: z.date(),
+      endDate: z.date(),
+    })).query(({ input }) => getScheduleByDateRange(input.startDate, input.endDate)),
+
+    getByStaff: publicProcedure.input(z.object({
+      staffId: z.number(),
+      startDate: z.date(),
+      endDate: z.date(),
+    })).query(({ input }) => getScheduleByStaff(input.staffId, input.startDate, input.endDate)),
+
+    getByDepartment: protectedProcedure.input(z.object({
+      department: z.string(),
+      startDate: z.date(),
+      endDate: z.date(),
+    })).query(({ input }) => getScheduleByDepartment(input.department, input.startDate, input.endDate)),
+
+    create: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      date: z.date(),
+      startTime: z.string(),
+      endTime: z.string(),
+      position: z.string().optional(),
+      department: z.enum(["bar", "kitchen", "driver", "server", "management"]).optional(),
+      notes: z.string().optional(),
+      createdBy: z.number().optional(),
+    })).mutation(({ input }) => createScheduleShift(input)),
+
+    bulkCreate: protectedProcedure.input(z.object({
+      shifts: z.array(z.object({
+        staffId: z.number(),
+        date: z.date(),
+        startTime: z.string(),
+        endTime: z.string(),
+        position: z.string().optional(),
+        department: z.enum(["bar", "kitchen", "driver", "server", "management"]).optional(),
+        notes: z.string().optional(),
+        createdBy: z.number().optional(),
+      })),
+    })).mutation(({ input }) => bulkCreateScheduleShifts(input.shifts)),
+
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      staffId: z.number().optional(),
+      date: z.date().optional(),
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+      position: z.string().optional(),
+      status: z.enum(["scheduled", "confirmed", "completed", "no_show", "cancelled"]).optional(),
+      notes: z.string().optional(),
+    })).mutation(({ input }) => {
+      const { id, ...data } = input;
+      return updateScheduleShift(id, data);
+    }),
+
+    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => deleteScheduleShift(input.id)),
+  }),
+
+  // ============ AVAILABILITY ============
+  availability: router({
+    getByStaff: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getAvailabilityByStaff(input.staffId)),
+    getAll: protectedProcedure.query(() => getAllAvailability()),
+    set: publicProcedure.input(z.object({
+      staffId: z.number(),
+      dayOfWeek: z.number().min(0).max(6),
+      startTime: z.string(),
+      endTime: z.string(),
+      preference: z.enum(["preferred", "available", "unavailable"]).optional(),
+    })).mutation(({ input }) => setAvailability(input)),
+  }),
+
+  // ============ TIME OFF ============
+  timeOff: router({
+    request: publicProcedure.input(z.object({
+      staffId: z.number(),
+      startDate: z.date(),
+      endDate: z.date(),
+      reason: z.string().optional(),
+    })).mutation(({ input }) => createTimeOffRequest(input)),
+    myRequests: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getTimeOffByStaff(input.staffId)),
+    pending: protectedProcedure.query(() => getPendingTimeOff()),
+    approve: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveTimeOff(input.id, input.approvedBy)),
+    deny: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denyTimeOff(input.id, input.approvedBy)),
+  }),
+
+  // ============ SHIFT SWAPS ============
+  shiftSwaps: router({
+    request: publicProcedure.input(z.object({
+      requesterId: z.number(),
+      targetId: z.number().optional(),
+      shiftId: z.number(),
+      reason: z.string().optional(),
+    })).mutation(({ input }) => createShiftSwapRequest(input)),
+    mySwaps: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getSwapsByStaff(input.staffId)),
+    pending: protectedProcedure.query(() => getPendingSwaps()),
+    approve: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveSwap(input.id, input.approvedBy)),
+    deny: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denySwap(input.id, input.approvedBy)),
+  }),
+
+  // ============ TIME CLOCK ============
+  timeClock: router({
+    clockIn: publicProcedure.input(z.object({ staffId: z.number() })).mutation(({ input }) => clockIn(input.staffId)),
+    clockOut: publicProcedure.input(z.object({ staffId: z.number() })).mutation(({ input }) => clockOut(input.staffId)),
+    startBreak: publicProcedure.input(z.object({ staffId: z.number() })).mutation(({ input }) => startBreak(input.staffId)),
+    endBreak: publicProcedure.input(z.object({ staffId: z.number() })).mutation(({ input }) => endBreak(input.staffId)),
+    active: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getActiveTimeEntry(input.staffId)),
+    history: publicProcedure.input(z.object({
+      staffId: z.number(),
+      startDate: z.date(),
+      endDate: z.date(),
+    })).query(({ input }) => getTimeEntriesByStaff(input.staffId, input.startDate, input.endDate)),
+    weeklyHours: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyHours(input.staffId)),
+    allActive: protectedProcedure.query(() => getAllActiveClocks()),
+  }),
+
+  // ============ EOD DIGEST ============
+  eodDigest: router({
+    getData: protectedProcedure.query(() => getEodDigestData()),
   }),
 });
 export type AppRouter = typeof appRouter;
