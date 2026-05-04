@@ -446,3 +446,43 @@
 - [x] Build Standard Operating Procedures (SOPs) from kitchen protocol + POS reference — 118 lines, kitchen/bar/driver/POS/food safety
 - [x] Extract Brand Style Guide from platform CSS/design tokens — Never86d_Brand_Style_Guide.md with colors, typography, voice
 - [x] Upload all documentation to Google Drive — CTAP Documentation folder (4 docs + seedAllData.ts)
+
+## Wave 13 — "Steve Jobs" Design Overhaul
+
+### Design System Foundation
+- [x] Audit all screens for typography inconsistencies, spacing violations, visual noise
+- [x] Establish strict typography scale (one font family, clear hierarchy: display/heading/body/caption)
+- [x] Refine color palette — reduce to single amber accent, OLED black bg, zinc neutrals
+- [x] Define spacing system — consistent 4px/8px grid, deliberate whitespace
+- [x] Refine shadow/elevation system — glass surfaces, subtle amber glow on CTAs
+- [x] Add premium font — Inter with optical sizing + Bebas Neue for display
+
+### Splash & Login Flow (First Impression)
+- [x] Redesign SplashScreen — minimal, confident, no clutter
+- [x] Refine department selection — cleaner cards, more breathing room
+- [x] Refine staff selection — reduce visual density, larger touch targets
+- [x] Refine PIN entry — elegant keypad, subtle feedback
+- [x] Welcome screen — hero moment, not information overload
+
+### Core Staff Experience
+- [x] Redesign home screen — reduce tile count, increase clarity, more whitespace
+- [x] Redesign bottom nav — glass nav, thinner, amber active states
+- [x] Refine checklist screen — cleaner list items, satisfying completion states
+- [x] Refine briefing screen — editorial layout, not a data dump
+
+### Gamification Screens
+- [x] Redesign leaderboard — premium feel, not a spreadsheet
+- [x] Redesign achievements/badges — amber accent, clean progress indicators
+- [x] Redesign rewards shop — clean product cards, not a cluttered catalog
+- [x] Refine profile screen — hero card layout, clear hierarchy
+
+### Manager/Intelligence Screens
+- [x] Refine command center — reduce visual density, clearer data hierarchy
+- [x] Refine intelligence dashboard tabs — consistent card patterns
+- [x] Refine management briefing screen — editorial/magazine layout
+
+### Micro-Interactions & Polish
+- [x] Add page transition animations — screen-enter CSS animation on all screens
+- [x] Add subtle hover/press states — transition-all on buttons, surface-interactive class
+- [x] Add loading skeleton screens — animate-pulse zinc surfaces
+- [x] Ensure consistent border-radius, padding, and margin across all components
