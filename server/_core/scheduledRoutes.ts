@@ -11,6 +11,7 @@ import {
   getAllPayouts,
   getDb,
 } from "../db";
+import { seedAllData } from "../seedAllData";
 import { staff } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -132,6 +133,32 @@ export function registerScheduledRoutes(app: Express) {
     } catch (err) {
       console.error("[Scheduled] Payout digest failed:", err);
       res.status(500).json({ success: false, error: "Payout digest failed" });
+    }
+  });
+
+  // ─── Seed All Platform Data (menu, achievements, rewards, missions) ───
+  app.post("/api/scheduled/seed-all-data", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+
+    console.log(`[Scheduled] Seed-all-data triggered by user: ${user.name || user.openId}`);
+    try {
+      const results = await seedAllData();
+      console.log(`[Scheduled] Seed-all-data results:`, results);
+      await notifyOwner({
+        title: "Platform Data Seeded",
+        content: Object.entries(results).map(([k, v]) => `${k}: ${v}`).join('\n'),
+      });
+      res.status(200).json({ success: true, results });
+    } catch (err) {
+      console.error("[Scheduled] Seed-all-data failed:", err);
+      res.status(500).json({ success: false, error: "Seed failed" });
     }
   });
 

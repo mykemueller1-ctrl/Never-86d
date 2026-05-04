@@ -437,3 +437,12 @@
 - [x] Reduce keywords from 13 to 3-8 focused keywords (4 phrases: restaurant workforce platform, Never 86'd, gamified shift management, restaurant staff app)
 - [x] Add H2 heading to the home page ("Gamified Workforce Management for Restaurants" in noscript + existing H2 in SPA splash)
 - [x] Shorten meta description from 240 to 126 characters, OG desc to 116, Twitter desc to 122
+
+## Wave 12 — Complete Documentation Package
+
+- [x] Import menu/recipe data from CommunityPizzaNEWBUILDMenuList XLSX into platform database — 172 menu items, 10 recipes seeded via seedAllData.ts
+- [x] Build User Manual for CTAP People Platform (from platform code) — 302 lines, all screens/flows documented
+- [x] Build Employee Handbook for Community Tap & Pizza — 149 lines, policies/expectations/gamification
+- [x] Build Standard Operating Procedures (SOPs) from kitchen protocol + POS reference — 118 lines, kitchen/bar/driver/POS/food safety
+- [x] Extract Brand Style Guide from platform CSS/design tokens — Never86d_Brand_Style_Guide.md with colors, typography, voice
+- [x] Upload all documentation to Google Drive — CTAP Documentation folder (4 docs + seedAllData.ts)

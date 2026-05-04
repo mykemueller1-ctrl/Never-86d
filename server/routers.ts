@@ -69,6 +69,7 @@ import {
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import { processAchievementEvent } from "./achievementEngine";
+import { seedAllData } from "./seedAllData";
 
 export const appRouter = router({
   system: systemRouter,
@@ -123,6 +124,7 @@ export const appRouter = router({
       status: z.enum(["active", "inactive", "terminated"]),
     })).mutation(({ input }) => updateStaffStatus(input.staffId, input.status)),
     seed: adminProcedure.mutation(() => seedStaffData()),
+    seedAllData: adminProcedure.mutation(() => seedAllData()),
   }),
 
   // ============ PAYOUTS ============
