@@ -511,7 +511,7 @@
 ### End-of-Day Digest Email
 - [x] Build EOD digest generator — staffing, checklists, voids, 86'd, issues, tomorrow schedule
 - [x] POST /api/scheduled/eod-digest endpoint — built and tested
-- [ ] Set up scheduled task (10:30 PM CDT daily) — needs deploy first
+- [x] Set up scheduled task (10:30 PM CDT daily) — configured, will fire once app is published
 - [x] Include tomorrow's forecast + staffing recommendation in digest — tomorrow shifts count included
 
 ### PWA Install
