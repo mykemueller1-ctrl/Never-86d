@@ -158,6 +158,8 @@ export async function updateStaffPoints(staffId: number, points: number) {
   if (!db) return;
   await db.update(staff).set({
     totalPoints: sql`${staff.totalPoints} + ${points}`,
+    // schedulePriority auto-syncs: higher points = higher priority (capped at 100)
+    schedulePriority: sql`LEAST(100, GREATEST(1, 50 + FLOOR((${staff.totalPoints} + ${points}) / 10)))`,
   }).where(eq(staff.id, staffId));
 }
 

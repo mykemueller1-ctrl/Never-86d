@@ -497,7 +497,7 @@
 - [x] Build schedule backend — CRUD for shifts, availability, time-off, swaps
 - [x] Build Schedule Builder UI (manager) — weekly grid, add/edit/delete shifts
 - [x] Build Schedule View UI (staff) — my upcoming shifts, request time off, request swap
-- [ ] Leaderboard score influences shift priority (higher score = first pick on preferred shifts) [DEFERRED]
+- [x] Leaderboard score influences shift priority (higher score = first pick on preferred shifts) — schedulePriority auto-syncs from totalPoints via updateStaffPoints()
 
 ### Clock In/Out
 - [x] Create timeEntries table (staffId, clockIn, clockOut, hoursWorked, breakMinutes, overtime)
