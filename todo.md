@@ -528,3 +528,21 @@
 - [x] Build time tracking display (hours this week)
 - [x] Wire schedule and clock screens into CTapHub router + navigation
 - [x] Add Schedule to quick actions for easy access
+
+## Wave 15 — Positions Update + Data Integration from Gmail/Drive
+
+- [x] Update department enum in schema to match 7 real stations (bar, dining_room, kitchen_line, pizza_side, driver, dishwasher, management)
+- [x] Re-assign all 41 staff to correct positions based on Google Drive employee roster and schedule data
+- [x] Add new staff members found in kitchen schedule (Steven Klein, Brodey Laughman, Max George, Dustin Stein, Doc, Ben Mason, Kyler Preston, etc.)
+- [x] Update Schedule Builder position dropdown to show 7 real stations
+- [x] Seed real POS sales data from ZReport emails into daily_sales table (7 days)
+- [x] Update recipe ingredients with real cost data from menu-benchmarks doc (18 recipes with margins)
+- [x] Add vendor order tracking data (15 PFG + Sysco products with par levels)
+- [x] Update operations cost targets from CTAP_Team_Operations_Packet (food 30.3%, beer 28.5%, liquor 23.7%)
+- [x] Seed 16 knowledge entries with real SOPs (pizza oven temps, fryer procedures, bar closing, void handling)
+- [x] Seed 5 real checklists (bar closing, kitchen closing, pizza side closing, opening, driver EOD)
+- [x] Seed 20 real menu items from CommunityPizzaNEWBUILDMenuList
+- [x] Update all frontend components (CTapHub, ScheduleScreen, StationBroadcast, KnowledgeBrain) to use new departments
+- [x] Update all backend references (routers.ts, db.ts) to use new department enum
+- [x] All 157 tests passing (13 test files)
+- [x] Polish and QA all screens after position update

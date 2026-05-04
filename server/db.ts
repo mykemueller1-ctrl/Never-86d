@@ -211,16 +211,18 @@ export async function syncStaffFromDriveData(employees: Array<{
     } else {
       // Map Drive role to DB department/jobRole
       const roleLower = (emp.role || "").toLowerCase().trim();
-      let department: "bar" | "kitchen" | "driver" | "server" | "management" = "kitchen";
-      let jobRole: "owner" | "key_manager" | "kitchen_manager" | "kitchen_key" | "bartender" | "bar_manager" | "server" | "driver" | "line_cook" | "pizza" = "line_cook";
+      let department: "bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management" = "kitchen_line";
+      let jobRole: "owner" | "key_manager" | "kitchen_manager" | "kitchen_key" | "bartender" | "bar_manager" | "server" | "wait_staff" | "driver" | "line_cook" | "pizza" | "dishwasher" = "line_cook";
 
       if (roleLower.includes("owner")) { department = "management"; jobRole = "owner"; }
-      else if (roleLower.includes("kitchen manager")) { department = "kitchen"; jobRole = "kitchen_manager"; }
+      else if (roleLower.includes("kitchen manager")) { department = "kitchen_line"; jobRole = "kitchen_manager"; }
       else if (roleLower.includes("bar manager")) { department = "bar"; jobRole = "bar_manager"; }
       else if (roleLower.includes("bar")) { department = "bar"; jobRole = "bartender"; }
       else if (roleLower.includes("driver")) { department = "driver"; jobRole = "driver"; }
-      else if (roleLower.includes("kitchen") || roleLower.includes("dishwasher")) { department = "kitchen"; jobRole = "line_cook"; }
-      else if (roleLower.includes("server")) { department = "server"; jobRole = "server"; }
+      else if (roleLower.includes("dishwasher")) { department = "dishwasher"; jobRole = "dishwasher"; }
+      else if (roleLower.includes("pizza")) { department = "pizza_side"; jobRole = "pizza"; }
+      else if (roleLower.includes("kitchen")) { department = "kitchen_line"; jobRole = "line_cook"; }
+      else if (roleLower.includes("server") || roleLower.includes("wait")) { department = "dining_room"; jobRole = "wait_staff"; }
 
       // Generate a random 4-digit PIN
       const pin = String(Math.floor(1000 + Math.random() * 9000));
@@ -506,10 +508,10 @@ export async function seedStaffData() {
     // Key Manager
     { firstName: "Gavin", lastName: "Thomas", department: "management", jobRole: "key_manager", isKeyEmployee: true, canAuthPayouts: true, pin: "1234", employeeNumber: "003", status: "active", lastClockIn: recentClockIn() },
     // Kitchen Manager
-    { firstName: "Moe", lastName: "Thomas", department: "kitchen", jobRole: "kitchen_manager", isKeyEmployee: true, canAuthPayouts: true, pin: "4321", employeeNumber: "004", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Moe", lastName: "Thomas", department: "kitchen_line", jobRole: "kitchen_manager", isKeyEmployee: true, canAuthPayouts: true, pin: "4321", employeeNumber: "004", status: "active", lastClockIn: recentClockIn() },
     // Kitchen Keys
-    { firstName: "Che", lastName: "Lyftogt", department: "kitchen", jobRole: "kitchen_key", isKeyEmployee: true, canAuthPayouts: true, pin: "5678", employeeNumber: "005", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Steven", lastName: "Klein", department: "kitchen", jobRole: "kitchen_key", isKeyEmployee: true, canAuthPayouts: true, pin: "5679", employeeNumber: "006", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Che", lastName: "Lyftogt", department: "kitchen_line", jobRole: "kitchen_key", isKeyEmployee: true, canAuthPayouts: true, pin: "5678", employeeNumber: "005", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Steven", lastName: "Klein", department: "kitchen_line", jobRole: "kitchen_key", isKeyEmployee: true, canAuthPayouts: true, pin: "5679", employeeNumber: "006", status: "active", lastClockIn: recentClockIn() },
     // Bar Staff
     { firstName: "Jessica", lastName: "Gailey", department: "bar", jobRole: "bar_manager", isKeyEmployee: false, canAuthPayouts: false, pin: "1001", employeeNumber: "54", status: "active", lastClockIn: recentClockIn() },
     { firstName: "Karlee", lastName: "Sturtz", department: "bar", jobRole: "bartender", isKeyEmployee: false, canAuthPayouts: false, pin: "1002", employeeNumber: "055", status: "active", lastClockIn: recentClockIn() },
@@ -520,19 +522,41 @@ export async function seedStaffData() {
     { firstName: "Kaillee", lastName: "Miller", department: "bar", jobRole: "bartender", isKeyEmployee: false, canAuthPayouts: false, pin: "1007", employeeNumber: "059", status: "active", lastClockIn: recentClockIn() },
     { firstName: "Samantha", lastName: "Swearingen", department: "bar", jobRole: "bartender", isKeyEmployee: false, canAuthPayouts: false, pin: "1008", employeeNumber: "060", status: "active", lastClockIn: recentClockIn() },
     { firstName: "Azaria", lastName: "Silvey", department: "bar", jobRole: "bartender", isKeyEmployee: false, canAuthPayouts: false, pin: "1009", employeeNumber: "061", status: "active", lastClockIn: recentClockIn() },
+    // Kitchen Manager (Tom Dorothy is Kitchen Manager per Drive data)
+    { firstName: "Thomas", lastName: "Dorothy", department: "kitchen_line", jobRole: "kitchen_manager", isKeyEmployee: true, canAuthPayouts: true, pin: "2001", employeeNumber: "062", status: "active", lastClockIn: recentClockIn() },
     // Kitchen Crew
-    { firstName: "Thomas", lastName: "Dorothy", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2001", employeeNumber: "062", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Ryan", lastName: "Berg", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2002", employeeNumber: "063", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Aundrik", lastName: "Roast", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2003", employeeNumber: "064", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Aundry", lastName: "Roast", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2004", employeeNumber: "065", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Nash", lastName: "Wheaton", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2005", employeeNumber: "066", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Brodey", lastName: "Laughman", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2006", employeeNumber: "067", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Max", lastName: "George", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2007", employeeNumber: "068", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Dustin", lastName: "Stein", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2008", employeeNumber: "069", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Doc", lastName: "", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2009", employeeNumber: "070", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Ian", lastName: "Ebelsheiser", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2010", employeeNumber: "071", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Jacob", lastName: "Lawton", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2011", employeeNumber: "072", status: "active", lastClockIn: recentClockIn() },
-    { firstName: "Tyson", lastName: "Anderson", department: "kitchen", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2012", employeeNumber: "073", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Ryan", lastName: "Berg", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2002", employeeNumber: "063", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Gavin", lastName: "Nore", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2013", employeeNumber: "074", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Peyton", lastName: "Jones", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2014", employeeNumber: "075", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Dohnovan", lastName: "Hart", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2015", employeeNumber: "076", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Chris", lastName: "Sorenson", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2016", employeeNumber: "077", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Ian", lastName: "Ebelsheiser", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2010", employeeNumber: "071", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Jacob", lastName: "Lawton", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2011", employeeNumber: "072", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Matt", lastName: "Jones", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2017", employeeNumber: "078", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Ben", lastName: "Mason", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2018", employeeNumber: "079", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Kyler", lastName: "Preston", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2019", employeeNumber: "080", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Tyson", lastName: "Anderson", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2012", employeeNumber: "073", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Brodey", lastName: "Laughman", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2006", employeeNumber: "067", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Max", lastName: "George", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2007", employeeNumber: "068", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Dustin", lastName: "Stein", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2008", employeeNumber: "069", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Doc", lastName: "", department: "kitchen_line", jobRole: "line_cook", isKeyEmployee: false, canAuthPayouts: false, pin: "2009", employeeNumber: "070", status: "active", lastClockIn: recentClockIn() },
+    // Dishwasher
+    { firstName: "Andrik", lastName: "Roest", department: "dishwasher", jobRole: "dishwasher", isKeyEmployee: false, canAuthPayouts: false, pin: "2003", employeeNumber: "064", status: "active", lastClockIn: recentClockIn() },
+    // Drivers
+    { firstName: "Kim", lastName: "Pratt", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3001", employeeNumber: "081", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Bryce", lastName: "Delaney", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3002", employeeNumber: "082", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Nathaniel", lastName: "Lowrey", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3003", employeeNumber: "083", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Stephen", lastName: "Wheaton", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3004", employeeNumber: "084", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Braydon", lastName: "Austin", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3005", employeeNumber: "085", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "John", lastName: "Carr", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3006", employeeNumber: "086", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Keaton", lastName: "Seehusen", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3007", employeeNumber: "087", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Daniel", lastName: "Murphy", department: "driver", jobRole: "driver", isKeyEmployee: false, canAuthPayouts: false, pin: "3008", employeeNumber: "088", status: "active", lastClockIn: recentClockIn() },
+    // Dining Room / Wait Staff
+    { firstName: "Kenzy", lastName: "Thompson", department: "dining_room", jobRole: "wait_staff", isKeyEmployee: false, canAuthPayouts: false, pin: "4001", employeeNumber: "089", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Jeri", lastName: "Wilson", department: "dining_room", jobRole: "wait_staff", isKeyEmployee: false, canAuthPayouts: false, pin: "4002", employeeNumber: "090", status: "active", lastClockIn: recentClockIn() },
+    { firstName: "Joleah", lastName: "Stuhr", department: "dining_room", jobRole: "wait_staff", isKeyEmployee: false, canAuthPayouts: false, pin: "4003", employeeNumber: "091", status: "active", lastClockIn: recentClockIn() },
+    // Pizza Side
+    { firstName: "Josue", lastName: "Soto-Maldonado", department: "pizza_side", jobRole: "pizza", isKeyEmployee: false, canAuthPayouts: false, pin: "5001", employeeNumber: "092", status: "active", lastClockIn: recentClockIn() },
   ];
 
   await db.insert(staff).values(staffData);

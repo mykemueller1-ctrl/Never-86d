@@ -80,11 +80,10 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
   // Auto-detect station from department
   useEffect(() => {
     if (staffUser.department === "bar") setStation("bar");
-    else if (staffUser.department === "kitchen") {
-      if (staffUser.jobRole === "pizza") setStation("pizza_line");
-      else setStation("fry_line");
-    }
-    else if (staffUser.department === "server") setStation("waitstaff");
+    else if (staffUser.department === "kitchen_line") setStation("fry_line");
+    else if (staffUser.department === "pizza_side") setStation("pizza_line");
+    else if (staffUser.department === "dining_room") setStation("waitstaff");
+    else if (staffUser.department === "dishwasher") setStation("dish_pit");
     else if (staffUser.department === "driver") setStation("general");
     else setStation("general");
   }, [staffUser]);

@@ -29,10 +29,10 @@ export const staff = mysqlTable("staff", {
   employeeNumber: varchar("employeeNumber", { length: 20 }),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
-  department: mysqlEnum("department", ["bar", "kitchen", "driver", "server", "management"]).notNull(),
+  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]).notNull(),
   jobRole: mysqlEnum("jobRole", [
     "owner", "key_manager", "kitchen_manager", "kitchen_key",
-    "bartender", "bar_manager", "server", "driver", "line_cook", "pizza"
+    "bartender", "bar_manager", "server", "wait_staff", "driver", "line_cook", "pizza", "dishwasher"
   ]).notNull(),
   isKeyEmployee: boolean("isKeyEmployee").default(false).notNull(),
   canAuthPayouts: boolean("canAuthPayouts").default(false).notNull(),
@@ -134,7 +134,7 @@ export type InsertVoid = typeof voids.$inferInsert;
 export const checklists = mysqlTable("checklists", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 200 }).notNull(),
-  department: mysqlEnum("department", ["bar", "kitchen", "driver", "server", "all"]).notNull(),
+  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management", "all"]).notNull(),
   type: mysqlEnum("type", ["opening", "closing", "weekly", "daily"]).notNull(),
   items: json("items"), // Array of {task, required, order}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1048,7 +1048,7 @@ export const scheduleShifts = mysqlTable("schedule_shifts", {
   startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00" HH:MM
   endTime: varchar("endTime", { length: 5 }).notNull(), // "17:00" HH:MM
   position: varchar("position", { length: 50 }), // station/role for this shift
-  department: mysqlEnum("department", ["bar", "kitchen", "driver", "server", "management"]),
+  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]),
   status: mysqlEnum("status", ["scheduled", "confirmed", "completed", "no_show", "cancelled"]).default("scheduled").notNull(),
   notes: text("notes"),
   createdBy: int("createdBy"), // manager who scheduled

@@ -9,7 +9,7 @@ interface StationBroadcastScreenProps {
 
 type Tab = 'active' | 'create' | 'history';
 
-const STATIONS = ['kitchen', 'bar', 'server', 'driver', 'management'];
+const STATIONS = ['kitchen_line', 'pizza_side', 'bar', 'dining_room', 'driver', 'dishwasher', 'management'];
 const BROADCAST_TYPES = [
   { value: '86d', label: "86'd", icon: AlertOctagon, color: 'text-red-400', desc: 'Item is out — all stations need to know' },
   { value: 'un86d', label: "Un-86'd", icon: Check, color: 'text-emerald-400', desc: 'Item is back in stock' },
@@ -24,8 +24,8 @@ export default function StationBroadcastScreen({ onBack, staffUser }: StationBro
   const [broadcastType, setBroadcastType] = useState('86d');
   const [itemName, setItemName] = useState('');
   const [message, setMessage] = useState('');
-  const [fromStation, setFromStation] = useState(staffUser?.role === 'bartender' ? 'bar' : staffUser?.role === 'cook' ? 'kitchen' : 'management');
-  const [targetStations, setTargetStations] = useState<string[]>(['kitchen', 'bar', 'server']);
+  const [fromStation, setFromStation] = useState(staffUser?.role === 'bartender' ? 'bar' : staffUser?.role === 'cook' ? 'kitchen_line' : 'management');
+  const [targetStations, setTargetStations] = useState<string[]>(['kitchen_line', 'pizza_side', 'bar', 'dining_room']);
 
   const activeBroadcasts = trpc.broadcasts.active.useQuery({ station: stationFilter });
   const broadcastHistory = trpc.broadcasts.history.useQuery({ limit: 30 });

@@ -20,7 +20,7 @@ interface Props {
 
 const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const DEPARTMENTS: Array<"bar" | "kitchen" | "driver" | "server" | "management"> = ["bar", "kitchen", "driver", "server", "management"];
+const DEPARTMENTS: Array<"bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management"> = ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"];
 
 function getWeekDates(offset: number): Date[] {
   const now = new Date();

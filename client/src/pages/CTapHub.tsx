@@ -54,14 +54,16 @@ type Screen =
   | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel"
   | "schedule";
 
-type Department = "bar" | "kitchen" | "driver" | "server" | "management";
+type Department = "bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management";
 
 const DEPT_CONFIG: Record<Department, { label: string; desc: string; icon: any }> = {
   management: { label: "Management", desc: "Full access", icon: ShieldAlert },
   bar: { label: "Bar", desc: "Bar ops & closing", icon: Coffee },
-  kitchen: { label: "Kitchen", desc: "Prep & line", icon: Flame },
-  server: { label: "Server", desc: "FOH & tables", icon: Users },
+  kitchen_line: { label: "Kitchen Line", desc: "Fry & grill", icon: Flame },
+  pizza_side: { label: "Pizza Side", desc: "Pizza & phones", icon: Target },
+  dining_room: { label: "Dining Room", desc: "FOH & tables", icon: Users },
   driver: { label: "Driver", desc: "Deliveries & EOD", icon: Truck },
+  dishwasher: { label: "Dishwasher", desc: "Dish pit & bus", icon: Zap },
 };
 
 const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"];
@@ -74,7 +76,8 @@ function roleLabel(jobRole: string): string {
   const labels: Record<string, string> = {
     owner: "Owner", key_manager: "Key Manager", kitchen_manager: "Kitchen Manager",
     kitchen_key: "Kitchen Key", bartender: "Bartender", bar_manager: "Bar Manager",
-    server: "Server", driver: "Driver", line_cook: "Line Cook", pizza: "Pizza",
+    server: "Server", wait_staff: "Wait Staff", driver: "Driver", line_cook: "Line Cook",
+    pizza: "Pizza", dishwasher: "Dishwasher",
   };
   return labels[jobRole] || jobRole;
 }

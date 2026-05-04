@@ -1,0 +1,4 @@
+ALTER TABLE `checklists` MODIFY COLUMN `department` enum('bar','dining_room','kitchen_line','pizza_side','driver','dishwasher','management','all') NOT NULL;--> statement-breakpoint
+ALTER TABLE `schedule_shifts` MODIFY COLUMN `department` enum('bar','dining_room','kitchen_line','pizza_side','driver','dishwasher','management');--> statement-breakpoint
+ALTER TABLE `staff` MODIFY COLUMN `department` enum('bar','dining_room','kitchen_line','pizza_side','driver','dishwasher','management') NOT NULL;--> statement-breakpoint
+ALTER TABLE `staff` MODIFY COLUMN `jobRole` enum('owner','key_manager','kitchen_manager','kitchen_key','bartender','bar_manager','server','wait_staff','driver','line_cook','pizza','dishwasher') NOT NULL;
