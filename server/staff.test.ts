@@ -54,7 +54,7 @@ describe("staff procedures", () => {
   it("staff.loginByPin returns failure for invalid PIN", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.staff.loginByPin({ pin: "9999" });
+    const result = await caller.staff.loginByPin({ pin: "0001" });
     expect(result.success).toBe(false);
     expect(result.staff).toBeNull();
   });
