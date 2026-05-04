@@ -48,7 +48,7 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
     setChatHistory(prev => [...prev, { role: "user", text: q }]);
     setIsAsking(true);
     try {
-      const result = await askBrain.mutateAsync({ question: q, station: station || "general", staffName: staffUser.firstName });
+      const result = await askBrain.mutateAsync({ question: q, station: station || "general" });
       setChatHistory(prev => [...prev, { role: "ai", text: typeof result.answer === "string" ? result.answer : String(result.answer), sources: result.sourcesUsed }]);
     } catch {
       setChatHistory(prev => [...prev, { role: "ai", text: "Sorry, I couldn't process that. Try asking differently." }]);
@@ -129,7 +129,7 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
 // ═══════════════════════════════════════════════════════════════
 export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaff; onBack: () => void }) {
   const missions = trpc.missions.active.useQuery();
-  const myPhotos = trpc.photos.mySubmissions.useQuery({ staffId: staffUser.id });
+  const myPhotos = trpc.photos.mySubmissions.useQuery();
   const analyzePhoto = trpc.photos.analyze.useMutation();
   const uploadPhoto = trpc.upload.receiptPhoto.useMutation();
   const [selectedMission, setSelectedMission] = useState<number | null>(null);
@@ -235,7 +235,7 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
 // ═══════════════════════════════════════════════════════════════
 export function AchievementsScreen({ staffUser, onBack }: { staffUser: SafeStaff; onBack: () => void }) {
   const definitions = trpc.achievements.definitions.useQuery();
-  const progress = trpc.achievements.myProgress.useQuery({ staffId: staffUser.id });
+  const progress = trpc.achievements.myProgress.useQuery();
 
   const getProgress = (achievementId: number) => progress.data?.find((p: any) => p.achievementId === achievementId);
   const isUnlocked = (achievementId: number) => getProgress(achievementId)?.status === "completed";
@@ -345,7 +345,7 @@ export function AchievementsScreen({ staffUser, onBack }: { staffUser: SafeStaff
 export function RewardsShopScreen({ staffUser, onBack }: { staffUser: SafeStaff; onBack: () => void }) {
   const rewards = trpc.rewards.list.useQuery();
   const redeem = trpc.rewards.redeem.useMutation();
-  const myRedemptions = trpc.rewards.myRedemptions.useQuery({ staffId: staffUser.id });
+  const myRedemptions = trpc.rewards.myRedemptions.useQuery();
   const [redeeming, setRedeeming] = useState<number | null>(null);
   const currentPoints = staffUser.totalPoints || 0;
 

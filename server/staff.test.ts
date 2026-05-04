@@ -10,6 +10,41 @@ function createPublicContext(): TrpcContext {
       protocol: "https",
       headers: {},
       cookies: {},
+      socket: { remoteAddress: "127.0.0.1" },
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+      cookie: () => {},
+    } as TrpcContext["res"],
+  };
+}
+
+function createStaffContext(staffId: number): TrpcContext {
+  return {
+    user: null,
+    staffId,
+    req: {
+      protocol: "https",
+      headers: {},
+      cookies: {},
+      socket: { remoteAddress: "127.0.0.1" },
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+      cookie: () => {},
+    } as TrpcContext["res"],
+  };
+}
+
+function createAuthContext(): TrpcContext {
+  return {
+    user: { id: 1, openId: "test-owner", name: "Test Owner", role: "admin", avatarUrl: null, createdAt: new Date(), updatedAt: new Date() } as any,
+    staffId: null,
+    req: {
+      protocol: "https",
+      headers: {},
+      cookies: {},
+      socket: { remoteAddress: "127.0.0.1" },
     } as TrpcContext["req"],
     res: {
       clearCookie: () => {},
@@ -19,15 +54,27 @@ function createPublicContext(): TrpcContext {
 }
 
 describe("staff procedures", () => {
-  it("staff.list returns an array", async () => {
+  it("staff.list requires authentication (rejects public)", async () => {
     const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.staff.list()).rejects.toThrow();
+  });
+
+  it("staff.list returns an array when authenticated via staff session", async () => {
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.list();
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it("staff.active returns only active staff", async () => {
+  it("staff.active requires authentication (rejects public)", async () => {
     const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.staff.active()).rejects.toThrow();
+  });
+
+  it("staff.active returns only active staff when authenticated", async () => {
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.active();
     expect(Array.isArray(result)).toBe(true);
@@ -60,7 +107,7 @@ describe("staff procedures", () => {
   });
 
   it("staff.leaderboard returns sorted by totalPoints desc", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.gamification.leaderboard();
     expect(Array.isArray(result)).toBe(true);

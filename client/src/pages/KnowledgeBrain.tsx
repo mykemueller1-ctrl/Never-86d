@@ -100,7 +100,6 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
       const result = await askBrain.mutateAsync({
         question: q,
         station: station || "general",
-        staffName: staffUser.firstName,
       });
       setMessages(prev => [...prev, {
         role: "assistant",

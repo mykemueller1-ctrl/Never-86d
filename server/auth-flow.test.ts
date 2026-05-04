@@ -51,12 +51,24 @@ function createStaffContext(staffId: number): TrpcContext {
 // ─── Tests ────────────────────────────────────────────────────────────────
 
 describe("Auth Flow — Public vs Protected Access", () => {
-  it("public procedures work without authentication", async () => {
+  it("PIN login is the only public staff procedure", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    // staff.active is public
-    const result = await caller.staff.active();
-    expect(Array.isArray(result)).toBe(true);
+    // staff.loginByPin is the only public entry point
+    const result = await caller.staff.loginByPin({ pin: "8686" });
+    expect(result.success).toBe(true);
+  });
+
+  it("staff.list rejects unauthenticated access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.staff.list()).rejects.toThrow();
+  });
+
+  it("staff.active rejects unauthenticated access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.staff.active()).rejects.toThrow();
   });
 
   it("protected procedures reject unauthenticated requests", async () => {
@@ -150,18 +162,16 @@ describe("Auth Flow — Staff PIN Login Security", () => {
 });
 
 describe("Auth Flow — Staff Self-Only Data Access", () => {
-  it("myVoids requires staff session", async () => {
+  it("myVoids requires staff session (rejects unauthenticated)", async () => {
     const ctx = createPublicContext(); // no staffId
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.voids.myVoids();
-    expect(result).toEqual([]);
+    await expect(caller.voids.myVoids()).rejects.toThrow("Staff session required");
   });
 
-  it("myPayouts requires staff session", async () => {
+  it("myPayouts requires staff session (rejects unauthenticated)", async () => {
     const ctx = createPublicContext(); // no staffId
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.payouts.myPayouts();
-    expect(result).toEqual([]);
+    await expect(caller.payouts.myPayouts()).rejects.toThrow("Staff session required");
   });
 
   it("staff with session can access their own voids", async () => {
@@ -202,9 +212,9 @@ describe("Auth Flow — Department Enum Validation", () => {
     })).rejects.toThrow();
   });
 
-  it("accepts all valid departments", async () => {
+  it("accepts all valid departments (requires staff session)", async () => {
     const validDepts = ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"] as const;
-    const ctx = createAuthenticatedContext("admin");
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     
     for (const dept of validDepts) {

@@ -32,8 +32,8 @@ export default function ClockWidget({ staffId, staffName }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  const activeEntry = trpc.timeClock.active.useQuery({ staffId });
-  const weeklyHours = trpc.timeClock.weeklyHours.useQuery({ staffId });
+  const activeEntry = trpc.timeClock.active.useQuery();
+  const weeklyHours = trpc.timeClock.weeklyHours.useQuery();
   const utils = trpc.useUtils();
 
   const clockInMut = trpc.timeClock.clockIn.useMutation({
@@ -75,7 +75,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
               )}
             </div>
           </div>
-          <button onClick={() => clockInMut.mutate({ staffId })} disabled={isPending}
+          <button onClick={() => clockInMut.mutate()} disabled={isPending}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-amber-500 text-black type-caption font-semibold hover:bg-amber-400 transition-colors active:scale-95 disabled:opacity-50">
             {isPending ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             Clock In
@@ -114,19 +114,19 @@ export default function ClockWidget({ staffId, staffName }: Props) {
 
       <div className="flex gap-2">
         {isOnBreak ? (
-          <button onClick={() => endBreakMut.mutate({ staffId })} disabled={isPending}
+          <button onClick={() => endBreakMut.mutate()} disabled={isPending}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-blue-500/15 text-blue-400 type-caption font-medium hover:bg-blue-500/25 transition-colors active:scale-[0.98] disabled:opacity-50">
             {isPending ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
             End Break
           </button>
         ) : (
-          <button onClick={() => startBreakMut.mutate({ staffId })} disabled={isPending}
+          <button onClick={() => startBreakMut.mutate()} disabled={isPending}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-zinc-800 text-zinc-300 type-caption font-medium hover:bg-zinc-700 transition-colors active:scale-[0.98] disabled:opacity-50">
             {isPending ? <Loader2 size={13} className="animate-spin" /> : <Coffee size={13} />}
             Break
           </button>
         )}
-        <button onClick={() => clockOutMut.mutate({ staffId })} disabled={isPending}
+        <button onClick={() => clockOutMut.mutate()} disabled={isPending}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-red-500/10 text-red-400 type-caption font-medium hover:bg-red-500/20 transition-colors active:scale-[0.98] disabled:opacity-50">
           {isPending ? <Loader2 size={13} className="animate-spin" /> : <LogOut size={13} />}
           Clock Out

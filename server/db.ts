@@ -130,6 +130,14 @@ export async function getStaffById(id: number): Promise<SafeStaff | undefined> {
   return result[0] ? stripSensitiveFields(result[0]) : undefined;
 }
 
+/** Internal: returns full staff record for role-based access checks */
+export async function getStaffByIdInternal(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(staff).where(eq(staff.id, id)).limit(1);
+  return result[0] ?? null;
+}
+
 /** Public-safe: returns staff by department WITHOUT sensitive fields */
 export async function getStaffByDepartment(department: string): Promise<SafeStaff[]> {
   const db = await getDb();

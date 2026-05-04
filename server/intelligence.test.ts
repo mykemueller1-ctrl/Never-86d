@@ -60,6 +60,7 @@ vi.mock("./db", () => ({
   createStaff: vi.fn(),
   updateStaffStatus: vi.fn(),
   getStaffByPinInternal: vi.fn(),
+  getStaffByIdInternal: vi.fn().mockResolvedValue({ id: 1, firstName: "Tom", lastName: "Smith", jobRole: "line_cook" }),
   getAllPayouts: vi.fn().mockResolvedValue([]),
   createPayout: vi.fn(),
   getFlaggedPayouts: vi.fn().mockResolvedValue([]),
@@ -120,13 +121,24 @@ import { appRouter } from "./routers";
 import { searchKnowledge, getRelevantMemories, createKnowledgeEntry, createKnowledgeCorrection, addGamificationEvent, createPhotoSubmission, getStaffById, updateStaffPoints, getAllAchievements, getAllRewards, getActiveMissions, getVendorProducts } from "./db";
 import { invokeLLM } from "./_core/llm";
 
-// Create caller with mock user context
+// Create caller with mock user context (OAuth admin)
 const createCaller = (user?: any) => {
   return appRouter.createCaller({
     user: user || { openId: "test-user", name: "Test", role: "admin" },
+    staffId: null,
     setCookie: vi.fn(),
     getCookie: vi.fn(),
     removeCookie: vi.fn(),
+  } as any);
+};
+
+// Create caller with staff session context
+const createStaffCaller = (staffId: number = 1) => {
+  return appRouter.createCaller({
+    user: null,
+    staffId,
+    req: { protocol: "https", headers: {}, cookies: {}, socket: { remoteAddress: "127.0.0.1" } },
+    res: { clearCookie: () => {}, cookie: () => {} },
   } as any);
 };
 
@@ -136,11 +148,10 @@ describe("Knowledge Brain", () => {
   });
 
   it("knowledge.ask calls LLM with station context and returns answer", async () => {
-    const caller = createCaller();
+    const caller = createStaffCaller(1);
     const result = await caller.knowledge.ask({
       question: "How do I make pizza dough?",
       station: "pizza_line",
-      staffName: "Tom",
     });
     expect(result.answer).toBe("Test AI response");
     expect(result.sourcesUsed).toBe(1);
@@ -148,15 +159,14 @@ describe("Knowledge Brain", () => {
     expect(searchKnowledge).toHaveBeenCalledWith("How do I make pizza dough?", "pizza_line", 15);
     expect(getRelevantMemories).toHaveBeenCalledWith(10);
     expect(invokeLLM).toHaveBeenCalledTimes(1);
-    // Verify system prompt includes station and time context
+    // Verify system prompt includes station and Community Tap context
     const llmCall = (invokeLLM as any).mock.calls[0][0];
     expect(llmCall.messages[0].content).toContain("pizza_line");
-    expect(llmCall.messages[0].content).toContain("Tom");
     expect(llmCall.messages[0].content).toContain("Community Tap");
   });
 
   it("knowledge.ask works without station (defaults to general)", async () => {
-    const caller = createCaller();
+    const caller = createStaffCaller(1);
     const result = await caller.knowledge.ask({
       question: "What time do we close?",
     });
@@ -294,14 +304,14 @@ describe("Achievements System", () => {
   });
 
   it("achievements.myProgress returns progress for a staff member", async () => {
-    const caller = createCaller();
-    await caller.achievements.myProgress({ staffId: 1 });
+    const caller = createStaffCaller(1);
+    await caller.achievements.myProgress();
     expect(vi.mocked(await import("./db")).getStaffAchievementProgress).toHaveBeenCalledWith(1);
   });
 
   it("achievements.acknowledge marks an unlock as seen", async () => {
-    const caller = createCaller();
-    await caller.achievements.acknowledge({ staffId: 1, achievementId: 3 });
+    const caller = createStaffCaller(1);
+    await caller.achievements.acknowledge({ achievementId: 3 });
     expect(vi.mocked(await import("./db")).acknowledgeUnlock).toHaveBeenCalledWith(1, 3);
   });
 });

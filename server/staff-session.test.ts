@@ -39,20 +39,16 @@ describe("Staff Session Cookie Flow", () => {
     expect(typeof ctx._cookies.staff_session.value).toBe("string");
   });
 
-  it("myVoids returns empty array when no staff session", async () => {
+  it("myVoids rejects when no staff session (security hardened)", async () => {
     const ctx = createMockContext(null); // No staffId
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.voids.myVoids();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(0);
+    await expect(caller.voids.myVoids()).rejects.toThrow("Staff session required");
   });
 
-  it("myPayouts returns empty array when no staff session", async () => {
+  it("myPayouts rejects when no staff session (security hardened)", async () => {
     const ctx = createMockContext(null); // No staffId
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.payouts.myPayouts();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(0);
+    await expect(caller.payouts.myPayouts()).rejects.toThrow("Staff session required");
   });
 
   it("myVoids returns data when staff session is set", async () => {

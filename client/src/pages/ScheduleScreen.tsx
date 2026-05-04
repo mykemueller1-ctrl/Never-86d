@@ -62,8 +62,8 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
     ? trpc.schedule.getWeek.useQuery({ startDate, endDate })
     : trpc.schedule.getByStaff.useQuery({ staffId: staffUser.id, startDate, endDate });
 
-  const myAvailability = trpc.availability.getByStaff.useQuery({ staffId: staffUser.id });
-  const myTimeOff = trpc.timeOff.myRequests.useQuery({ staffId: staffUser.id });
+  const myAvailability = trpc.availability.getByStaff.useQuery();
+  const myTimeOff = trpc.timeOff.myRequests.useQuery();
   const pendingTimeOff = isManager ? trpc.timeOff.pending.useQuery() : null;
   const pendingSwaps = isManager ? trpc.shiftSwaps.pending.useQuery() : null;
 
@@ -177,7 +177,6 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
 
         {tab === "availability" && (
           <AvailabilityView
-            staffId={staffUser.id}
             availability={myAvailability.data ?? []}
             onSet={(data) => setAvailability.mutate(data)}
           />
@@ -339,10 +338,9 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
 }
 
 // ─── Availability View ──────────────────────────────────────────────────────
-function AvailabilityView({ staffId, availability, onSet }: {
-  staffId: number;
+function AvailabilityView({ availability, onSet }: {
   availability: any[];
-  onSet: (data: { staffId: number; dayOfWeek: number; startTime: string; endTime: string; preference?: "preferred" | "available" | "unavailable" }) => void;
+  onSet: (data: { dayOfWeek: number; startTime: string; endTime: string; preference?: "preferred" | "available" | "unavailable" }) => void;
 }) {
   const FULL_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -354,7 +352,7 @@ function AvailabilityView({ staffId, availability, onSet }: {
   const [preference, setPreference] = useState<"preferred" | "available" | "unavailable">("available");
 
   const handleSave = (dow: number) => {
-    onSet({ staffId, dayOfWeek: dow, startTime, endTime, preference });
+    onSet({ dayOfWeek: dow, startTime, endTime, preference });
     setEditing(null);
   };
 
@@ -438,7 +436,7 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
   myTimeOff: any[];
   pendingTimeOff: any[];
   pendingSwaps: any[];
-  onRequestTimeOff: (data: { staffId: number; startDate: Date; endDate: Date; reason?: string }) => void;
+  onRequestTimeOff: (data: { startDate: Date; endDate: Date; reason?: string }) => void;
   onApproveTimeOff: (id: number) => void;
   onDenyTimeOff: (id: number) => void;
 }) {
@@ -450,7 +448,6 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
   const handleSubmit = () => {
     if (!startDate || !endDate) { toast.error("Select both dates"); return; }
     onRequestTimeOff({
-      staffId: staffUser.id,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       reason: reason || undefined,

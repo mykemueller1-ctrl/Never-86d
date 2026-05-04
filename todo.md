@@ -546,3 +546,14 @@
 - [x] Update all backend references (routers.ts, db.ts) to use new department enum
 - [x] All 157 tests passing (13 test files)
 - [x] Polish and QA all screens after position update
+
+## Wave 16 — Security Hardening
+- [x] PIN brute-force protection: rate limit (5 attempts per IP per 15 min) + lockout (15 min cooldown after 5 fails) + per-PIN distributed attack protection
+- [x] Hide staff roster from public — staff.list, staff.active, staff.byDepartment, staff.byId all require staffSessionProcedure
+- [x] Clock in/out requires staff session (staffId from JWT, not from client input) — clockIn/clockOut/forceClockOut all use server-side staffId
+- [x] Tighten public procedures: achievements.myProgress, achievements.acknowledge, availability, timeOff, shiftSwaps all require staff session
+- [x] Add staffSessionProcedure middleware (requires valid staff JWT cookie, injects ctx.staffId + ctx.staffRecord)
+- [x] AI agent prompt injection guardrails: input sanitization (ChatML/system role/instruction override blocked), max 500 chars, staff session required, system prompt with explicit security rules
+- [x] Manager-only access for viewing other staff records (training, evaluations, write-ups, career tracks) — dual-access pattern with role check
+- [x] myVoids and myPayouts secured with staffSessionProcedure (throw UNAUTHORIZED instead of returning empty)
+- [x] 198 tests passing across 15 test files (security-hardening.test.ts, auth-flow.test.ts, security.test.ts all green)

@@ -41,10 +41,10 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
   const [celebratingAchievement, setCelebratingAchievement] = useState<any>(null);
 
   const { data: definitions, isLoading: defsLoading } = trpc.achievements.definitions.useQuery();
-  const { data: progress, isLoading: progressLoading } = trpc.achievements.myProgress.useQuery({ staffId: staffUser.id });
-  const { data: unlocks } = trpc.achievements.myUnlocks.useQuery({ staffId: staffUser.id });
+  const { data: progress, isLoading: progressLoading } = trpc.achievements.myProgress.useQuery();
+  const { data: unlocks } = trpc.achievements.myUnlocks.useQuery();
   const { data: rewards, isLoading: rewardsLoading } = trpc.rewards.list.useQuery();
-  const { data: myRedemptions } = trpc.rewards.myRedemptions.useQuery({ staffId: staffUser.id });
+  const { data: myRedemptions } = trpc.rewards.myRedemptions.useQuery();
 
   const acknowledgeUnlock = trpc.achievements.acknowledge.useMutation();
   const redeemReward = trpc.rewards.redeem.useMutation();
@@ -64,7 +64,7 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
   const handleAcknowledge = async () => {
     if (!celebratingAchievement) return;
     try {
-      await acknowledgeUnlock.mutateAsync({ staffId: staffUser.id, achievementId: celebratingAchievement.id });
+      await acknowledgeUnlock.mutateAsync({ achievementId: celebratingAchievement.id });
       setCelebratingAchievement(null);
       utils.achievements.myUnlocks.invalidate();
     } catch {}

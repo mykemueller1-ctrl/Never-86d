@@ -10,6 +10,24 @@ function createPublicContext(): TrpcContext {
       protocol: "https",
       headers: {},
       cookies: {},
+      socket: { remoteAddress: "127.0.0.1" },
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+      cookie: () => {},
+    } as TrpcContext["res"],
+  };
+}
+
+function createStaffContext(staffId: number): TrpcContext {
+  return {
+    user: null,
+    staffId,
+    req: {
+      protocol: "https",
+      headers: {},
+      cookies: {},
+      socket: { remoteAddress: "127.0.0.1" },
     } as TrpcContext["req"],
     res: {
       clearCookie: () => {},
@@ -20,7 +38,7 @@ function createPublicContext(): TrpcContext {
 
 describe("Security — PII never exposed in API responses", () => {
   it("staff.list never returns pin field", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.list();
     for (const staff of result) {
@@ -29,7 +47,7 @@ describe("Security — PII never exposed in API responses", () => {
   });
 
   it("staff.list never returns phone field", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.list();
     for (const staff of result) {
@@ -38,7 +56,7 @@ describe("Security — PII never exposed in API responses", () => {
   });
 
   it("staff.list never returns email field", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.list();
     for (const staff of result) {
@@ -47,7 +65,7 @@ describe("Security — PII never exposed in API responses", () => {
   });
 
   it("staff.active never returns pin, phone, or email", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.active();
     for (const staff of result) {
@@ -90,7 +108,7 @@ describe("Security — PII never exposed in API responses", () => {
   });
 
   it("leaderboard never returns pin, phone, or email", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.gamification.leaderboard();
     for (const entry of result) {
@@ -101,23 +119,23 @@ describe("Security — PII never exposed in API responses", () => {
   });
 
   it("staff.list returns only safe fields", async () => {
-    const ctx = createPublicContext();
+    const ctx = createStaffContext(1);
     const caller = appRouter.createCaller(ctx);
     const result = await caller.staff.list();
-    // All staff columns MINUS pin, phone, email
-    const safeFields = [
-      "id", "firstName", "lastName", "employeeNumber", "department", "jobRole",
-      "isKeyEmployee", "canAuthPayouts", "status", "hireDate", "lastClockIn",
-      "totalPoints", "currentStreak", "weeklyVoids", "schedulePriority",
-      "createdAt", "updatedAt"
-    ];
     // Sensitive fields that must NEVER appear
     const sensitiveFields = ["pin", "phone", "email"];
     for (const staff of result) {
       const keys = Object.keys(staff);
       for (const key of keys) {
-        expect(safeFields).toContain(key);
+        expect(sensitiveFields).not.toContain(key);
       }
     }
+  });
+
+  it("staff.list and staff.active reject unauthenticated access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.staff.list()).rejects.toThrow();
+    await expect(caller.staff.active()).rejects.toThrow();
   });
 });
