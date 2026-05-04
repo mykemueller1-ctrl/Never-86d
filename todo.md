@@ -557,3 +557,13 @@
 - [x] Manager-only access for viewing other staff records (training, evaluations, write-ups, career tracks) — dual-access pattern with role check
 - [x] myVoids and myPayouts secured with staffSessionProcedure (throw UNAUTHORIZED instead of returning empty)
 - [x] 198 tests passing across 15 test files (security-hardening.test.ts, auth-flow.test.ts, security.test.ts all green)
+
+## Wave 17 — Security Records + PIN Change + Lockout Alerts
+- [x] Add security_events table (event_type enum 12 types, staffId, ip, userAgent, details JSON, severity enum 3 levels, resolved/resolvedBy/resolvedAt)
+- [x] Add db helpers: logSecurityEvent, getSecurityEvents, getSecurityStats, getRecentLockouts, resolveSecurityEvent, changeStaffPin
+- [x] Wire security event logging into PIN login (success/fail), lockout triggers, clock in/out — all events logged with IP + user agent
+- [x] Add PIN change endpoint (staffSessionProcedure, verifies current PIN via getStaffByPinInternal, logs pin_changed/pin_change_failed events)
+- [x] Add owner notification on lockout events (notifyOwner called with IP, time, attempts on lockout_triggered)
+- [x] Build Security Records sheet UI — stats cards (events/lockouts/failed logins/PIN changes 24h), critical alert banner, recent lockouts panel, filterable event log with severity badges, resolve action
+- [x] Add PIN change UI to staff Profile screen — "Change PIN" button navigates to PinChangeScreen with current PIN verification + new PIN + confirmation + success state
+- [x] Write tests for security events and PIN change flow — 209 tests passing across 16 test files (security-records.test.ts added with 11 tests)

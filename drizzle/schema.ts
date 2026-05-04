@@ -1118,3 +1118,25 @@ export const timeEntries = mysqlTable("time_entries", {
 });
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertTimeEntry = typeof timeEntries.$inferInsert;
+
+// ─── Security Events (Audit Log) ──────────────────────────────────────────
+export const securityEvents = mysqlTable("security_events", {
+  id: int("id").autoincrement().primaryKey(),
+  eventType: mysqlEnum("eventType", [
+    "login_success", "login_failed", "lockout_triggered", "lockout_expired",
+    "pin_changed", "pin_change_failed", "clock_in", "clock_out",
+    "unauthorized_access", "prompt_injection_blocked", "staff_created", "staff_deactivated"
+  ]).notNull(),
+  staffId: int("staffId"), // nullable — some events happen before auth (failed logins)
+  staffName: varchar("staffName", { length: 200 }), // denormalized for quick display
+  ipAddress: varchar("ipAddress", { length: 45 }).notNull(), // IPv6 max length
+  userAgent: varchar("userAgent", { length: 500 }),
+  details: text("details"), // JSON string with event-specific data
+  severity: mysqlEnum("severity", ["info", "warning", "critical"]).default("info").notNull(),
+  resolved: boolean("resolved").default(false).notNull(),
+  resolvedBy: varchar("resolvedBy", { length: 200 }),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = typeof securityEvents.$inferInsert;

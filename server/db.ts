@@ -35,6 +35,7 @@ import {
   timeOffRequests, InsertTimeOffRequest,
   shiftSwapRequests, InsertShiftSwapRequest,
   timeEntries, InsertTimeEntry,
+  securityEvents, InsertSecurityEvent,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -3296,4 +3297,116 @@ export async function getEodDigestData() {
     active86dItems: active86d.map(b => b.itemName).filter(Boolean),
     tomorrowShiftsScheduled: tomorrowSchedule.length,
   };
+}
+
+// ============ SECURITY EVENTS (AUDIT LOG) ============
+
+export type SecurityEventType = InsertSecurityEvent["eventType"];
+
+export async function logSecurityEvent(event: {
+  eventType: InsertSecurityEvent["eventType"];
+  staffId?: number | null;
+  staffName?: string | null;
+  ipAddress: string;
+  userAgent?: string | null;
+  details?: string | null;
+  severity?: "info" | "warning" | "critical";
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) { console.warn("[Security] Cannot log event: database not available"); return; }
+  try {
+    await db.insert(securityEvents).values({
+      eventType: event.eventType,
+      staffId: event.staffId ?? null,
+      staffName: event.staffName ?? null,
+      ipAddress: event.ipAddress,
+      userAgent: event.userAgent ?? null,
+      details: event.details ?? null,
+      severity: event.severity ?? "info",
+    });
+  } catch (error) {
+    console.error("[Security] Failed to log event:", error);
+  }
+}
+
+export async function getSecurityEvents(options: {
+  limit?: number;
+  offset?: number;
+  eventType?: string;
+  severity?: string;
+  staffId?: number;
+  startDate?: Date;
+  endDate?: Date;
+} = {}): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const { limit = 100, offset = 0, eventType, severity, staffId, startDate, endDate } = options;
+  const conditions: any[] = [];
+  if (eventType) conditions.push(eq(securityEvents.eventType, eventType as any));
+  if (severity) conditions.push(eq(securityEvents.severity, severity as any));
+  if (staffId) conditions.push(eq(securityEvents.staffId, staffId));
+  if (startDate) conditions.push(gte(securityEvents.createdAt, startDate));
+  if (endDate) conditions.push(lte(securityEvents.createdAt, endDate));
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  return db.select().from(securityEvents)
+    .where(whereClause)
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getSecurityEventsByStaff(staffId: number, limit: number = 50): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(securityEvents)
+    .where(eq(securityEvents.staffId, staffId))
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(limit);
+}
+
+export async function getRecentLockouts(hours: number = 24): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  return db.select().from(securityEvents)
+    .where(and(
+      eq(securityEvents.eventType, "lockout_triggered"),
+      gte(securityEvents.createdAt, since)
+    ))
+    .orderBy(desc(securityEvents.createdAt));
+}
+
+export async function getSecurityStats(): Promise<{
+  totalEvents24h: number;
+  failedLogins24h: number;
+  lockouts24h: number;
+  pinChanges24h: number;
+  criticalEvents24h: number;
+}> {
+  const db = await getDb();
+  if (!db) return { totalEvents24h: 0, failedLogins24h: 0, lockouts24h: 0, pinChanges24h: 0, criticalEvents24h: 0 };
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const events = await db.select().from(securityEvents)
+    .where(gte(securityEvents.createdAt, since));
+  return {
+    totalEvents24h: events.length,
+    failedLogins24h: events.filter(e => e.eventType === "login_failed").length,
+    lockouts24h: events.filter(e => e.eventType === "lockout_triggered").length,
+    pinChanges24h: events.filter(e => e.eventType === "pin_changed").length,
+    criticalEvents24h: events.filter(e => e.severity === "critical").length,
+  };
+}
+
+export async function resolveSecurityEvent(eventId: number, resolvedBy: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(securityEvents)
+    .set({ resolved: true, resolvedBy, resolvedAt: new Date() })
+    .where(eq(securityEvents.id, eventId));
+}
+
+export async function changeStaffPin(staffId: number, newPin: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(staff).set({ pin: newPin }).where(eq(staff.id, staffId));
 }

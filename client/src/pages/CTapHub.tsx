@@ -39,6 +39,8 @@ import StationBroadcastScreen from "./StationBroadcastScreen";
 import WasteLogScreen from "./WasteLogScreen";
 import ComplianceIntelScreen from "./ComplianceIntelScreen";
 import ScheduleScreen from "./ScheduleScreen";
+import SecurityRecordsScreen from "./SecurityRecordsScreen";
+import PinChangeScreen from "./PinChangeScreen";
 import ClockWidget from "./ClockWidget";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ type Screen =
   | "order-guide" | "shift-handoff"
   | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing"
   | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel"
-  | "schedule";
+  | "schedule" | "security-records" | "pin-change";
 
 type Department = "bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management";
 
@@ -199,7 +201,7 @@ export default function CTapHub() {
   }, [screen]);
 
   const navigateTo = (target: Screen) => {
-    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker", "compliance-intel"];
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker", "compliance-intel", "security-records"];
     if (managerOnlyScreens.includes(target) && !isManager) {
       toast.error("Manager access required");
       return;
@@ -1376,11 +1378,12 @@ export default function CTapHub() {
           </div>
 
           {/* Quick Nav */}
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-4 gap-2.5">
             {[
               { icon: Receipt, label: "Pay Outs", s: "store-run" as Screen },
               { icon: ShieldAlert, label: "Voids", s: "voids" as Screen },
               { icon: Package, label: "Invoices", s: "invoices" as Screen },
+              { icon: Lock, label: "Security", s: "security-records" as Screen },
             ].map(item => (
               <button key={item.s} onClick={() => navigateTo(item.s)}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl surface-interactive">
@@ -1481,6 +1484,13 @@ export default function CTapHub() {
           </div>
         )}
 
+        {/* Change PIN */}
+        <button onClick={() => navigateTo("pin-change")}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 type-caption font-semibold hover:bg-amber-500/20 transition-all">
+          <Lock size={14} />
+          Change PIN
+        </button>
+
         {/* Sign Out */}
         <button onClick={async () => {
           try { await staffLogout.mutateAsync(); } catch {}
@@ -1566,6 +1576,8 @@ export default function CTapHub() {
       case "waste-log": return <WasteLogScreen staffUser={staffUser ? { id: staffUser.id, name: staffDisplayName(staffUser), role: staffUser.jobRole } : null} onBack={() => setScreen("home")} />;
       case "compliance-intel": return <ComplianceIntelScreen staffRole={staffUser?.jobRole} onBack={() => setScreen("home")} />;
       case "schedule": return <ScheduleScreen staffUser={staffUser!} allStaff={allStaff as SafeStaff[]} onBack={() => setScreen("home")} />;
+      case "security-records": return <SecurityRecordsScreen onBack={() => setScreen("command")} />;
+      case "pin-change": return <PinChangeScreen staffUser={staffUser!} onBack={() => setScreen("profile")} />;
       default: return <HomeScreen />;
     }
   };

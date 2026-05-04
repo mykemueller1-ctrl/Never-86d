@@ -75,6 +75,8 @@ import {
   createShiftSwapRequest, getPendingSwaps, getSwapsByStaff, approveSwap, denySwap,
   clockIn, clockOut, startBreak, endBreak, getActiveTimeEntry, getTimeEntriesByStaff, getWeeklyHours, getAllActiveClocks, getAllWeeklyHours,
   getEodDigestData,
+  // Security Events
+  logSecurityEvent, getSecurityEvents, getSecurityEventsByStaff, getRecentLockouts, getSecurityStats, resolveSecurityEvent, changeStaffPin,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
@@ -99,18 +101,49 @@ export const appRouter = router({
     loginByPin: publicProcedure.input(z.object({ pin: z.string() })).mutation(async ({ input, ctx }) => {
       // SECURITY: Rate limit PIN attempts (5 per IP per 15 min)
       const clientIp = getClientIp(ctx.req);
+      const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
       const rateCheck = checkPinRateLimit(clientIp, input.pin);
       if (!rateCheck.allowed) {
+        // Log lockout event
+        logSecurityEvent({
+          eventType: "lockout_triggered",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ remainingAttempts: 0, lockedUntil: rateCheck.lockedUntil }),
+          severity: "critical",
+        });
+        // Notify owner of lockout
+        notifyOwner({
+          title: "\u26a0\ufe0f Security Alert: Account Lockout",
+          content: `IP ${clientIp} has been locked out after 5 failed PIN attempts. Lockout expires at ${new Date(rateCheck.lockedUntil!).toLocaleString()}. User agent: ${userAgent}`,
+        }).catch(() => {});
         return { success: false as const, staff: null, locked: true, message: rateCheck.message };
       }
       const found = await getStaffByPinInternal(input.pin);
       if (!found) {
         // Record failed attempt for rate limiting
         recordFailedAttempt(clientIp, input.pin);
+        // Log failed login
+        logSecurityEvent({
+          eventType: "login_failed",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ pinLastTwo: input.pin.slice(-2), remainingAttempts: rateCheck.remainingAttempts - 1 }),
+          severity: "warning",
+        });
         return { success: false as const, staff: null, locked: false, message: "Invalid PIN" };
       }
       // Successful login — reset rate limit for this IP
       recordSuccessfulLogin(clientIp);
+      // Log successful login
+      logSecurityEvent({
+        eventType: "login_success",
+        staffId: found.id,
+        staffName: `${found.firstName} ${found.lastName}`,
+        ipAddress: clientIp,
+        userAgent,
+        severity: "info",
+      });
       // Set staff session cookie (signed JWT with staffId)
       const staffToken = await signStaffSession(found.id);
       const cookieOpts = getSessionCookieOptions(ctx.req);
@@ -1675,8 +1708,30 @@ Respond in JSON with this exact structure:
   // SECURED: All clock operations use server-side staffId from JWT session
   // Staff can only clock themselves in/out — no spoofing another staffId
   timeClock: router({
-    clockIn: staffSessionProcedure.mutation(({ ctx }) => clockIn(ctx.staffId)),
-    clockOut: staffSessionProcedure.mutation(({ ctx }) => clockOut(ctx.staffId)),
+    clockIn: staffSessionProcedure.mutation(async ({ ctx }) => {
+      const result = await clockIn(ctx.staffId);
+      logSecurityEvent({
+        eventType: "clock_in",
+        staffId: ctx.staffId,
+        staffName: ctx.staffRecord ? `${ctx.staffRecord.firstName} ${ctx.staffRecord.lastName}` : null,
+        ipAddress: getClientIp(ctx.req),
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        severity: "info",
+      });
+      return result;
+    }),
+    clockOut: staffSessionProcedure.mutation(async ({ ctx }) => {
+      const result = await clockOut(ctx.staffId);
+      logSecurityEvent({
+        eventType: "clock_out",
+        staffId: ctx.staffId,
+        staffName: ctx.staffRecord ? `${ctx.staffRecord.firstName} ${ctx.staffRecord.lastName}` : null,
+        ipAddress: getClientIp(ctx.req),
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        severity: "info",
+      });
+      return result;
+    }),
     startBreak: staffSessionProcedure.mutation(({ ctx }) => startBreak(ctx.staffId)),
     endBreak: staffSessionProcedure.mutation(({ ctx }) => endBreak(ctx.staffId)),
     active: staffSessionProcedure.query(({ ctx }) => getActiveTimeEntry(ctx.staffId)),
@@ -1692,6 +1747,112 @@ Respond in JSON with this exact structure:
   // ============ EOD DIGEST ============
   eodDigest: router({
     getData: protectedProcedure.query(() => getEodDigestData()),
+  }),
+
+  // ============ PIN MANAGEMENT ============
+  pinManagement: router({
+    // Staff can change their own PIN (requires current PIN verification)
+    changePin: staffSessionProcedure.input(z.object({
+      currentPin: z.string().min(4).max(8),
+      newPin: z.string().min(4).max(8),
+    })).mutation(async ({ input, ctx }) => {
+      const clientIp = getClientIp(ctx.req);
+      const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
+      // Verify current PIN matches
+      const staffRecord = await getStaffByPinInternal(input.currentPin);
+      if (!staffRecord || staffRecord.id !== ctx.staffId) {
+        // Log failed PIN change attempt
+        logSecurityEvent({
+          eventType: "pin_change_failed",
+          staffId: ctx.staffId,
+          staffName: ctx.staffRecord ? `${ctx.staffRecord.firstName} ${ctx.staffRecord.lastName}` : null,
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ reason: "current_pin_mismatch" }),
+          severity: "warning",
+        });
+        throw new TRPCError({ code: "FORBIDDEN", message: "Current PIN is incorrect." });
+      }
+      // Validate new PIN is different
+      if (input.currentPin === input.newPin) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "New PIN must be different from current PIN." });
+      }
+      // Check if new PIN is already in use by another staff member
+      const existingWithPin = await getStaffByPinInternal(input.newPin);
+      if (existingWithPin && existingWithPin.id !== ctx.staffId) {
+        throw new TRPCError({ code: "CONFLICT", message: "This PIN is already in use. Choose a different one." });
+      }
+      // Change the PIN
+      await changeStaffPin(ctx.staffId, input.newPin);
+      // Log successful PIN change
+      logSecurityEvent({
+        eventType: "pin_changed",
+        staffId: ctx.staffId,
+        staffName: ctx.staffRecord ? `${ctx.staffRecord.firstName} ${ctx.staffRecord.lastName}` : null,
+        ipAddress: clientIp,
+        userAgent,
+        details: JSON.stringify({ pinLastTwo: input.newPin.slice(-2) }),
+        severity: "info",
+      });
+      // Notify owner of PIN change
+      notifyOwner({
+        title: "\ud83d\udd11 PIN Changed",
+        content: `${ctx.staffRecord?.firstName || "Staff"} ${ctx.staffRecord?.lastName || ""} (ID: ${ctx.staffId}) changed their PIN. IP: ${clientIp}`,
+      }).catch(() => {});
+      return { success: true, message: "PIN changed successfully." };
+    }),
+    // Admin can reset a staff member's PIN
+    adminResetPin: adminProcedure.input(z.object({
+      staffId: z.number(),
+      newPin: z.string().min(4).max(8),
+    })).mutation(async ({ input, ctx }) => {
+      const clientIp = getClientIp(ctx.req);
+      // Check if new PIN is already in use
+      const existingWithPin = await getStaffByPinInternal(input.newPin);
+      if (existingWithPin && existingWithPin.id !== input.staffId) {
+        throw new TRPCError({ code: "CONFLICT", message: "This PIN is already in use by another staff member." });
+      }
+      await changeStaffPin(input.staffId, input.newPin);
+      logSecurityEvent({
+        eventType: "pin_changed",
+        staffId: input.staffId,
+        ipAddress: clientIp,
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        details: JSON.stringify({ resetBy: ctx.user?.name || "admin", adminReset: true }),
+        severity: "info",
+      });
+      return { success: true, message: "PIN reset successfully." };
+    }),
+  }),
+
+  // ============ SECURITY RECORDS (AUDIT LOG) ============
+  security: router({
+    // Manager/Owner: View all security events (filterable)
+    events: protectedProcedure.input(z.object({
+      limit: z.number().min(1).max(500).default(100),
+      offset: z.number().min(0).default(0),
+      eventType: z.string().optional(),
+      severity: z.string().optional(),
+      staffId: z.number().optional(),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
+    }).optional()).query(({ input }) => getSecurityEvents(input ?? {})),
+    // Manager/Owner: View security events for a specific staff member
+    byStaff: protectedProcedure.input(z.object({
+      staffId: z.number(),
+      limit: z.number().min(1).max(200).default(50),
+    })).query(({ input }) => getSecurityEventsByStaff(input.staffId, input.limit)),
+    // Manager/Owner: Get recent lockouts
+    recentLockouts: protectedProcedure.input(z.object({
+      hours: z.number().min(1).max(168).default(24),
+    }).optional()).query(({ input }) => getRecentLockouts(input?.hours ?? 24)),
+    // Manager/Owner: Security stats dashboard
+    stats: protectedProcedure.query(() => getSecurityStats()),
+    // Manager/Owner: Resolve/acknowledge a security event
+    resolve: protectedProcedure.input(z.object({
+      eventId: z.number(),
+      resolvedBy: z.string(),
+    })).mutation(({ input }) => resolveSecurityEvent(input.eventId, input.resolvedBy)),
   }),
 });
 export type AppRouter = typeof appRouter;
