@@ -71,7 +71,7 @@ import {
   setAvailability, getAvailabilityByStaff, getAllAvailability,
   createTimeOffRequest, getTimeOffByStaff, getPendingTimeOff, approveTimeOff, denyTimeOff,
   createShiftSwapRequest, getPendingSwaps, getSwapsByStaff, approveSwap, denySwap,
-  clockIn, clockOut, startBreak, endBreak, getActiveTimeEntry, getTimeEntriesByStaff, getWeeklyHours, getAllActiveClocks,
+  clockIn, clockOut, startBreak, endBreak, getActiveTimeEntry, getTimeEntriesByStaff, getWeeklyHours, getAllActiveClocks, getAllWeeklyHours,
   getEodDigestData,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
@@ -1596,6 +1596,7 @@ Respond in JSON with this exact structure:
     })).query(({ input }) => getTimeEntriesByStaff(input.staffId, input.startDate, input.endDate)),
     weeklyHours: publicProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyHours(input.staffId)),
     allActive: protectedProcedure.query(() => getAllActiveClocks()),
+    allWeeklyHours: protectedProcedure.query(() => getAllWeeklyHours()),
   }),
 
   // ============ EOD DIGEST ============

@@ -3183,6 +3183,36 @@ export async function getAllActiveClocks() {
     .where(or(eq(timeEntries.status, "clocked_in"), eq(timeEntries.status, "on_break")));
 }
 
+export async function getAllWeeklyHours() {
+  const db = await getDb();
+  if (!db) return [];
+  // Get start of current week (Monday)
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  monday.setHours(0, 0, 0, 0);
+  const entries = await db.select().from(timeEntries)
+    .where(and(
+      gte(timeEntries.clockIn, monday),
+      eq(timeEntries.status, "clocked_out")
+    ));
+  // Group by staffId
+  const byStaff = new Map<number, { totalHours: number; shifts: number }>();
+  for (const e of entries) {
+    const existing = byStaff.get(e.staffId) || { totalHours: 0, shifts: 0 };
+    existing.totalHours += parseFloat(e.hoursWorked || "0");
+    existing.shifts += 1;
+    byStaff.set(e.staffId, existing);
+  }
+  return Array.from(byStaff.entries()).map(([staffId, data]) => ({
+    staffId,
+    totalHours: Math.round(data.totalHours * 100) / 100,
+    overtime: Math.round(Math.max(0, data.totalHours - 40) * 100) / 100,
+    shifts: data.shifts,
+  }));
+}
+
 // ============ EOD DIGEST HELPERS ============
 
 export async function getEodDigestData() {

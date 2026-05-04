@@ -37,6 +37,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Never 86'd" />
     <meta name="application-name" content="Never 86'd" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -166,6 +167,13 @@
     </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
     <script
       defer
       src="%VITE_ANALYTICS_ENDPOINT%/umami"

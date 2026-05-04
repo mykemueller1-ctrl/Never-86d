@@ -162,6 +162,62 @@ export function registerScheduledRoutes(app: Express) {
     }
   });
 
+  // ─── End-of-Day Digest ───
+  app.post("/api/scheduled/eod-digest", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) {
+      res.status(401).json({ error: "No user found" });
+      return;
+    }
+
+    console.log(`[Scheduled] EOD digest triggered by user: ${user.name || user.openId}`);
+
+    try {
+      const { getEodDigestData } = await import("../db");
+      const data = await getEodDigestData();
+      if (!data) {
+        res.status(200).json({ success: false, error: "No data available" });
+        return;
+      }
+
+      const today = new Date();
+      const dayName = today.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+
+      const digestContent = [
+        `📋 END-OF-DAY DIGEST — ${dayName}`,
+        ``,
+        `STAFFING`,
+        `• ${data.staffWorked} staff clocked in today`,
+        `• ${data.totalHoursToday} total hours worked`,
+        `• ${data.tomorrowShiftsScheduled} shifts scheduled tomorrow`,
+        ``,
+        `OPERATIONS`,
+        `• ${data.checklistsCompleted} checklists completed`,
+        `• ${data.voidsToday} voids ($${data.voidTotal})`,
+        `• ${data.issuesReported} issues reported`,
+        data.active86dItems.length > 0 ? `• 86'd: ${data.active86dItems.join(", ")}` : `• No active 86'd items`,
+      ].join("\n");
+
+      const sent = await notifyOwner({
+        title: `CTap EOD — ${dayName}`,
+        content: digestContent,
+      });
+
+      console.log(`[Scheduled] EOD digest sent: ${sent}`);
+      res.status(200).json({ success: true, sent, data });
+    } catch (err) {
+      console.error("[Scheduled] EOD digest failed:", err);
+      res.status(500).json({ success: false, error: "EOD digest failed" });
+    }
+  });
+
+  // ─── Daily Briefing Generation ───
   app.post("/api/scheduled/briefing", async (req: Request, res: Response) => {
     // Authenticate the request — scheduled tasks get "user" role
     let user;

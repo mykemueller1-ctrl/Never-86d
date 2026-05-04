@@ -47,7 +47,7 @@ function formatWeekLabel(dates: Date[]): string {
 export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   const isManager = MANAGER_ROLES.includes(staffUser.jobRole);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [tab, setTab] = useState<"schedule" | "availability" | "requests">(isManager ? "schedule" : "schedule");
+  const [tab, setTab] = useState<"schedule" | "availability" | "requests" | "hours">(isManager ? "schedule" : "schedule");
   const [showAddShift, setShowAddShift] = useState(false);
   const [editingShift, setEditingShift] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -131,13 +131,13 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
       </div>
 
       {/* Tabs */}
-      <div className="px-6 py-3 flex gap-2">
-        {["schedule", "availability", "requests"].map(t => (
+      <div className="px-6 py-3 flex gap-2 overflow-x-auto">
+        {(["schedule", "availability", "requests", ...(isManager ? ["hours"] : [])] as const).map(t => (
           <button key={t} onClick={() => setTab(t as any)}
-            className={`px-4 py-2 rounded-lg type-caption font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg type-caption font-medium transition-colors whitespace-nowrap ${
               tab === t ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "text-zinc-500 hover:text-zinc-300"
             }`}>
-            {t === "schedule" ? "Schedule" : t === "availability" ? "Availability" : "Requests"}
+            {t === "schedule" ? "Schedule" : t === "availability" ? "Availability" : t === "requests" ? "Requests" : "Hours"}
           </button>
         ))}
       </div>
@@ -194,6 +194,10 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
             onApproveTimeOff={(id) => approveTimeOffMut.mutate({ id, approvedBy: staffUser.id })}
             onDenyTimeOff={(id) => denyTimeOffMut.mutate({ id, approvedBy: staffUser.id })}
           />
+        )}
+
+        {tab === "hours" && isManager && (
+          <WeeklyHoursReport allStaff={allStaff} />
         )}
       </div>
 
@@ -726,6 +730,122 @@ function EditShiftModal({ shift, allStaff, onClose, onSubmit, isPending }: {
           className="w-full py-3 rounded-xl bg-amber-500 text-black font-semibold type-body hover:bg-amber-400 transition-colors active:scale-[0.98] disabled:opacity-50">
           {isPending ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Save Changes"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Weekly Hours Report (Manager) ─────────────────────────────────────────
+function WeeklyHoursReport({ allStaff }: { allStaff: SafeStaff[] }) {
+  const hoursQuery = trpc.timeClock.allWeeklyHours.useQuery();
+  const activeQuery = trpc.timeClock.allActive.useQuery();
+
+  const hoursData = hoursQuery.data ?? [];
+  const activeClocks = activeQuery.data ?? [];
+
+  // Merge hours data with staff names
+  const staffHours = useMemo(() => {
+    const result = allStaff.map(s => {
+      const hours = hoursData.find(h => h.staffId === s.id);
+      const isActive = activeClocks.some((c: any) => c.staffId === s.id);
+      return {
+        ...s,
+        totalHours: hours?.totalHours ?? 0,
+        overtime: hours?.overtime ?? 0,
+        shifts: hours?.shifts ?? 0,
+        isActive,
+      };
+    });
+    // Sort by hours descending
+    return result.sort((a, b) => b.totalHours - a.totalHours);
+  }, [allStaff, hoursData, activeClocks]);
+
+  const totalLabor = staffHours.reduce((sum, s) => sum + s.totalHours, 0);
+  const totalOvertime = staffHours.reduce((sum, s) => sum + s.overtime, 0);
+  const activeClockedIn = staffHours.filter(s => s.isActive).length;
+
+  if (hoursQuery.isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="h-16 rounded-xl bg-zinc-900 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="surface-base rounded-xl p-3 text-center">
+          <p className="type-micro text-zinc-500">Total Hours</p>
+          <p className="type-heading text-white">{totalLabor.toFixed(1)}</p>
+        </div>
+        <div className={`surface-base rounded-xl p-3 text-center ${totalOvertime > 0 ? "border border-red-500/30" : ""}`}>
+          <p className="type-micro text-zinc-500">Overtime</p>
+          <p className={`type-heading ${totalOvertime > 0 ? "text-red-400" : "text-white"}`}>{totalOvertime.toFixed(1)}</p>
+        </div>
+        <div className="surface-base rounded-xl p-3 text-center">
+          <p className="type-micro text-zinc-500">Clocked In</p>
+          <p className="type-heading text-green-400">{activeClockedIn}</p>
+        </div>
+      </div>
+
+      {/* Staff List */}
+      <div className="space-y-2">
+        {staffHours.map(s => {
+          const pct = Math.min(100, (s.totalHours / 40) * 100);
+          const isOvertime = s.overtime > 0;
+          const isApproaching = s.totalHours >= 35 && !isOvertime;
+
+          return (
+            <div key={s.id} className="surface-base rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center type-micro font-bold ${
+                    s.isActive ? "bg-green-500/20 text-green-400" : "bg-zinc-800 text-zinc-400"
+                  }`}>
+                    {s.firstName[0]}
+                  </div>
+                  <div>
+                    <p className="type-caption text-white font-medium">{s.firstName} {s.lastName}</p>
+                    <p className="type-micro text-zinc-500">{s.shifts} shifts • {s.department}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`type-body font-semibold ${isOvertime ? "text-red-400" : isApproaching ? "text-amber-400" : "text-white"}`}>
+                    {s.totalHours.toFixed(1)}h
+                  </p>
+                  {isOvertime && (
+                    <p className="type-micro text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={10} /> +{s.overtime.toFixed(1)} OT
+                    </p>
+                  )}
+                  {isApproaching && (
+                    <p className="type-micro text-amber-400">Approaching 40</p>
+                  )}
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    isOvertime ? "bg-red-500" : isApproaching ? "bg-amber-500" : "bg-amber-500/60"
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+
+        {staffHours.length === 0 && (
+          <div className="text-center py-12">
+            <Clock className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+            <p className="type-caption text-zinc-500">No hours logged this week</p>
+          </div>
+        )}
       </div>
     </div>
   );

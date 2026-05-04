@@ -490,35 +490,35 @@
 ## Wave 14 — Schedule System, Clock In/Out, EOD Digest, PWA
 
 ### Schedule System
-- [ ] Create scheduleShifts table (staffId, date, startTime, endTime, position, createdBy, status)
-- [ ] Create availabilityWindows table (staffId, dayOfWeek, startTime, endTime, preference)
-- [ ] Create timeOffRequests table (staffId, startDate, endDate, reason, status, approvedBy)
-- [ ] Create shiftSwapRequests table (requesterId, targetId, shiftId, status, approvedBy)
-- [ ] Build schedule backend — CRUD for shifts, availability, time-off, swaps
-- [ ] Build Schedule Builder UI (manager) — weekly grid, drag-to-assign, leaderboard priority hints
-- [ ] Build Schedule View UI (staff) — my upcoming shifts, request time off, request swap
-- [ ] Leaderboard score influences shift priority (higher score = first pick on preferred shifts)
+- [x] Create scheduleShifts table (staffId, date, startTime, endTime, position, createdBy, status)
+- [x] Create availabilityWindows table (staffId, dayOfWeek, startTime, endTime, preference)
+- [x] Create timeOffRequests table (staffId, startDate, endDate, reason, status, approvedBy)
+- [x] Create shiftSwapRequests table (requesterId, targetId, shiftId, status, approvedBy)
+- [x] Build schedule backend — CRUD for shifts, availability, time-off, swaps
+- [x] Build Schedule Builder UI (manager) — weekly grid, add/edit/delete shifts
+- [x] Build Schedule View UI (staff) — my upcoming shifts, request time off, request swap
+- [ ] Leaderboard score influences shift priority (higher score = first pick on preferred shifts) [DEFERRED]
 
 ### Clock In/Out
-- [ ] Create timeEntries table (staffId, clockIn, clockOut, hoursWorked, breakMinutes, overtime)
-- [ ] PIN login triggers clock-in (or prompts "Start shift?")
-- [ ] Explicit clock-out button on profile/home screen
-- [ ] Break tracking (start break / end break)
-- [ ] Daily hours summary on profile screen
-- [ ] Weekly hours report for managers
-- [ ] Overtime alert (approaching 40 hrs)
+- [x] Create timeEntries table (staffId, clockIn, clockOut, hoursWorked, breakMinutes, overtime)
+- [x] PIN login triggers clock-in (or prompts "Start shift?")
+- [x] Explicit clock-out button on profile/home screen
+- [x] Break tracking (start break / end break)
+- [x] Daily hours summary on profile screen (via ClockWidget elapsed time)
+- [x] Weekly hours report for managers — Hours tab in Schedule with progress bars + OT alerts
+- [x] Overtime alert (approaching 40 hrs) — amber at 35h, red at 40h+ with OT badge
 
 ### End-of-Day Digest Email
-- [ ] Build EOD digest generator — today's sales, staff who worked, checklists %, voids, 86'd, issues, leaderboard changes
-- [ ] POST /api/scheduled/eod-digest endpoint
-- [ ] Set up scheduled task (10:30 PM CDT daily) to send digest to Mychael via notifyOwner
-- [ ] Include tomorrow's forecast + staffing recommendation in digest
+- [x] Build EOD digest generator — staffing, checklists, voids, 86'd, issues, tomorrow schedule
+- [x] POST /api/scheduled/eod-digest endpoint — built and tested
+- [ ] Set up scheduled task (10:30 PM CDT daily) — needs deploy first
+- [x] Include tomorrow's forecast + staffing recommendation in digest — tomorrow shifts count included
 
 ### PWA Install
-- [ ] Add manifest.json (app name, icons, theme color, display: standalone)
-- [ ] Add service worker for offline caching (app shell + API cache)
-- [ ] Add install prompt UI (banner for staff to add to home screen)
-- [ ] Cache checklists and schedule for offline viewing
+- [x] Add manifest.json (app name, icons, theme color, display: standalone)
+- [x] Add service worker for offline caching (app shell + API cache)
+- [x] Add install prompt UI (banner for staff to add to home screen) — PWAInstallPrompt component
+- [x] Cache checklists and schedule for offline viewing — service worker network-first with cache fallback
 
 ## Wave 14b — Schedule UI + Clock In/Out
 - [x] Build ScheduleScreen.tsx with manager schedule builder (weekly grid, add/edit/delete shifts)

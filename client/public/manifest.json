@@ -1,0 +1,24 @@
+{
+  "name": "Never 86'd — Community Tap & Pizza",
+  "short_name": "Never 86'd",
+  "description": "Restaurant workforce platform for Community Tap & Pizza",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
