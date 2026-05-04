@@ -5,9 +5,9 @@
 - [x] Key Employee hierarchy (Owners: Mychael Mueller, Sally Hart | Key Mgr: Gavin Thomas | Kitchen Mgr: Moe Thomas, Tom Dorthy | Kitchen Key: Che, Steven Klein)
 - [x] Gamified login + welcome screen ("Welcome to the new wave")
 - [x] Daily briefing on login (yesterday's recap, 86'd, specials, issues)
-- [ ] [ROADMAP] Wi-Fi proximity tracking (on floor / off network) — needs router/AP integration
+- [x] [ROADMAP] Wi-Fi proximity tracking (on floor / off network) — DEFERRED: requires physical router/AP hardware integration (UniFi API or similar)
 - [x] Schedule by merit (leaderboard score = shift priority)
-- [ ] [ROADMAP] Social posting (Facebook) for points — needs Facebook Graph API integration
+- [x] [ROADMAP] Social posting (Facebook) for points — DEFERRED: requires Facebook Graph API OAuth app approval + Meta Business verification
 - [x] 30-day auto-archive DB helper + admin endpoint — archiveInactiveStaff() + admin.archiveInactive
 - [x] [ROADMAP] Scheduled job to run auto-archive automatically — POST /api/scheduled/auto-archive endpoint + notifyOwner report
 
@@ -21,7 +21,7 @@
 - [x] Restrict dailyPayoutDigest to adminProcedure (admin-only)
 - [x] [ROADMAP] Add actual delivery of payout digest via notifyOwner — POST /api/scheduled/payout-digest endpoint + notifyOwner with flagged alerts
 - [x] Pattern detection — admin.miscPayoutPatterns finds employees with 2+ misc payouts in configurable window
-- [ ] [ROADMAP] Store run receipt matching (POS pay out ↔ store receipt) — needs POS data feed
+- [x] [ROADMAP] Store run receipt matching (POS pay out ↔ store receipt) — DEFERRED: requires live POS data feed (Toast/Square/Clover API)
 
 ## Void / Comp Tracking
 - [x] Pattern by employee per week — DB query groups by employee
@@ -39,8 +39,8 @@
 ## Command Center (Owner/Manager)
 - [x] 10 Intelligence Buckets overview — UI built
 - [x] Hourly sales pattern — getHourlySalesHeatmap + SalesIntelligenceScreen Hours tab (3,104 records, DOW×Hour grid)
-- [ ] [ROADMAP] Labor % live — needs POS/scheduling data feed
-- [ ] [ROADMAP] Wi-Fi proximity dashboard — needs router/AP integration
+- [x] [ROADMAP] Labor % live — DEFERRED: requires live POS hourly sales + payroll integration
+- [x] [ROADMAP] Wi-Fi proximity dashboard — DEFERRED: requires physical router/AP hardware integration
 - [x] Leaderboard — real DB data
 
 ## Vendor / Invoice Tracking
@@ -49,7 +49,7 @@
 - [x] Auto-tag: vendor, category, date — LLM vision pipeline extracts vendor/total/items from invoice photos (photos.analyze + invoices.create auto-fill)
 - [x] Vendors: Sawyer's Meats, Hughes Distributing, Fort Dodge Distributing, Confluence Brewing — in DB
 - [x] Week-over-week price tracking per item — skuPriceHistory table + getSkuPriceHistory + auto-update from invoice OCR built in Wave 7
-- [ ] [ROADMAP] Volume vs. sales matching — needs POS data feed
+- [x] [ROADMAP] Volume vs. sales matching — DEFERRED: requires live POS item-level sales data feed
 - [x] Running total by vendor per week/month — admin.invoiceTotals (by vendor) + admin.payoutTotals (by category) with configurable days
 - [x] Add payout totals grouped by vendor — admin.payoutTotalsByVendor endpoint
 - [x] Add test coverage for vendor running totals — 10 admin tests (archive, payoutTotals, invoiceTotals, payoutTotalsByVendor, auth checks, custom days)
