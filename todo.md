@@ -590,3 +590,38 @@
 - [x] Security gate matrix documentation — SECURITY_GATES.md with full procedure→auth level→description mapping
 - [x] All 218 tests passing across 17 test files
 - [x] Final QA pass — server running clean, 0 TS errors, all flows verified
+
+## Wave 20 — Production Reality Check: No More Placeholders
+- [x] Audit every screen and button — no "coming soon" toasts found, all screens pull real data via tRPC
+- [x] Load Ashley's beer/liquor ordering data — 55 SKUs seeded with vendor/pricing from bar order guide
+- [x] Fill Order Guide with real CTAP vendor products — 78 vendor products seeded (PFG, Sysco, Hughes, Fort Dodge, Sawyer's)
+- [x] Fill Recipe Cost screen with full ingredient breakdowns — 10 recipes with 42 ingredients, food cost % calculated
+- [x] Fill SKU Tracker with real product data — 55 SKUs (beer, liquor, food) with price history seeded
+- [x] RAG the Knowledge Brain with real SOPs — 178 total knowledge entries covering all stations/categories
+- [x] RAG with real recipes — pizza sauce, dough, wings, Iowa Chop, fries, onion rings all documented with exact specs
+- [x] RAG with vendor contacts and ordering procedures — PFG, Sysco, Hughes, Fort Dodge, Sawyer's Meats, Iowa ABD
+- [x] Fill Forecast screen with real historical sales data — 196 days of daily sales from PDQ POS data
+- [x] Fill Compliance screen with real Iowa compliance — food safety, liquor law, labor law, ABD rules documented
+- [x] Fill POS Training with real PDQ POS procedures — phone orders, pickup, counter, dispatch, voids, comps, reports
+- [x] Remove ALL "coming soon" toasts — verified no placeholder toasts exist in codebase
+- [ ] Push full codebase + liquor/beer data to GitHub Never-86d repo
+- [x] Make every screen useful on a real shift — all screens pull real data, 178 knowledge entries, 196 days sales
+
+## PDQ POS Signature Systems Manual & Agents
+- [x] Find PDQ POS (Signature Systems) info — extracted from video demo + website (no public manual PDF available)
+- [x] Tag POS content by category — 14 PDQ POS entries covering phone orders, pickup, counter, dispatch, drivers, modifiers, manager functions, reports, refunds, discounts, cash drops
+- [x] Seed tagged POS knowledge into knowledge_entries table — all 14 entries seeded with tags
+- [x] Build POS Training AI agent — Ask Brain searches POS entries and provides contextual answers about register operations
+- [x] Wire POS Training screen — interactive training modules with real CTAP scenarios (phone orders, tabs, voids, comps, end-of-day)
+
+## Deep Knowledge Brain — Restaurant Jargon & Ingredient Specs
+- [x] Seed 16 restaurant jargon entries (86'd, on the fly, fire, all day, in the weeds, behind, heard, expo, mise en place, drop, comp, turn, ticket time, window/pass, top)
+- [x] Seed ingredient spec entries (chamber ground beef, cheese specs, dough specs, wing specs, fryer oil, well liquor, draft beer/kegs)
+- [x] Seed equipment knowledge (deck oven, Hobart mixer, fryers, draft system, walk-in layout, reach-in, dish machine)
+- [x] Seed PDQ POS operations (14 entries: phone/pickup/counter orders, dispatch, driver EOD, sub-totals, modifiers, manager functions, reports, refunds, discounts, cash drops, order status)
+- [x] Seed vendor knowledge (PFG, Sysco, Hughes, Fort Dodge, Sawyer's Meats, Iowa ABD)
+- [x] Seed server-facing menu knowledge (allergies, Iowa Chop description, pizza sizes, food complaints, Iowa liquor law, pour sizes)
+- [x] Seed kitchen logic (pizza sauce recipe, fry specs, onion rings, Iowa Chop smoking, par levels, food temps, 3-sink method, closing checklist)
+- [x] Improved searchKnowledge function — now searches tags field + splits multi-word queries into individual keywords for broader matching
+- [x] Total: 178 knowledge entries across 9 stations and 10 categories
+- [x] All 218 tests passing across 17 test files

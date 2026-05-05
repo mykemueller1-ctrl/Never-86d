@@ -622,8 +622,18 @@ export async function getKnowledgeByCategory(category: string, limit = 50) {
 export async function searchKnowledge(query: string, station?: string, limit = 20) {
   const db = await getDb();
   if (!db) return [];
+  // Search by full query first, then by individual keywords for broader matching
+  const searchTerms = [query];
+  // Split into keywords (2+ chars) for broader matching
+  const words = query.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+  if (words.length > 1) {
+    searchTerms.push(...words.slice(0, 4)); // Add up to 4 individual keywords
+  }
+  const searchConditions = searchTerms.map(term => 
+    sql`(${knowledgeEntries.question} LIKE ${'%' + term + '%'} OR ${knowledgeEntries.answer} LIKE ${'%' + term + '%'} OR ${knowledgeEntries.tags} LIKE ${'%' + term + '%'})`
+  );
   const conditions = [
-    sql`(${knowledgeEntries.question} LIKE ${'%' + query + '%'} OR ${knowledgeEntries.answer} LIKE ${'%' + query + '%'})`,
+    or(...searchConditions)!,
   ];
   if (station && station !== "general") {
     conditions.push(

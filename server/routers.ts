@@ -86,6 +86,7 @@ import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import { processAchievementEvent } from "./achievementEngine";
 import { seedAllData } from "./seedAllData";
+import { seedWave20 } from "./seedWave20";
 
 export const appRouter = router({
   system: systemRouter,
@@ -188,6 +189,7 @@ export const appRouter = router({
     })).mutation(({ input }) => updateStaffStatus(input.staffId, input.status)),
     seed: adminProcedure.mutation(() => seedStaffData()),
     seedAllData: adminProcedure.mutation(() => seedAllData()),
+    seedWave20: adminProcedure.mutation(() => seedWave20()),
   }),
 
   // ============ PAYOUTS ============
