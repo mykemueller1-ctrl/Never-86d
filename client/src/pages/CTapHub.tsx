@@ -100,8 +100,17 @@ function salesVibe(amount: number | null | undefined): { label: string; color: s
 
 // ─── Main Component ──────────────────────────────────────────────────────
 export default function CTapHub() {
-  const [screen, setScreen] = useState<Screen>("splash");
-  const [staffUser, setStaffUser] = useState<SafeStaff | null>(null);
+  // Recover staff session from localStorage on mount (prevents login flash on reload)
+  const [screen, setScreen] = useState<Screen>(() => {
+    const saved = localStorage.getItem("ctap_staff_session");
+    return saved ? "home" : "splash";
+  });
+  const [staffUser, setStaffUser] = useState<SafeStaff | null>(() => {
+    try {
+      const saved = localStorage.getItem("ctap_staff_session");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
@@ -130,8 +139,8 @@ export default function CTapHub() {
   const [registerDept, setRegisterDept] = useState<Department>("kitchen_line");
   const [registerRole, setRegisterRole] = useState("line_cook");
 
-  // ─── Session Timeout (30 min inactivity) ─────────────────────
-  const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  // ─── Session Timeout (8 hour inactivity — full shift) ─────────────────────
+  const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 hours (full shift)
   const lastActivityRef = useRef<number>(Date.now());
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -162,11 +171,35 @@ export default function CTapHub() {
     };
   }, [staffUser, resetActivityTimer]);
 
+  // Persist staff session to localStorage
+  useEffect(() => {
+    if (staffUser) {
+      localStorage.setItem("ctap_staff_session", JSON.stringify(staffUser));
+    } else {
+      localStorage.removeItem("ctap_staff_session");
+    }
+  }, [staffUser]);
+
+  // Validate staff session against server on mount (handles expired JWT gracefully)
+  const sessionCheck = trpc.staff.currentSession.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  useEffect(() => {
+    if (sessionCheck.isLoading) return;
+    // If we have a localStorage session but server says no valid cookie, clear and show login
+    if (staffUser && sessionCheck.data === null && !sessionCheck.isLoading) {
+      setStaffUser(null);
+      setScreen("login");
+      localStorage.removeItem("ctap_staff_session");
+    }
+  }, [sessionCheck.data, sessionCheck.isLoading]);
+
   const isManager = isManagerOrOwner(staffUser);
 
   const { user: authUser, isAuthenticated } = useAuth();
 
-  // ─── tRPC Queries ──────────────────────────────────────────────
+  // ─── tRPC Queries ──────────────────────────────────────────────────────────
   const staffByDept = trpc.staff.byDepartment.useQuery(
     { department: selectedDept || "" },
     { enabled: !!selectedDept && screen === "login" }

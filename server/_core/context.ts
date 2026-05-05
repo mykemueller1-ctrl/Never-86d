@@ -12,7 +12,7 @@ export async function signStaffSession(staffId: number): Promise<string> {
   return new jose.SignJWT({ staffId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("12h")
+    .setExpirationTime("7d")
     .sign(STAFF_JWT_SECRET);
 }
 

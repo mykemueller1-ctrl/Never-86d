@@ -645,3 +645,8 @@
 - [x] Seed PFG programs — CustomerFirst platform, ordering days Mon/Thu, account 06528, rep Steve, deals section, real-time warehouse inventory
 - [x] Seed Sysco programs — Sysco Shop, Perks points, Sysco Simply, Sysco Brand (15-20% cheaper), GF crust SKU 7278698
 - [x] Seed Pepsi systems — Local Eats program, BIB fountain system, nozzle cleaning daily, CO2 weekly check, volume rebates
+
+## Bug Fix: Session Glitchiness
+- [x] Fix aggressive 30-minute inactivity timeout — extended to 8 hours (full shift)
+- [x] Extend staff JWT session from 12h to 7 days
+- [x] Make session recovery smoother — localStorage persistence + server validation on mount (no login flash)

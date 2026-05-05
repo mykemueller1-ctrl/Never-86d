@@ -152,7 +152,7 @@ export const appRouter = router({
       // Set staff session cookie (signed JWT with staffId)
       const staffToken = await signStaffSession(found.id);
       const cookieOpts = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
       // Strip sensitive fields before returning to client
       const { pin, phone, email, ...safeStaff } = found;
       // Auto-progress achievements on shift login
@@ -163,6 +163,13 @@ export const appRouter = router({
       const cookieOpts = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(STAFF_COOKIE, cookieOpts);
       return { success: true };
+    }),
+    // Validate staff session cookie and return current staff (for session recovery on reload)
+    currentSession: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.staffId) return null;
+      const staff = await getStaffById(ctx.staffId);
+      if (!staff) return null;
+      return staff; // Already stripped of pin by getStaffById
     }),
     // SECURED: Active staff list requires staff session or OAuth
     active: staffOrAuthProcedure.query(() => getActiveStaff()),
@@ -1918,7 +1925,7 @@ Respond in JSON with this exact structure:
       // Set staff session cookie
       const staffToken = await signStaffSession(staffId as number);
       const cookieOpts = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
       return { success: true, staffId, message: "Account created successfully!" };
     }),
@@ -1990,7 +1997,7 @@ Respond in JSON with this exact structure:
       // Set staff session cookie
       const staffToken = await signStaffSession(found.id);
       const cookieOpts = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
       const { pin, phone, email, passwordHash, facebookAccessToken, facebookId, ...safeStaff } = found;
       processAchievementEvent(found.id, "shift_login").catch(() => {});
@@ -2056,7 +2063,7 @@ Respond in JSON with this exact structure:
       // Set staff session cookie
       const staffToken = await signStaffSession(found.id);
       const cookieOpts = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
       const { pin, phone, email, passwordHash, facebookAccessToken, facebookId: fbId, ...safeStaff } = found;
       processAchievementEvent(found.id, "shift_login").catch(() => {});
