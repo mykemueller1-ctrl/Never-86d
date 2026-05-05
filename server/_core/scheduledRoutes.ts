@@ -10,6 +10,7 @@ import {
   archiveInactiveStaff,
   getAllPayouts,
   getDb,
+  createScheduleShift,
 } from "../db";
 import { seedAllData } from "../seedAllData";
 import { staff } from "../../drizzle/schema";
@@ -214,6 +215,52 @@ export function registerScheduledRoutes(app: Express) {
     } catch (err) {
       console.error("[Scheduled] EOD digest failed:", err);
       res.status(500).json({ success: false, error: "EOD digest failed" });
+    }
+  });
+
+  // ─── Google Sheets Schedule Sync ───
+  app.post("/api/scheduled/sync-schedule", async (req: Request, res: Response) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+
+    console.log(`[Scheduled] Schedule sync triggered by user: ${user.name || user.openId}`);
+    try {
+      const { shifts, department } = req.body;
+      if (!shifts || !Array.isArray(shifts) || !department) {
+        res.status(400).json({ success: false, error: "shifts array and department required" });
+        return;
+      }
+      let synced = 0;
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "Database not available" }); return; }
+
+      for (const shift of shifts) {
+        try {
+          await createScheduleShift({
+            staffId: shift.staffId || 0,
+            date: new Date(shift.date),
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            position: shift.station || department,
+            department: department as any,
+            status: "scheduled",
+            notes: shift.name ? `Synced: ${shift.name}` : undefined,
+          });
+          synced++;
+        } catch (e) { /* skip invalid */ }
+      }
+
+      console.log(`[Scheduled] Synced ${synced}/${shifts.length} shifts for ${department}`);
+      res.status(200).json({ success: true, synced, total: shifts.length });
+    } catch (err) {
+      console.error("[Scheduled] Schedule sync failed:", err);
+      res.status(500).json({ success: false, error: "Schedule sync failed" });
     }
   });
 
