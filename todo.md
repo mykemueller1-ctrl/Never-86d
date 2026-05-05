@@ -627,21 +627,21 @@
 - [x] All 218 tests passing across 17 test files
 
 ## Drink Visuals, Hospitality & Split Check Training
-- [ ] Seed cocktail visual knowledge (what each drink looks like, glassware, garnish, color, presentation)
-- [ ] Seed beer/keg identification (tap handles, bottle labels, keg types, draft system)
-- [ ] Seed liquor bottle identification (what each bottle looks like, label colors, shelf position)
-- [ ] Seed classic cocktail recipes with full build instructions (Screwdriver, Bloody Mary, Captain & Coke, etc.)
-- [ ] Seed split check / tab management procedures on PDQ POS
-- [ ] Seed full hospitality training (table approach, greeting, reading the room, timing, check-back)
-- [ ] Seed upselling techniques with specific examples and scripts
-- [ ] Seed complaint handling, comp procedures, and guest recovery
+- [x] Seed cocktail visual knowledge — Screwdriver, Bloody Mary, Captain & Coke, Margarita, Old Fashioned, Long Island, Moscow Mule with full visual descriptions
+- [x] Seed beer/keg identification — draft pour technique, glassware guide (pint/mug/pilsner/tulip), keg types (half/quarter/sixth barrel)
+- [x] Seed liquor bottle identification — speed rail organization L-R, bottle visuals (Tito's, Captain, Jack, Crown, Patron, Maker's), top shelf layout
+- [x] Seed classic cocktail recipes — 7 cocktails with full build, glassware, garnish, upsell suggestions, visual descriptions
+- [x] Seed split check / tab management — split by item/seat/even, multiple payments, bar tab open/close/walkout procedures
+- [x] Seed full hospitality training — steps of service, greeting within 60s, reading tables (business/date/family/regulars/large party)
+- [x] Seed upselling techniques — suggest don't push, pair suggestions, drink upgrades, dessert timing, specific scripts
+- [x] Seed complaint handling — listen/remove/offer/notify/comp/follow-up protocol, comp limits ($10/$50/owner), documentation
 
 ## BBQ Mastery & Pizza Excellence Training
-- [ ] Seed competition-level BBQ wing techniques (smoke temps, times, sauces, crispy finish)
-- [ ] Seed rib mastery (3-2-1 method, temp control, bark, wrap vs no-wrap, sauce timing)
-- [ ] Seed brisket excellence (trim, rub, smoke temp, stall, wrap, rest, slicing)
-- [ ] Seed pork butt/pulled pork (low and slow, internal temp, bark, pulling technique)
-- [ ] Seed pizza excellence (dough hydration, oven temp, sauce technique, cheese distribution, timing)
-- [ ] Seed PFG programs (CustomerFirst ordering, Performance Elite Rewards, One Source)
-- [ ] Seed Sysco programs (ordering platform, rebates, Sysco Perks)
-- [ ] Seed Pepsi systems (fountain equipment, ordering, rebates, marketing support)
+- [x] Seed competition-level BBQ wing techniques — baking powder trick, 250-275°F, crisp methods (crank/flash fry/broil), sauce timing
+- [x] Seed rib mastery — 3-2-1 method (spares) and 2-2-1 (baby backs), membrane removal, wrap with butter/sugar/honey, bend test
+- [x] Seed brisket excellence — dalmatian rub, 225°F oak/hickory, stall at 165°F, butcher paper wrap, probe tender at 200-205°F, 2-4hr rest
+- [x] Seed pork butt/pulled pork — mustard binder, 225°F apple/cherry wood, wrap at 165°F, pull at 200-205°F, 60% yield
+- [x] Seed pizza excellence — dough from scratch (windowpane test, cold ferment 24-72hr), perfect pizza checklist, common mistakes
+- [x] Seed PFG programs — CustomerFirst platform, ordering days Mon/Thu, account 06528, rep Steve, deals section, real-time warehouse inventory
+- [x] Seed Sysco programs — Sysco Shop, Perks points, Sysco Simply, Sysco Brand (15-20% cheaper), GF crust SKU 7278698
+- [x] Seed Pepsi systems — Local Eats program, BIB fountain system, nozzle cleaning daily, CO2 weekly check, volume rebates
