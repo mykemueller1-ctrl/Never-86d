@@ -622,48 +622,31 @@ export async function getKnowledgeByCategory(category: string, limit = 50) {
 export async function searchKnowledge(query: string, station?: string, limit = 20) {
   const db = await getDb();
   if (!db) return [];
-  // Use raw SQL for relevance-scored search
-  // Prioritize: exact question match > question keyword > tags > answer keyword
-  const words = query.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+  
+  // Stop words that match too broadly
+  const stopWords = new Set(['what', 'how', 'when', 'where', 'why', 'who', 'which', 'is', 'are', 'was', 'were', 'do', 'does', 'did', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'it', 'this', 'that', 'my', 'our', 'we', 'i', 'me', 'you', 'can', 'should', 'would', 'could']);
+  
+  // Split query into keywords, remove stop words for individual matching
+  const allWords = query.toLowerCase().split(/\s+/).filter(w => w.length >= 2);
+  const contentWords = allWords.filter(w => !stopWords.has(w));
+  // If all words are stop words, use all words anyway
+  const words = contentWords.length > 0 ? contentWords : allWords;
   const fullQuery = query.toLowerCase();
   
-  // Build WHERE conditions - match on full query OR any keyword
-  const searchTerms = [fullQuery, ...words.slice(0, 5)];
-  const whereParts = searchTerms.map(() => 
-    `(LOWER(question) LIKE CONCAT('%', ?, '%') OR LOWER(answer) LIKE CONCAT('%', ?, '%') OR LOWER(COALESCE(JSON_UNQUOTE(tags), '')) LIKE CONCAT('%', ?, '%'))`
-  ).join(' OR ');
-  
-  // Build relevance score - question matches score highest
-  const scoreParts = searchTerms.map(() => 
-    `(CASE WHEN LOWER(question) LIKE CONCAT('%', ?, '%') THEN 10 ELSE 0 END) + (CASE WHEN LOWER(COALESCE(JSON_UNQUOTE(tags), '')) LIKE CONCAT('%', ?, '%') THEN 5 ELSE 0 END) + (CASE WHEN LOWER(answer) LIKE CONCAT('%', ?, '%') THEN 2 ELSE 0 END)`
-  ).join(' + ');
-  
-  let sqlQuery = `SELECT *, (${scoreParts}) as relevance FROM knowledge_entries WHERE (${whereParts})`;
-  const params: string[] = [];
-  
-  // Score params (3 per term)
-  for (const term of searchTerms) {
-    params.push(term, term, term);
+  // Generate search term variants (handle apostrophes, common abbreviations)
+  const variants: string[] = [];
+  for (const word of words) {
+    variants.push(word);
+    // Add apostrophe variants: 86d -> 86'd, 86'd -> 86d
+    if (!word.includes("'")) variants.push(word.replace(/(\d)([a-z])/g, "$1'$2"));
+    if (word.includes("'")) variants.push(word.replace(/'/g, ''));
   }
-  // Where params (3 per term)
-  for (const term of searchTerms) {
-    params.push(term, term, term);
-  }
+  const uniqueVariants = Array.from(new Set(variants));
   
-  if (station && station !== "general") {
-    sqlQuery += ` AND (station = ? OR station = 'general')`;
-    params.push(station);
-  }
+  // Build search conditions - match full query OR any keyword/variant
+  const searchTerms = [fullQuery, ...uniqueVariants.slice(0, 8)];
   
-  sqlQuery += ` ORDER BY relevance DESC, CASE confidence WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END ASC LIMIT ?`;
-  params.push(String(limit));
-  
-  const rawDb = (db as any).$client || (db as any).session?.client;
-  if (rawDb && rawDb.execute) {
-    const [rows] = await rawDb.execute(sqlQuery, params);
-    return rows;
-  }
-  // Fallback to basic drizzle query
+  // Use drizzle's sql template for reliable execution
   const searchConditions = searchTerms.map(term => 
     or(
       sql`LOWER(${knowledgeEntries.question}) LIKE ${'%' + term + '%'}`,
@@ -671,16 +654,54 @@ export async function searchKnowledge(query: string, station?: string, limit = 2
       sql`LOWER(COALESCE(JSON_UNQUOTE(${knowledgeEntries.tags}), '')) LIKE ${'%' + term + '%'}`
     )
   );
-  const conditions = [or(...searchConditions)!];
+  
+  const conditions: any[] = [or(...searchConditions)!];
   if (station && station !== "general") {
     conditions.push(
       sql`(${knowledgeEntries.station} = ${station} OR ${knowledgeEntries.station} = 'general')`
     );
   }
-  return db.select().from(knowledgeEntries)
+  
+  const results = await db.select().from(knowledgeEntries)
     .where(and(...conditions))
-    .orderBy(desc(knowledgeEntries.confidence))
-    .limit(limit);
+    .limit(limit * 3); // Fetch more, then score and sort in JS
+  
+  // Score results in JavaScript for reliable relevance ranking
+  const scored = results.map(entry => {
+    let score = 0;
+    const q = (entry.question || '').toLowerCase();
+    const a = (entry.answer || '').toLowerCase();
+    const t = JSON.stringify(entry.tags || []).toLowerCase();
+    // Also check against a normalized version (no apostrophes/special chars)
+    const qNorm = q.replace(/['']/g, '');
+    const aNorm = a.replace(/['']/g, '');
+    const tNorm = t.replace(/['']/g, '');
+    const fullQueryNorm = fullQuery.replace(/['']/g, '');
+    
+    // Full query match in question = highest score
+    if (q.includes(fullQuery) || qNorm.includes(fullQueryNorm)) score += 100;
+    // Full query match in tags
+    if (t.includes(fullQuery) || tNorm.includes(fullQueryNorm)) score += 50;
+    // Full query match in answer
+    if (a.includes(fullQuery) || aNorm.includes(fullQueryNorm)) score += 20;
+    
+    // Individual word + variant matches
+    for (const variant of uniqueVariants) {
+      if (q.includes(variant) || qNorm.includes(variant.replace(/['']/g, ''))) score += 10;
+      if (t.includes(variant) || tNorm.includes(variant.replace(/['']/g, ''))) score += 5;
+      if (a.includes(variant) || aNorm.includes(variant.replace(/['']/g, ''))) score += 2;
+    }
+    
+    // Confidence boost
+    if (entry.confidence === 'high') score += 3;
+    else if (entry.confidence === 'medium') score += 1;
+    
+    return { ...entry, relevance: score };
+  });
+  
+  // Sort by relevance score descending, take top N
+  scored.sort((a, b) => b.relevance - a.relevance);
+  return scored.slice(0, limit);
 }
 
 export async function updateKnowledgeEntry(id: number, data: Partial<InsertKnowledgeEntry>) {

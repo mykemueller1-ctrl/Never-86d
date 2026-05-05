@@ -156,7 +156,7 @@ describe("Knowledge Brain", () => {
     expect(result.answer).toBe("Test AI response");
     expect(result.sourcesUsed).toBe(1);
     expect(result.station).toBe("pizza_line");
-    expect(searchKnowledge).toHaveBeenCalledWith("How do I make pizza dough?", "pizza_line", 15);
+    expect(searchKnowledge).toHaveBeenCalledWith("How do I make pizza dough?", "pizza_line", 25);
     expect(getRelevantMemories).toHaveBeenCalledWith(10);
     expect(invokeLLM).toHaveBeenCalledTimes(1);
     // Verify system prompt includes station and Community Tap context

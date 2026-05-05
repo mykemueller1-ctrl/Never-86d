@@ -8,23 +8,39 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
-const queryClient = new QueryClient();
+// Auth error messages that are expected when not logged in — suppress from console
+const AUTH_ERROR_MESSAGES = [
+  UNAUTHED_ERR_MSG,
+  "Staff session required. Please log in with your PIN.",
+  "Authentication required. Log in with PIN or OAuth.",
+];
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
-  if (!(error instanceof TRPCClientError)) return;
-  if (typeof window === "undefined") return;
-
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  if (!isUnauthorized) return;
-
-  window.location.href = getLoginUrl();
+const isAuthError = (error: unknown): boolean => {
+  if (!(error instanceof TRPCClientError)) return false;
+  return AUTH_ERROR_MESSAGES.some(msg => error.message.includes(msg));
 };
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Never retry auth errors — they're expected before login
+        if (isAuthError(error)) return false;
+        return failureCount < 3;
+      },
+      throwOnError: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
+    // Silently ignore auth errors — they're expected before login
+    if (isAuthError(error)) return;
     console.error("[API Query Error]", error);
   }
 });
@@ -32,7 +48,7 @@ queryClient.getQueryCache().subscribe(event => {
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
-    redirectToLoginIfUnauthorized(error);
+    if (isAuthError(error)) return;
     console.error("[API Mutation Error]", error);
   }
 });

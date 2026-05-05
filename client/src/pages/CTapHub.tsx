@@ -182,6 +182,7 @@ export default function CTapHub() {
 
   // Validate staff session against server on mount (handles expired JWT gracefully)
   const sessionCheck = trpc.staff.currentSession.useQuery(undefined, {
+    enabled: !!staffUser, // Only check session if we think we're logged in
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -205,16 +206,16 @@ export default function CTapHub() {
     { enabled: !!selectedDept && screen === "login" }
   );
   const checklistsQuery = trpc.checklists.list.useQuery(undefined, {
-    enabled: ["home", "checklist"].includes(screen)
+    enabled: !!staffUser && ["home", "checklist"].includes(screen)
   });
   const briefingQuery = trpc.briefing.latest.useQuery(undefined, {
-    enabled: ["briefing", "home"].includes(screen)
+    enabled: !!staffUser && ["briefing", "home"].includes(screen)
   });
   const issuesQuery = trpc.issues.open.useQuery(undefined, {
-    enabled: ["issues", "home", "command"].includes(screen)
+    enabled: !!staffUser && ["issues", "home", "command"].includes(screen)
   });
   const leaderboardQuery = trpc.gamification.leaderboard.useQuery(undefined, {
-    enabled: ["leaderboard", "home", "command"].includes(screen)
+    enabled: !!staffUser && ["leaderboard", "home", "command"].includes(screen)
   });
   const payoutsQuery = trpc.payouts.list.useQuery(undefined, {
     enabled: isManager && ["store-run", "command"].includes(screen)

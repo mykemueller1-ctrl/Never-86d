@@ -670,3 +670,11 @@
 - [x] Smoker mastery — wood selection, temp management, stall handling, bark development, rest protocol
 - [x] Prep mastery — knife skills, mise en place, batch cooking, FIFO, labeling, portioning
 - [x] Plating and presentation — plate composition, garnish, temperature, timing, expo communication
+
+## CRITICAL FIX: Ask AI Brain Rebuild
+- [ ] Fix promoted/suggested questions not working
+- [ ] Rebuild search function — current search misses most entries
+- [ ] Rebuild LLM system prompt — needs full context injection and expert-level answers
+- [ ] Make Ask AI answer ANY question about CTAP operations correctly
+- [ ] Fix auth errors on initial page load (queries firing before login)
+- [ ] End-to-end test with 20+ real questions

@@ -57,12 +57,14 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
   };
 
   const quickQuestions = station === "pizza_line"
-    ? ["How much cheese on a large?", "Do we have GF crust?", "Pizza cook time?"]
+    ? ["How much cheese goes on a large pizza?", "What temp is the deck oven set at?", "How do I make pizza dough from scratch?"]
     : station === "fry_line"
-    ? ["Fryer temperature?", "Wing sauce list?", "When to change oil?"]
+    ? ["What temperature should the fryer be at?", "What wing flavors do we have?", "How do I know when to change the fryer oil?"]
     : station === "bar"
-    ? ["How to make Old Fashioned?", "Moscow Mule recipe?", "Bar opening duties?"]
-    : ["What are today's specials?", "Food allergy procedure?", "Who are our vendors?"];
+    ? ["How do I make a Bloody Mary?", "What's our well vodka?", "How do I split a check on PDQ?"]
+    : station === "expo"
+    ? ["What's the food allergy procedure?", "How do I handle a food complaint?", "What are the food safe temps?"]
+    : ["What did we do in sales yesterday?", "Who do I call about a broken keg?", "What does 86'd mean?"];
 
   return (
     <div className="h-screen flex flex-col bg-black screen-enter">
