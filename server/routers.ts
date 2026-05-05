@@ -2212,3 +2212,4 @@ Respond in JSON with this exact structure:
   }),
 });
 export type AppRouter = typeof appRouter;
+// Session stability v2 - 8h timeout, 7d JWT, localStorage recovery
