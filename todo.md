@@ -567,3 +567,13 @@
 - [x] Build Security Records sheet UI — stats cards (events/lockouts/failed logins/PIN changes 24h), critical alert banner, recent lockouts panel, filterable event log with severity badges, resolve action
 - [x] Add PIN change UI to staff Profile screen — "Change PIN" button navigates to PinChangeScreen with current PIN verification + new PIN + confirmation + success state
 - [x] Write tests for security events and PIN change flow — 209 tests passing across 16 test files (security-records.test.ts added with 11 tests)
+
+## Wave 18 — Email/Password Login + Facebook OAuth + Phone Number
+- [x] Add email, passwordHash, facebookId, facebookAccessToken, profilePhotoUrl, lastLoginMethod fields to staff schema + DB migration pushed
+- [x] Build email/password registration endpoint (bcrypt 12 rounds, duplicate email check, security event logging, auto-session)
+- [x] Build email/password login endpoint (rate limited per IP+email, password verification, session cookie, security logging)
+- [x] Add Facebook/Meta OAuth social login flow (FB ID lookup → email linking → needsRegistration fallback → session cookie)
+- [x] Build multi-mode login UI with 3 tabs: PIN (quick shift) | Email (email+password) | New (registration + Facebook button)
+- [x] Phone number collection during registration (optional field, stored in staff table)
+- [x] Link existing staff accounts to Facebook via staffSessionProcedure (emailAuth.linkFacebook endpoint)
+- [x] Write tests for email login, registration, and Facebook OAuth flow — 218 tests passing across 17 test files (email-auth.test.ts added with 8 tests)

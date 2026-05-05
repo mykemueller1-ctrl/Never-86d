@@ -23,7 +23,8 @@ import {
   Eye, EyeOff, Plus, Receipt,
   Package, Loader2, UserCircle, Lock,
   Sparkles, Target, ThumbsUp, MessageSquare,
-  Brain, Gift, ShoppingCart, GraduationCap, Shield, Calendar
+  Brain, Gift, ShoppingCart, GraduationCap, Shield, Calendar,
+  Mail, Phone, KeyRound
 } from "lucide-react";
 import { AskBrainScreen, PhotoMissionsScreen, AchievementsScreen, RewardsShopScreen } from "./IntelligenceScreens";
 import OrderGuideScreen from "./OrderGuideScreen";
@@ -119,6 +120,15 @@ export default function CTapHub() {
   const [invoiceExtractedItems, setInvoiceExtractedItems] = useState<any[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingInvoicePhoto, setUploadingInvoicePhoto] = useState(false);
+  // Email/Password & Facebook login state
+  const [loginMode, setLoginMode] = useState<"pin" | "email" | "register">("pin");
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [firstNameInput, setFirstNameInput] = useState("");
+  const [lastNameInput, setLastNameInput] = useState("");
+  const [registerDept, setRegisterDept] = useState<Department>("kitchen_line");
+  const [registerRole, setRegisterRole] = useState("line_cook");
 
   const isManager = isManagerOrOwner(staffUser);
 
@@ -164,6 +174,9 @@ export default function CTapHub() {
 
   // ─── tRPC Mutations ──────────────────────────────────────────────
   const loginByPin = trpc.staff.loginByPin.useMutation();
+  const emailLogin = trpc.emailAuth.login.useMutation();
+  const emailRegister = trpc.emailAuth.register.useMutation();
+  const facebookLogin = trpc.emailAuth.facebookLogin.useMutation();
   const createFeedback = trpc.feedback.create.useMutation();
   const createDriverReport = trpc.driverReports.create.useMutation();
   const createIssue = trpc.issues.create.useMutation();
@@ -217,11 +230,92 @@ export default function CTapHub() {
         setScreen("welcome");
       } else {
         setPin("");
-        toast.error("Invalid PIN");
+        if (result.locked) toast.error(result.message || "Account locked");
+        else toast.error("Invalid PIN");
       }
     } catch {
       setPin("");
       toast.error("Login failed — check connection");
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    if (!emailInput || !passwordInput) { toast.error("Enter email and password"); return; }
+    try {
+      const result = await emailLogin.mutateAsync({ email: emailInput, password: passwordInput });
+      if (result.success && result.staff) {
+        setStaffUser(result.staff as SafeStaff);
+        setScreen("welcome");
+      } else {
+        if (result.locked) toast.error(result.message || "Account locked");
+        else toast.error(result.message || "Invalid credentials");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Login failed");
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!firstNameInput || !lastNameInput || !emailInput || !passwordInput) {
+      toast.error("Fill in all required fields"); return;
+    }
+    if (passwordInput.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    try {
+      const result = await emailRegister.mutateAsync({
+        firstName: firstNameInput,
+        lastName: lastNameInput,
+        email: emailInput,
+        phone: phoneInput || undefined,
+        password: passwordInput,
+        department: registerDept,
+        jobRole: registerRole as any,
+      });
+      if (result.success) {
+        toast.success("Account created!");
+        // Auto-login after registration
+        setLoginMode("pin");
+        setScreen("login");
+        setEmailInput(""); setPasswordInput(""); setPhoneInput("");
+        setFirstNameInput(""); setLastNameInput("");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Registration failed");
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    // Facebook SDK login flow
+    if (typeof window !== "undefined" && (window as any).FB) {
+      (window as any).FB.login((response: any) => {
+        if (response.authResponse) {
+          const { accessToken, userID } = response.authResponse;
+          // Get user profile
+          (window as any).FB.api('/me', { fields: 'name,email,picture.type(large)' }, async (profile: any) => {
+            try {
+              const result = await facebookLogin.mutateAsync({
+                facebookId: userID,
+                accessToken,
+                name: profile.name,
+                email: profile.email,
+                profilePhotoUrl: profile.picture?.data?.url,
+              });
+              if (result.success && result.staff) {
+                setStaffUser(result.staff as SafeStaff);
+                setScreen("welcome");
+              } else if (result.needsRegistration) {
+                toast.error("No account linked. Register first, then link Facebook in your profile.");
+                setLoginMode("register");
+              } else {
+                toast.error(result.message || "Facebook login failed");
+              }
+            } catch (e: any) {
+              toast.error(e?.message || "Facebook login failed");
+            }
+          });
+        }
+      }, { scope: 'email,public_profile' });
+    } else {
+      toast.error("Facebook SDK not loaded. Try again in a moment.");
     }
   };
 
@@ -251,111 +345,309 @@ export default function CTapHub() {
   );
 
   // ════════════════════════════════════════════════════════════════
-  // ─── LOGIN — Clean, spacious, intentional ──────────────────────
+  // ─── LOGIN — Multi-mode: PIN / Email / Register / Facebook ─────
   // ════════════════════════════════════════════════════════════════
   const LoginScreen = () => (
     <div className="h-screen bg-black flex flex-col overflow-y-auto screen-enter">
-      <div className="flex-1 flex flex-col items-center justify-start px-6 pt-16 pb-8">
+      <div className="flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-8">
         <div className="w-full max-w-sm">
           <h2 className="type-display text-white mb-2">START YOUR SHIFT</h2>
-          <p className="type-body text-zinc-500 mb-10">Select your department, then tap your name.</p>
+          <p className="type-body text-zinc-500 mb-6">Sign in to get started.</p>
 
-          {!selectedDept ? (
-            <div className="space-y-3">
-              {(Object.keys(DEPT_CONFIG) as Department[]).map((dept) => {
-                const cfg = DEPT_CONFIG[dept];
-                const Icon = cfg.icon;
-                return (
-                  <button key={dept} onClick={() => setSelectedDept(dept)}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl surface-interactive group">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
-                      <Icon size={18} className="text-amber-500" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="text-white font-semibold type-body">{cfg.label}</p>
-                      <p className="text-zinc-500 type-caption">{cfg.desc}</p>
-                    </div>
-                    <ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
+          {/* Login Mode Tabs */}
+          <div className="flex gap-1 mb-8 p-1 rounded-xl bg-zinc-900/80">
+            <button onClick={() => setLoginMode("pin")}
+              className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
+                loginMode === "pin" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
+              }`}>
+              <KeyRound size={14} className="inline mr-1.5 -mt-0.5" />PIN
+            </button>
+            <button onClick={() => setLoginMode("email")}
+              className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
+                loginMode === "email" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
+              }`}>
+              <Mail size={14} className="inline mr-1.5 -mt-0.5" />Email
+            </button>
+            <button onClick={() => setLoginMode("register")}
+              className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
+                loginMode === "register" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
+              }`}>
+              <Plus size={14} className="inline mr-1.5 -mt-0.5" />New
+            </button>
+          </div>
+
+          {/* ─── PIN LOGIN MODE ─── */}
+          {loginMode === "pin" && (
             <div className="screen-slide-in">
-              <button onClick={() => { setSelectedDept(null); setPin(""); }}
-                className="text-amber-500 type-caption mb-6 flex items-center gap-1 hover:text-amber-400 transition-colors">
-                <ChevronLeft size={16} /> All departments
-              </button>
-
-              {staffByDept.isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 size={20} className="text-amber-500 animate-spin" />
+              {!selectedDept ? (
+                <div className="space-y-3">
+                  <p className="type-caption text-zinc-500 mb-4">Select department or enter PIN directly</p>
+                  {(Object.keys(DEPT_CONFIG) as Department[]).map((dept) => {
+                    const cfg = DEPT_CONFIG[dept];
+                    const Icon = cfg.icon;
+                    return (
+                      <button key={dept} onClick={() => setSelectedDept(dept)}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl surface-interactive group">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
+                          <Icon size={18} className="text-amber-500" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <p className="text-white font-semibold type-body">{cfg.label}</p>
+                          <p className="text-zinc-500 type-caption">{cfg.desc}</p>
+                        </div>
+                        <ChevronRight size={16} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                      </button>
+                    );
+                  })}
+                  {/* Quick PIN pad below departments */}
+                  <div className="surface-base p-5 mt-6">
+                    <p className="type-micro text-zinc-500 mb-4">Quick PIN login</p>
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="flex gap-2.5 flex-1 justify-center">
+                        {[0,1,2,3].map(i => (
+                          <div key={i} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold transition-all duration-200 ${
+                            pin.length > i ? 'bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/40' : 'bg-zinc-800/50 text-zinc-700'
+                          }`}>
+                            {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={() => setShowPin(!showPin)} className="text-zinc-600 p-2 hover:text-zinc-400 transition-colors">
+                        {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
+                        <button key={i} onClick={() => {
+                          if (n === "\u232b") setPin(p => p.slice(0, -1));
+                          else if (n !== null && pin.length < 4) {
+                            const newPin = pin + n;
+                            setPin(newPin);
+                            if (newPin.length === 4) handlePinLogin(newPin);
+                          }
+                        }} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
+                          n === null ? 'invisible' : 'bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/60 active:bg-amber-500 active:text-black active:scale-95'
+                        }`}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    {loginByPin.isPending && (
+                      <div className="flex items-center justify-center mt-4">
+                        <Loader2 size={16} className="text-amber-500 animate-spin" />
+                        <span className="text-zinc-500 type-caption ml-2">Verifying...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-2 mb-8 max-h-[240px] overflow-y-auto">
-                  {deptStaff.filter(s => s.status === "active").map(s => (
-                    <button key={s.id} onClick={() => { setStaffUser(s as SafeStaff); setScreen("welcome"); }}
-                      className="w-full flex items-center gap-4 p-3.5 rounded-xl surface-interactive group">
-                      <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center">
-                        <span className="text-amber-500 type-caption font-semibold">{s.firstName.charAt(0)}</span>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <span className="text-white type-body font-medium">{staffDisplayName(s as SafeStaff)}</span>
-                        <span className="text-zinc-600 type-caption ml-2">{roleLabel(s.jobRole)}</span>
-                      </div>
-                      {s.isKeyEmployee && (
-                        <span className="text-amber-500 type-micro px-2 py-0.5 rounded-full bg-amber-500/10">KEY</span>
+                <div className="screen-slide-in">
+                  <button onClick={() => { setSelectedDept(null); setPin(""); }}
+                    className="text-amber-500 type-caption mb-6 flex items-center gap-1 hover:text-amber-400 transition-colors">
+                    <ChevronLeft size={16} /> All departments
+                  </button>
+                  {staffByDept.isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 size={20} className="text-amber-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2 mb-8 max-h-[240px] overflow-y-auto">
+                      {deptStaff.filter(s => s.status === "active").map(s => (
+                        <button key={s.id} onClick={() => { setStaffUser(s as SafeStaff); setScreen("welcome"); }}
+                          className="w-full flex items-center gap-4 p-3.5 rounded-xl surface-interactive group">
+                          <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center">
+                            <span className="text-amber-500 type-caption font-semibold">{s.firstName.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 text-left">
+                            <span className="text-white type-body font-medium">{staffDisplayName(s as SafeStaff)}</span>
+                            <span className="text-zinc-600 type-caption ml-2">{roleLabel(s.jobRole)}</span>
+                          </div>
+                          {s.isKeyEmployee && (
+                            <span className="text-amber-500 type-micro px-2 py-0.5 rounded-full bg-amber-500/10">KEY</span>
+                          )}
+                        </button>
+                      ))}
+                      {deptStaff.filter(s => s.status === "active").length === 0 && (
+                        <p className="text-zinc-500 type-body text-center py-8">No active staff in this department</p>
                       )}
-                    </button>
-                  ))}
-                  {deptStaff.filter(s => s.status === "active").length === 0 && (
-                    <p className="text-zinc-500 type-body text-center py-8">No active staff in this department</p>
+                    </div>
                   )}
+                  {/* PIN Entry */}
+                  <div className="surface-base p-5">
+                    <p className="type-micro text-zinc-500 mb-4">Enter PIN</p>
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="flex gap-2.5 flex-1 justify-center">
+                        {[0,1,2,3].map(i => (
+                          <div key={i} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold transition-all duration-200 ${
+                            pin.length > i ? 'bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/40' : 'bg-zinc-800/50 text-zinc-700'
+                          }`}>
+                            {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={() => setShowPin(!showPin)} className="text-zinc-600 p-2 hover:text-zinc-400 transition-colors">
+                        {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
+                        <button key={i} onClick={() => {
+                          if (n === "\u232b") setPin(p => p.slice(0, -1));
+                          else if (n !== null && pin.length < 4) {
+                            const newPin = pin + n;
+                            setPin(newPin);
+                            if (newPin.length === 4) handlePinLogin(newPin);
+                          }
+                        }} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
+                          n === null ? 'invisible' : 'bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/60 active:bg-amber-500 active:text-black active:scale-95'
+                        }`}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    {loginByPin.isPending && (
+                      <div className="flex items-center justify-center mt-4">
+                        <Loader2 size={16} className="text-amber-500 animate-spin" />
+                        <span className="text-zinc-500 type-caption ml-2">Verifying...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {/* PIN Entry — elegant, minimal */}
-              <div className="surface-base p-5">
-                <p className="type-micro text-zinc-500 mb-4">Or enter PIN</p>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex gap-2.5 flex-1 justify-center">
-                    {[0,1,2,3].map(i => (
-                      <div key={i} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold transition-all duration-200 ${
-                        pin.length > i
-                          ? 'bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/40'
-                          : 'bg-zinc-800/50 text-zinc-700'
-                      }`}>
-                        {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
-                      </div>
-                    ))}
+          {/* ─── EMAIL LOGIN MODE ─── */}
+          {loginMode === "email" && (
+            <div className="screen-slide-in space-y-4">
+              <div className="surface-base p-6 space-y-4">
+                <div>
+                  <label className="type-micro text-zinc-500 mb-1.5 block">Email</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input type="email" value={emailInput} onChange={e => setEmailInput(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-3 pl-10 pr-4 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all" />
                   </div>
-                  <button onClick={() => setShowPin(!showPin)} className="text-zinc-600 p-2 hover:text-zinc-400 transition-colors">
-                    {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
-                    <button key={i} onClick={() => {
-                      if (n === "\u232b") setPin(p => p.slice(0, -1));
-                      else if (n !== null && pin.length < 4) {
-                        const newPin = pin + n;
-                        setPin(newPin);
-                        if (newPin.length === 4) handlePinLogin(newPin);
-                      }
-                    }} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
-                      n === null ? 'invisible' : 'bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/60 active:bg-amber-500 active:text-black active:scale-95'
-                    }`}>
-                      {n}
+                <div>
+                  <label className="type-micro text-zinc-500 mb-1.5 block">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input type={showPin ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)}
+                      placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                      onKeyDown={e => { if (e.key === "Enter") handleEmailLogin(); }}
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-3 pl-10 pr-10 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all" />
+                    <button onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400">
+                      {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
-                  ))}
-                </div>
-                {loginByPin.isPending && (
-                  <div className="flex items-center justify-center mt-4">
-                    <Loader2 size={16} className="text-amber-500 animate-spin" />
-                    <span className="text-zinc-500 type-caption ml-2">Verifying...</span>
                   </div>
-                )}
+                </div>
+                <button onClick={handleEmailLogin} disabled={emailLogin.isPending}
+                  className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-semibold type-body hover:bg-amber-400 active:scale-[0.98] transition-all disabled:opacity-50">
+                  {emailLogin.isPending ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Sign In"}
+                </button>
               </div>
+
+              {/* Facebook Login Button */}
+              <button onClick={handleFacebookLogin} disabled={facebookLogin.isPending}
+                className="w-full py-3.5 rounded-xl bg-[#1877F2] text-white font-semibold type-body hover:bg-[#166FE5] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                {facebookLogin.isPending ? "Connecting..." : "Continue with Facebook"}
+              </button>
+
+              <p className="text-center type-caption text-zinc-600">
+                Don't have an account?{" "}
+                <button onClick={() => setLoginMode("register")} className="text-amber-500 hover:text-amber-400 transition-colors">Create one</button>
+              </p>
+            </div>
+          )}
+
+          {/* ─── REGISTER MODE ─── */}
+          {loginMode === "register" && (
+            <div className="screen-slide-in space-y-4">
+              <div className="surface-base p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="type-micro text-zinc-500 mb-1 block">First Name *</label>
+                    <input type="text" value={firstNameInput} onChange={e => setFirstNameInput(e.target.value)}
+                      placeholder="John"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 px-3 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                  </div>
+                  <div>
+                    <label className="type-micro text-zinc-500 mb-1 block">Last Name *</label>
+                    <input type="text" value={lastNameInput} onChange={e => setLastNameInput(e.target.value)}
+                      placeholder="Smith"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 px-3 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                  </div>
+                </div>
+                <div>
+                  <label className="type-micro text-zinc-500 mb-1 block">Email *</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input type="email" value={emailInput} onChange={e => setEmailInput(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 pl-10 pr-3 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                  </div>
+                </div>
+                <div>
+                  <label className="type-micro text-zinc-500 mb-1 block">Phone</label>
+                  <div className="relative">
+                    <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input type="tel" value={phoneInput} onChange={e => setPhoneInput(e.target.value)}
+                      placeholder="(515) 555-0123"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 pl-10 pr-3 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                  </div>
+                </div>
+                <div>
+                  <label className="type-micro text-zinc-500 mb-1 block">Password * (min 8 chars)</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input type={showPin ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)}
+                      placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 pl-10 pr-10 text-white type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50" />
+                    <button onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400">
+                      {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="type-micro text-zinc-500 mb-1 block">Department</label>
+                    <select value={registerDept} onChange={e => setRegisterDept(e.target.value as Department)}
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 px-3 text-white type-body focus:outline-none focus:ring-1 focus:ring-amber-500/50">
+                      {(Object.keys(DEPT_CONFIG) as Department[]).map(d => (
+                        <option key={d} value={d}>{DEPT_CONFIG[d].label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="type-micro text-zinc-500 mb-1 block">Role</label>
+                    <select value={registerRole} onChange={e => setRegisterRole(e.target.value)}
+                      className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl py-2.5 px-3 text-white type-body focus:outline-none focus:ring-1 focus:ring-amber-500/50">
+                      <option value="line_cook">Line Cook</option>
+                      <option value="pizza">Pizza</option>
+                      <option value="bartender">Bartender</option>
+                      <option value="server">Server</option>
+                      <option value="wait_staff">Wait Staff</option>
+                      <option value="driver">Driver</option>
+                      <option value="dishwasher">Dishwasher</option>
+                      <option value="kitchen_key">Kitchen Key</option>
+                      <option value="bar_manager">Bar Manager</option>
+                      <option value="kitchen_manager">Kitchen Manager</option>
+                      <option value="key_manager">Key Manager</option>
+                    </select>
+                  </div>
+                </div>
+                <button onClick={handleRegister} disabled={emailRegister.isPending}
+                  className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-semibold type-body hover:bg-amber-400 active:scale-[0.98] transition-all disabled:opacity-50 mt-2">
+                  {emailRegister.isPending ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Create Account"}
+                </button>
+              </div>
+              <p className="text-center type-caption text-zinc-600">
+                Already have an account?{" "}
+                <button onClick={() => setLoginMode("email")} className="text-amber-500 hover:text-amber-400 transition-colors">Sign in</button>
+              </p>
             </div>
           )}
         </div>

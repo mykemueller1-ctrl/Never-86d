@@ -77,7 +77,10 @@ import {
   getEodDigestData,
   // Security Events
   logSecurityEvent, getSecurityEvents, getSecurityEventsByStaff, getRecentLockouts, getSecurityStats, resolveSecurityEvent, changeStaffPin,
+  // Email/Password & Facebook Auth
+  getStaffByEmail, getStaffByFacebookId, registerStaffWithEmail, updateStaffPassword, linkFacebookToStaff, updateLastLoginMethod,
 } from "./db";
+import bcrypt from "bcryptjs";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import { processAchievementEvent } from "./achievementEngine";
@@ -1853,6 +1856,257 @@ Respond in JSON with this exact structure:
       eventId: z.number(),
       resolvedBy: z.string(),
     })).mutation(({ input }) => resolveSecurityEvent(input.eventId, input.resolvedBy)),
+  }),
+
+  // ============ EMAIL/PASSWORD & FACEBOOK AUTH ============
+  emailAuth: router({
+    // Register a new staff account with email/password
+    register: publicProcedure.input(z.object({
+      firstName: z.string().min(1).max(100),
+      lastName: z.string().min(1).max(100),
+      email: z.string().email().max(320),
+      phone: z.string().min(7).max(20).optional(),
+      password: z.string().min(8).max(128),
+      department: z.enum(["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]),
+      jobRole: z.enum(["owner", "key_manager", "kitchen_manager", "kitchen_key", "bartender", "bar_manager", "server", "wait_staff", "driver", "line_cook", "pizza", "dishwasher"]),
+    })).mutation(async ({ input, ctx }) => {
+      const clientIp = getClientIp(ctx.req);
+      const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
+
+      // Check if email already exists
+      const existing = await getStaffByEmail(input.email);
+      if (existing) {
+        logSecurityEvent({
+          eventType: "login_failed",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ reason: "duplicate_email", email: input.email }),
+          severity: "warning",
+        });
+        throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists. Try logging in instead." });
+      }
+
+      // Hash password with bcrypt (12 rounds)
+      const passwordHash = await bcrypt.hash(input.password, 12);
+
+      // Create the staff record
+      const staffId = await registerStaffWithEmail({
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        phone: input.phone,
+        passwordHash,
+        department: input.department,
+        jobRole: input.jobRole,
+      });
+
+      // Log registration event
+      logSecurityEvent({
+        eventType: "login_success",
+        staffId: staffId as number,
+        staffName: `${input.firstName} ${input.lastName}`,
+        ipAddress: clientIp,
+        userAgent,
+        details: JSON.stringify({ method: "email_register" }),
+        severity: "info",
+      });
+
+      // Set staff session cookie
+      const staffToken = await signStaffSession(staffId as number);
+      const cookieOpts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+
+      return { success: true, staffId, message: "Account created successfully!" };
+    }),
+
+    // Login with email/password
+    login: publicProcedure.input(z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+    })).mutation(async ({ input, ctx }) => {
+      const clientIp = getClientIp(ctx.req);
+      const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
+
+      // Rate limit email login attempts (same IP-based limiter)
+      const rateCheck = checkPinRateLimit(clientIp, `email:${input.email}`);
+      if (!rateCheck.allowed) {
+        logSecurityEvent({
+          eventType: "lockout_triggered",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ method: "email", email: input.email }),
+          severity: "critical",
+        });
+        return { success: false as const, staff: null, locked: true, message: rateCheck.message };
+      }
+
+      // Find staff by email
+      const found = await getStaffByEmail(input.email);
+      if (!found || !found.passwordHash) {
+        recordFailedAttempt(clientIp, `email:${input.email}`);
+        logSecurityEvent({
+          eventType: "login_failed",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ method: "email", email: input.email, reason: "not_found" }),
+          severity: "warning",
+        });
+        return { success: false as const, staff: null, locked: false, message: "Invalid email or password." };
+      }
+
+      // Verify password
+      const passwordValid = await bcrypt.compare(input.password, found.passwordHash);
+      if (!passwordValid) {
+        recordFailedAttempt(clientIp, `email:${input.email}`);
+        logSecurityEvent({
+          eventType: "login_failed",
+          staffId: found.id,
+          staffName: `${found.firstName} ${found.lastName}`,
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ method: "email", reason: "wrong_password" }),
+          severity: "warning",
+        });
+        return { success: false as const, staff: null, locked: false, message: "Invalid email or password." };
+      }
+
+      // Success!
+      recordSuccessfulLogin(clientIp);
+      await updateLastLoginMethod(found.id, "email");
+      logSecurityEvent({
+        eventType: "login_success",
+        staffId: found.id,
+        staffName: `${found.firstName} ${found.lastName}`,
+        ipAddress: clientIp,
+        userAgent,
+        details: JSON.stringify({ method: "email" }),
+        severity: "info",
+      });
+
+      // Set staff session cookie
+      const staffToken = await signStaffSession(found.id);
+      const cookieOpts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+
+      const { pin, phone, email, passwordHash, facebookAccessToken, facebookId, ...safeStaff } = found;
+      processAchievementEvent(found.id, "shift_login").catch(() => {});
+      return { success: true as const, staff: safeStaff, locked: false, message: null };
+    }),
+
+    // Facebook/Meta OAuth login
+    facebookLogin: publicProcedure.input(z.object({
+      facebookId: z.string().min(1),
+      accessToken: z.string().min(1),
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+      profilePhotoUrl: z.string().url().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const clientIp = getClientIp(ctx.req);
+      const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
+
+      // Look up existing staff by Facebook ID
+      let found = await getStaffByFacebookId(input.facebookId);
+
+      if (!found && input.email) {
+        // Try to link by email if Facebook account not yet linked
+        const byEmail = await getStaffByEmail(input.email);
+        if (byEmail) {
+          // Link Facebook to existing account
+          await linkFacebookToStaff(byEmail.id, input.facebookId, input.accessToken, input.profilePhotoUrl);
+          found = await getStaffByFacebookId(input.facebookId);
+        }
+      }
+
+      if (!found) {
+        // No existing account — return error suggesting registration
+        logSecurityEvent({
+          eventType: "login_failed",
+          ipAddress: clientIp,
+          userAgent,
+          details: JSON.stringify({ method: "facebook", facebookId: input.facebookId, reason: "no_linked_account" }),
+          severity: "info",
+        });
+        return {
+          success: false as const,
+          staff: null,
+          needsRegistration: true,
+          message: "No account linked to this Facebook profile. Please register first or link your Facebook in your profile settings.",
+        };
+      }
+
+      // Update access token and photo
+      await linkFacebookToStaff(found.id, input.facebookId, input.accessToken, input.profilePhotoUrl);
+      await updateLastLoginMethod(found.id, "facebook");
+
+      // Log success
+      logSecurityEvent({
+        eventType: "login_success",
+        staffId: found.id,
+        staffName: `${found.firstName} ${found.lastName}`,
+        ipAddress: clientIp,
+        userAgent,
+        details: JSON.stringify({ method: "facebook" }),
+        severity: "info",
+      });
+
+      // Set staff session cookie
+      const staffToken = await signStaffSession(found.id);
+      const cookieOpts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(STAFF_COOKIE, staffToken, { ...cookieOpts, maxAge: 12 * 60 * 60 * 1000 });
+
+      const { pin, phone, email, passwordHash, facebookAccessToken, facebookId: fbId, ...safeStaff } = found;
+      processAchievementEvent(found.id, "shift_login").catch(() => {});
+      return { success: true as const, staff: safeStaff, needsRegistration: false, message: null };
+    }),
+
+    // Link Facebook to existing staff account (requires active session)
+    linkFacebook: staffSessionProcedure.input(z.object({
+      facebookId: z.string().min(1),
+      accessToken: z.string().min(1),
+      profilePhotoUrl: z.string().url().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      // Check if this Facebook ID is already linked to another account
+      const existing = await getStaffByFacebookId(input.facebookId);
+      if (existing && existing.id !== ctx.staffId) {
+        throw new TRPCError({ code: "CONFLICT", message: "This Facebook account is already linked to another staff member." });
+      }
+      await linkFacebookToStaff(ctx.staffId, input.facebookId, input.accessToken, input.profilePhotoUrl);
+      return { success: true, message: "Facebook account linked successfully!" };
+    }),
+
+    // Set/update password for existing staff (requires active session)
+    setPassword: staffSessionProcedure.input(z.object({
+      currentPassword: z.string().optional(), // Optional if they don't have a password yet
+      newPassword: z.string().min(8).max(128),
+    })).mutation(async ({ input, ctx }) => {
+      const staffRecord = await getStaffByIdInternal(ctx.staffId);
+      if (!staffRecord) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // If they already have a password, verify the current one
+      if (staffRecord.passwordHash && input.currentPassword) {
+        const valid = await bcrypt.compare(input.currentPassword, staffRecord.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+        }
+      } else if (staffRecord.passwordHash && !input.currentPassword) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Current password is required." });
+      }
+
+      const newHash = await bcrypt.hash(input.newPassword, 12);
+      await updateStaffPassword(ctx.staffId, newHash);
+
+      logSecurityEvent({
+        eventType: "pin_changed",
+        staffId: ctx.staffId,
+        staffName: `${staffRecord.firstName} ${staffRecord.lastName}`,
+        ipAddress: getClientIp(ctx.req),
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        details: JSON.stringify({ type: "password_changed" }),
+        severity: "info",
+      });
+
+      return { success: true, message: "Password updated successfully!" };
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

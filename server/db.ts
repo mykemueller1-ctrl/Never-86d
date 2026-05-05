@@ -59,10 +59,10 @@ export async function getDb() {
 // ============ SAFE PROJECTION ============
 // Strip sensitive fields (pin, phone, email) from staff records before sending to client
 
-type SafeStaff = Omit<Staff, "pin" | "phone" | "email">;
+type SafeStaff = Omit<Staff, "pin" | "phone" | "email" | "passwordHash" | "facebookAccessToken" | "facebookId">;
 
 function stripSensitiveFields(s: Staff): SafeStaff {
-  const { pin, phone, email, ...safe } = s;
+  const { pin, phone, email, passwordHash, facebookAccessToken, facebookId, ...safe } = s;
   return safe;
 }
 
@@ -3409,4 +3409,76 @@ export async function changeStaffPin(staffId: number, newPin: string): Promise<v
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(staff).set({ pin: newPin }).where(eq(staff.id, staffId));
+}
+
+// ============ EMAIL/PASSWORD AUTH HELPERS ============
+
+/** Get staff by email (for email login) - returns full record including passwordHash */
+export async function getStaffByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(staff).where(eq(staff.email, email.toLowerCase().trim())).limit(1);
+  return result[0];
+}
+
+/** Get staff by Facebook ID (for Facebook OAuth login) */
+export async function getStaffByFacebookId(facebookId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(staff).where(eq(staff.facebookId, facebookId)).limit(1);
+  return result[0];
+}
+
+/** Register a new staff member with email/password */
+export async function registerStaffWithEmail(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  passwordHash: string;
+  department: string;
+  jobRole: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(staff).values({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email.toLowerCase().trim(),
+    phone: data.phone || null,
+    passwordHash: data.passwordHash,
+    department: data.department as any,
+    jobRole: data.jobRole as any,
+    isKeyEmployee: false,
+    canAuthPayouts: false,
+    status: "active",
+    lastLoginMethod: "email",
+  });
+  return result[0].insertId;
+}
+
+/** Update staff password hash */
+export async function updateStaffPassword(staffId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staff).set({ passwordHash }).where(eq(staff.id, staffId));
+}
+
+/** Link Facebook account to existing staff */
+export async function linkFacebookToStaff(staffId: number, facebookId: string, accessToken: string, profilePhotoUrl?: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staff).set({
+    facebookId,
+    facebookAccessToken: accessToken,
+    profilePhotoUrl: profilePhotoUrl || undefined,
+    lastLoginMethod: "facebook",
+  }).where(eq(staff.id, staffId));
+}
+
+/** Update last login method */
+export async function updateLastLoginMethod(staffId: number, method: "pin" | "email" | "facebook") {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staff).set({ lastLoginMethod: method }).where(eq(staff.id, staffId));
 }
