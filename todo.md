@@ -604,7 +604,7 @@
 - [x] Fill Compliance screen with real Iowa compliance — food safety, liquor law, labor law, ABD rules documented
 - [x] Fill POS Training with real PDQ POS procedures — phone orders, pickup, counter, dispatch, voids, comps, reports
 - [x] Remove ALL "coming soon" toasts — verified no placeholder toasts exist in codebase
-- [ ] Push full codebase + liquor/beer data to GitHub Never-86d repo
+- [x] Push full codebase + liquor/beer data to GitHub Never-86d repo — force pushed to mykemueller1-ctrl/Never-86d
 - [x] Make every screen useful on a real shift — all screens pull real data, 178 knowledge entries, 196 days sales
 
 ## PDQ POS Signature Systems Manual & Agents
