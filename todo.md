@@ -650,3 +650,23 @@
 - [x] Fix aggressive 30-minute inactivity timeout — extended to 8 hours (full shift)
 - [x] Extend staff JWT session from 12h to 7 days
 - [x] Make session recovery smoother — localStorage persistence + server validation on mount (no login flash)
+## GEO/AEO & Schedule Sync
+- [x] Connect Google Sheets schedule data — pulled bar schedule (X1 WEEK) and kitchen crew schedule, seeded 55 shifts
+- [x] Seed GEO knowledge — address, hours, delivery area, competitors, Google Business Profile, community events, nearby businesses
+- [x] Seed AEO knowledge — structured answers for "best pizza fort dodge", "wings fort dodge", "bars open late", "delivery", "Iowa Chop"
+- [x] Seed schedule intelligence — how scheduling works, time off requests, bar staff roster, kitchen staff roster
+- [x] Seed Tom/Ashley management development paths with specific responsibilities and growth areas
+- [x] Seed weekly sales patterns and labor cost targets by day
+- [x] Seed security/lockdown procedures — cash handling, building security, data security, intoxication policy
+- [x] Build Google Sheets sync endpoint (/api/scheduled/sync-schedule) for automated schedule pulls
+- [x] Seed Fort Dodge vendor contacts — Budweiser/DMB, Hughes, Fort Dodge Dist, Gailey HVAC, Green Amusement, Hy-Vee Wine & Spirits, Hy-Vee grocery
+- [x] Total knowledge entries: 389 across all categories
+- [x] All 218 tests passing, pushed to GitHub
+
+## Chef Expert & Culinary Mastery
+- [x] Fry station mastery — oil temps, basket technique, shake timing, filter schedule, troubleshooting
+- [x] Grill station mastery — zone cooking, sear technique, resting, temp targets, cross-contamination
+- [x] Pizza station mastery — dough handling, sauce spread, cheese distribution, oven rotation, cut technique
+- [x] Smoker mastery — wood selection, temp management, stall handling, bark development, rest protocol
+- [x] Prep mastery — knife skills, mise en place, batch cooking, FIFO, labeling, portioning
+- [x] Plating and presentation — plate composition, garnish, temperature, timing, expo communication
