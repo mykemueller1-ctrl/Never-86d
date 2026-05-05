@@ -625,3 +625,23 @@
 - [x] Improved searchKnowledge function — now searches tags field + splits multi-word queries into individual keywords for broader matching
 - [x] Total: 178 knowledge entries across 9 stations and 10 categories
 - [x] All 218 tests passing across 17 test files
+
+## Drink Visuals, Hospitality & Split Check Training
+- [ ] Seed cocktail visual knowledge (what each drink looks like, glassware, garnish, color, presentation)
+- [ ] Seed beer/keg identification (tap handles, bottle labels, keg types, draft system)
+- [ ] Seed liquor bottle identification (what each bottle looks like, label colors, shelf position)
+- [ ] Seed classic cocktail recipes with full build instructions (Screwdriver, Bloody Mary, Captain & Coke, etc.)
+- [ ] Seed split check / tab management procedures on PDQ POS
+- [ ] Seed full hospitality training (table approach, greeting, reading the room, timing, check-back)
+- [ ] Seed upselling techniques with specific examples and scripts
+- [ ] Seed complaint handling, comp procedures, and guest recovery
+
+## BBQ Mastery & Pizza Excellence Training
+- [ ] Seed competition-level BBQ wing techniques (smoke temps, times, sauces, crispy finish)
+- [ ] Seed rib mastery (3-2-1 method, temp control, bark, wrap vs no-wrap, sauce timing)
+- [ ] Seed brisket excellence (trim, rub, smoke temp, stall, wrap, rest, slicing)
+- [ ] Seed pork butt/pulled pork (low and slow, internal temp, bark, pulling technique)
+- [ ] Seed pizza excellence (dough hydration, oven temp, sauce technique, cheese distribution, timing)
+- [ ] Seed PFG programs (CustomerFirst ordering, Performance Elite Rewards, One Source)
+- [ ] Seed Sysco programs (ordering platform, rebates, Sysco Perks)
+- [ ] Seed Pepsi systems (fountain equipment, ordering, rebates, marketing support)

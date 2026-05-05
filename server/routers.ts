@@ -576,7 +576,7 @@ export const appRouter = router({
         salesContext += `\nRecent trend: ${trendSummary}`;
       }
 
-      const knowledgeContext = relevantKnowledge.map(k =>
+      const knowledgeContext = relevantKnowledge.map((k: any) =>
         `[${k.station}/${k.category}] Q: ${k.question}\nA: ${k.answer} (confidence: ${k.confidence})`
       ).join("\n\n");
 

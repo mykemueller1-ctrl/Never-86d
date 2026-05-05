@@ -622,19 +622,56 @@ export async function getKnowledgeByCategory(category: string, limit = 50) {
 export async function searchKnowledge(query: string, station?: string, limit = 20) {
   const db = await getDb();
   if (!db) return [];
-  // Search by full query first, then by individual keywords for broader matching
-  const searchTerms = [query];
-  // Split into keywords (2+ chars) for broader matching
+  // Use raw SQL for relevance-scored search
+  // Prioritize: exact question match > question keyword > tags > answer keyword
   const words = query.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-  if (words.length > 1) {
-    searchTerms.push(...words.slice(0, 4)); // Add up to 4 individual keywords
+  const fullQuery = query.toLowerCase();
+  
+  // Build WHERE conditions - match on full query OR any keyword
+  const searchTerms = [fullQuery, ...words.slice(0, 5)];
+  const whereParts = searchTerms.map(() => 
+    `(LOWER(question) LIKE CONCAT('%', ?, '%') OR LOWER(answer) LIKE CONCAT('%', ?, '%') OR LOWER(COALESCE(JSON_UNQUOTE(tags), '')) LIKE CONCAT('%', ?, '%'))`
+  ).join(' OR ');
+  
+  // Build relevance score - question matches score highest
+  const scoreParts = searchTerms.map(() => 
+    `(CASE WHEN LOWER(question) LIKE CONCAT('%', ?, '%') THEN 10 ELSE 0 END) + (CASE WHEN LOWER(COALESCE(JSON_UNQUOTE(tags), '')) LIKE CONCAT('%', ?, '%') THEN 5 ELSE 0 END) + (CASE WHEN LOWER(answer) LIKE CONCAT('%', ?, '%') THEN 2 ELSE 0 END)`
+  ).join(' + ');
+  
+  let sqlQuery = `SELECT *, (${scoreParts}) as relevance FROM knowledge_entries WHERE (${whereParts})`;
+  const params: string[] = [];
+  
+  // Score params (3 per term)
+  for (const term of searchTerms) {
+    params.push(term, term, term);
   }
+  // Where params (3 per term)
+  for (const term of searchTerms) {
+    params.push(term, term, term);
+  }
+  
+  if (station && station !== "general") {
+    sqlQuery += ` AND (station = ? OR station = 'general')`;
+    params.push(station);
+  }
+  
+  sqlQuery += ` ORDER BY relevance DESC, CASE confidence WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END ASC LIMIT ?`;
+  params.push(String(limit));
+  
+  const rawDb = (db as any).$client || (db as any).session?.client;
+  if (rawDb && rawDb.execute) {
+    const [rows] = await rawDb.execute(sqlQuery, params);
+    return rows;
+  }
+  // Fallback to basic drizzle query
   const searchConditions = searchTerms.map(term => 
-    sql`(${knowledgeEntries.question} LIKE ${'%' + term + '%'} OR ${knowledgeEntries.answer} LIKE ${'%' + term + '%'} OR ${knowledgeEntries.tags} LIKE ${'%' + term + '%'})`
+    or(
+      sql`LOWER(${knowledgeEntries.question}) LIKE ${'%' + term + '%'}`,
+      sql`LOWER(${knowledgeEntries.answer}) LIKE ${'%' + term + '%'}`,
+      sql`LOWER(COALESCE(JSON_UNQUOTE(${knowledgeEntries.tags}), '')) LIKE ${'%' + term + '%'}`
+    )
   );
-  const conditions = [
-    or(...searchConditions)!,
-  ];
+  const conditions = [or(...searchConditions)!];
   if (station && station !== "general") {
     conditions.push(
       sql`(${knowledgeEntries.station} = ${station} OR ${knowledgeEntries.station} = 'general')`
