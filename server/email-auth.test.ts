@@ -21,6 +21,10 @@ vi.mock("./db", () => ({
   getStaffByDepartment: vi.fn().mockResolvedValue([]),
   seedStaffData: vi.fn(),
   syncStaffFromDriveData: vi.fn(),
+  normalizePhoneNumber: vi.fn((phone: string) => "+1" + phone.replace(/\D/g, "").slice(-10)),
+  createPasswordResetToken: vi.fn().mockResolvedValue({ token: "a".repeat(64), expiresAt: new Date() }),
+  validateResetToken: vi.fn().mockResolvedValue({ staffId: 1, id: 1 }),
+  markResetTokenUsed: vi.fn(),
 }));
 
 vi.mock("./rateLimiter", () => ({

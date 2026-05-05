@@ -1,4 +1,4 @@
-import { eq, desc, asc, and, gte, lte, or, sql, isNotNull } from "drizzle-orm";
+import { eq, desc, asc, and, gte, lte, or, sql, isNotNull, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -36,6 +36,7 @@ import {
   shiftSwapRequests, InsertShiftSwapRequest,
   timeEntries, InsertTimeEntry,
   securityEvents, InsertSecurityEvent,
+  passwordResetTokens,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -3481,4 +3482,46 @@ export async function updateLastLoginMethod(staffId: number, method: "pin" | "em
   const db = await getDb();
   if (!db) return;
   await db.update(staff).set({ lastLoginMethod: method }).where(eq(staff.id, staffId));
+}
+
+
+// ============ FORGOT PASSWORD ============
+import crypto from "crypto";
+
+export async function createPasswordResetToken(staffId: number): Promise<{ token: string; expiresAt: Date } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  await db.insert(passwordResetTokens).values({ staffId, token, expiresAt });
+  return { token, expiresAt };
+}
+
+export async function validateResetToken(token: string): Promise<{ staffId: number; id: number } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(passwordResetTokens)
+    .where(and(eq(passwordResetTokens.token, token), isNull(passwordResetTokens.usedAt)))
+    .limit(1);
+  if (!row) return null;
+  // Check expiry
+  if (new Date() > row.expiresAt) return null;
+  return { staffId: row.staffId, id: row.id };
+}
+
+export async function markResetTokenUsed(tokenId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, tokenId));
+}
+
+export function normalizePhoneNumber(phone: string): string {
+  // Strip all non-digit characters
+  let digits = phone.replace(/\D/g, "");
+  // If 10 digits (US), prepend +1
+  if (digits.length === 10) digits = "1" + digits;
+  // If 11 digits starting with 1 (US), format as +1XXXXXXXXXX
+  if (digits.length === 11 && digits.startsWith("1")) return "+" + digits;
+  // Otherwise return with + prefix
+  return "+" + digits;
 }

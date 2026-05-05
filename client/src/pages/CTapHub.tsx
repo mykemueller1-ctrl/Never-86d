@@ -7,7 +7,7 @@
  * Typography hierarchy: Display → Heading → Body → Caption → Micro.
  * Surfaces over borders. Motion with purpose.
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -129,6 +129,38 @@ export default function CTapHub() {
   const [lastNameInput, setLastNameInput] = useState("");
   const [registerDept, setRegisterDept] = useState<Department>("kitchen_line");
   const [registerRole, setRegisterRole] = useState("line_cook");
+
+  // ─── Session Timeout (30 min inactivity) ─────────────────────
+  const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const lastActivityRef = useRef<number>(Date.now());
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetActivityTimer = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (staffUser && screen !== "splash" && screen !== "login") {
+        setStaffUser(null);
+        setScreen("login");
+        setSelectedDept(null);
+        setPin("");
+        setChecklistProgress({});
+        toast("Session expired — please log in again", { icon: "⏰" });
+      }
+    }, SESSION_TIMEOUT_MS);
+  }, [staffUser, screen]);
+
+  useEffect(() => {
+    if (!staffUser) return;
+    const events = ["mousedown", "keydown", "touchstart", "scroll", "mousemove"];
+    const handler = () => resetActivityTimer();
+    events.forEach(e => window.addEventListener(e, handler, { passive: true }));
+    resetActivityTimer(); // Start the timer on login
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handler));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [staffUser, resetActivityTimer]);
 
   const isManager = isManagerOrOwner(staffUser);
 

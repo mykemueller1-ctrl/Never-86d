@@ -79,6 +79,7 @@ import {
   logSecurityEvent, getSecurityEvents, getSecurityEventsByStaff, getRecentLockouts, getSecurityStats, resolveSecurityEvent, changeStaffPin,
   // Email/Password & Facebook Auth
   getStaffByEmail, getStaffByFacebookId, registerStaffWithEmail, updateStaffPassword, linkFacebookToStaff, updateLastLoginMethod,
+  createPasswordResetToken, validateResetToken, markResetTokenUsed, normalizePhoneNumber,
 } from "./db";
 import bcrypt from "bcryptjs";
 import { invokeLLM } from "./_core/llm";
@@ -1886,15 +1887,16 @@ Respond in JSON with this exact structure:
         throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists. Try logging in instead." });
       }
 
+       // Normalize phone number if provided
+      const normalizedPhone = input.phone ? normalizePhoneNumber(input.phone) : undefined;
       // Hash password with bcrypt (12 rounds)
       const passwordHash = await bcrypt.hash(input.password, 12);
-
       // Create the staff record
       const staffId = await registerStaffWithEmail({
         firstName: input.firstName,
         lastName: input.lastName,
         email: input.email,
-        phone: input.phone,
+        phone: normalizedPhone,
         passwordHash,
         department: input.department,
         jobRole: input.jobRole,
@@ -2106,6 +2108,97 @@ Respond in JSON with this exact structure:
       });
 
       return { success: true, message: "Password updated successfully!" };
+    }),
+
+    // Forgot Password — request a reset token (sent via owner notification since no email service)
+    forgotPassword: publicProcedure.input(z.object({
+      email: z.string().email(),
+    })).mutation(async ({ input, ctx }) => {
+      const ip = getClientIp(ctx.req);
+      const staffRecord = await getStaffByEmail(input.email);
+      
+      // Always return success to prevent email enumeration
+      if (!staffRecord) {
+        logSecurityEvent({
+          eventType: "login_failed",
+          staffId: null,
+          staffName: input.email,
+          ipAddress: ip,
+          userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+          details: JSON.stringify({ type: "forgot_password_unknown_email", email: input.email }),
+          severity: "warning",
+        });
+        return { success: true, message: "If an account exists with that email, a reset link has been sent." };
+      }
+
+      const result = await createPasswordResetToken(staffRecord.id);
+      if (!result) return { success: true, message: "If an account exists with that email, a reset link has been sent." };
+
+      // Notify owner with the reset token (in production this would be emailed)
+      await notifyOwner({
+        title: `Password Reset Request: ${staffRecord.firstName} ${staffRecord.lastName}`,
+        content: `Staff member ${staffRecord.firstName} ${staffRecord.lastName} (${input.email}) requested a password reset.\n\nReset Token: ${result.token}\nExpires: ${result.expiresAt.toISOString()}\n\nThey can use this token on the reset screen, or you can give it to them directly.`,
+      });
+
+      logSecurityEvent({
+        eventType: "pin_changed",
+        staffId: staffRecord.id,
+        staffName: `${staffRecord.firstName} ${staffRecord.lastName}`,
+        ipAddress: ip,
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        details: JSON.stringify({ type: "password_reset_requested", email: input.email }),
+        severity: "info",
+      });
+
+      return { success: true, message: "If an account exists with that email, a reset link has been sent." };
+    }),
+
+    // Reset Password — use the token to set a new password
+    resetPassword: publicProcedure.input(z.object({
+      token: z.string().min(64).max(64),
+      newPassword: z.string().min(8).max(128),
+    })).mutation(async ({ input, ctx }) => {
+      const ip = getClientIp(ctx.req);
+      const tokenData = await validateResetToken(input.token);
+      
+      if (!tokenData) {
+        logSecurityEvent({
+          eventType: "login_failed",
+          staffId: null,
+          staffName: "unknown",
+          ipAddress: ip,
+          userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+          details: JSON.stringify({ type: "invalid_reset_token" }),
+          severity: "warning",
+        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired reset token." });
+      }
+
+      const newHash = await bcrypt.hash(input.newPassword, 12);
+      await updateStaffPassword(tokenData.staffId, newHash);
+      await markResetTokenUsed(tokenData.id);
+
+      const staffRecord = await getStaffByIdInternal(tokenData.staffId);
+      logSecurityEvent({
+        eventType: "pin_changed",
+        staffId: tokenData.staffId,
+        staffName: staffRecord ? `${staffRecord.firstName} ${staffRecord.lastName}` : "unknown",
+        ipAddress: ip,
+        userAgent: ctx.req?.headers?.["user-agent"] || "unknown",
+        details: JSON.stringify({ type: "password_reset_completed" }),
+        severity: "info",
+      });
+
+      return { success: true, message: "Password has been reset. You can now log in with your new password." };
+    }),
+
+    // Validate phone number format
+    validatePhone: publicProcedure.input(z.object({
+      phone: z.string().min(7).max(20),
+    })).query(async ({ input }) => {
+      const normalized = normalizePhoneNumber(input.phone);
+      const isValid = /^\+\d{10,15}$/.test(normalized);
+      return { normalized, isValid };
     }),
   }),
 });

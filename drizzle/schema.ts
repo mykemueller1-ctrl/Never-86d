@@ -1145,3 +1145,18 @@ export const securityEvents = mysqlTable("security_events", {
 });
 export type SecurityEvent = typeof securityEvents.$inferSelect;
 export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
+
+
+/**
+ * Password Reset Tokens — time-limited tokens for forgot password flow.
+ * Tokens expire after 15 minutes and are single-use.
+ */
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  staffId: int("staffId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(), // crypto.randomBytes(32).toString('hex')
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"), // null until used
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

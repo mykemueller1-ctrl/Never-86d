@@ -577,3 +577,16 @@
 - [x] Phone number collection during registration (optional field, stored in staff table)
 - [x] Link existing staff accounts to Facebook via staffSessionProcedure (emailAuth.linkFacebook endpoint)
 - [x] Write tests for email login, registration, and Facebook OAuth flow — 218 tests passing across 17 test files (email-auth.test.ts added with 8 tests)
+
+## Wave 19 — Production Security Architecture
+- [x] Full endpoint audit — SECURITY_GATES.md created with complete matrix of all 60+ procedures categorized by access level
+- [x] Session timeout — 30 min inactivity auto-logout (useRef + useEffect, resets on click/keypress/scroll/touch)
+- [x] Forgot password flow — time-limited token (15 min, crypto.randomBytes 32-byte hex), anti-enumeration (same response regardless of email existence), notifyOwner on request
+- [x] Reset password endpoint — validates token, single-use (markResetTokenUsed), bcrypt 12 rounds, logs security event
+- [x] Phone number format validation and normalization (US E.164: +1XXXXXXXXXX, strips non-digits, validates 10-digit)
+- [x] Agent gate hardening — every endpoint has proper middleware (staffSession/protected/admin), z.string().max() on all text inputs, z.enum on all selects
+- [x] Input sanitization — all text via Zod .max() limits, SQL injection prevented by Drizzle ORM parameterized queries, AI agent input sanitized for ChatML/prompt injection
+- [x] CSRF protection — SameSite=Lax cookies, origin checking in OAuth flow, no cross-origin state mutations possible
+- [x] Security gate matrix documentation — SECURITY_GATES.md with full procedure→auth level→description mapping
+- [x] All 218 tests passing across 17 test files
+- [x] Final QA pass — server running clean, 0 TS errors, all flows verified
