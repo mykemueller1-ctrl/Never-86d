@@ -88,6 +88,140 @@ import { processAchievementEvent } from "./achievementEngine";
 import { seedAllData } from "./seedAllData";
 import { seedWave20 } from "./seedWave20";
 
+
+type ShiftAlertArea = "kitchen" | "foh" | "driver" | "pizza" | "fry" | "vendor" | "general";
+type ShiftType = "am" | "pm" | "close";
+
+const areaDepartments: Record<ShiftAlertArea, string[]> = {
+  kitchen: ["kitchen_line", "pizza_side", "dishwasher", "management"],
+  foh: ["bar", "dining_room", "management"],
+  driver: ["driver", "management"],
+  pizza: ["pizza_side", "kitchen_line", "management"],
+  fry: ["kitchen_line", "pizza_side", "management"],
+  vendor: ["management", "kitchen_line", "pizza_side"],
+  general: ["management"],
+};
+
+const roleLooksResponsible = (value?: string | null) => {
+  const normalized = (value ?? "").toLowerCase();
+  return normalized.includes("manager")
+    || normalized.includes("key")
+    || normalized.includes("lead")
+    || normalized.includes("owner")
+    || normalized.includes("closing")
+    || normalized.includes("close");
+};
+
+const timeToMinutes = (value?: string | null) => {
+  if (!value) return 0;
+  const [hours, minutes] = value.split(":").map((part) => Number(part));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0;
+  return hours * 60 + minutes;
+};
+
+const inferShiftTypeFromTime = (date: Date): ShiftType => {
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  if (minutes < 14 * 60) return "am";
+  if (minutes >= 20 * 60) return "close";
+  return "pm";
+};
+
+async function getShiftAlertRecipients(input: {
+  area: ShiftAlertArea;
+  date?: Date;
+  shiftType?: ShiftType;
+  includeOwner?: boolean;
+}) {
+  const targetDate = input.date ?? new Date();
+  const start = new Date(targetDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(targetDate);
+  end.setHours(23, 59, 59, 999);
+  const shiftType = input.shiftType ?? inferShiftTypeFromTime(targetDate);
+  const departments = areaDepartments[input.area] ?? areaDepartments.general;
+  const shifts = await getScheduleByDateRange(start, end);
+  const ownerIds = new Set<number>();
+  const directIds = new Set<number>();
+  const managerIds = new Set<number>();
+
+  for (const shift of shifts as any[]) {
+    if (shift.status === "cancelled" || shift.status === "no_show") continue;
+    const startMinutes = timeToMinutes(shift.startTime);
+    const endMinutes = timeToMinutes(shift.endTime);
+    const isCloseShift = endMinutes >= 20 * 60 || endMinutes < startMinutes || roleLooksResponsible(shift.position);
+    const shiftMatches = shiftType === "close"
+      ? isCloseShift
+      : shiftType === "am"
+        ? startMinutes < 14 * 60
+        : startMinutes >= 12 * 60;
+    if (!shiftMatches) continue;
+
+    const staffMember = await getStaffById(shift.staffId);
+    if (!staffMember) continue;
+    const staffDepartment = (shift.department || staffMember.department || "").toString();
+    const staffRole = (staffMember.jobRole || "").toString();
+    const isOwner = staffRole === "owner";
+    const isKeyOrManager = Boolean(staffMember.isKeyEmployee) || Boolean(staffMember.canAuthPayouts) || roleLooksResponsible(staffRole) || roleLooksResponsible(shift.position);
+    if (isOwner) ownerIds.add(staffMember.id);
+    if (departments.includes(staffDepartment) && isKeyOrManager) directIds.add(staffMember.id);
+    if (isKeyOrManager) managerIds.add(staffMember.id);
+  }
+
+  const selected = directIds.size > 0 ? directIds : managerIds;
+  if (input.includeOwner !== false) {
+    for (const ownerId of Array.from(ownerIds)) selected.add(ownerId);
+  }
+
+  const recipients = [] as any[];
+  for (const staffId of Array.from(selected)) {
+    const staffMember = await getStaffById(staffId);
+    if (staffMember) recipients.push(staffMember);
+  }
+
+  return { date: start.toISOString().slice(0, 10), shiftType, area: input.area, recipients };
+}
+
+async function queueShiftGovernanceAlert(input: {
+  area: ShiftAlertArea;
+  shiftType?: ShiftType;
+  date?: Date;
+  title: string;
+  body: string;
+  category: string;
+  priority?: "critical" | "high" | "normal" | "low";
+  data?: Record<string, unknown>;
+}) {
+  const routing = await getShiftAlertRecipients({ area: input.area, date: input.date, shiftType: input.shiftType, includeOwner: true });
+  const recipientIds = new Set<number>(routing.recipients.map((recipient: any) => recipient.id));
+
+  if (recipientIds.size === 0) {
+    await queueNotification({
+      targetRole: input.area === "foh" ? "manager" : "kitchen",
+      priority: input.priority ?? "high",
+      category: input.category,
+      title: input.title,
+      body: `${input.body}\n\nNo scheduled key employee/manager was found for ${routing.area} ${routing.shiftType}; escalated by role fallback.`,
+      data: { ...input.data, routing },
+      batchKey: `${input.category}_${routing.area}_${routing.date}_${routing.shiftType}`,
+    });
+    return { ...routing, notificationCount: 1, fallback: true };
+  }
+
+  for (const targetStaffId of Array.from(recipientIds)) {
+    await queueNotification({
+      targetStaffId,
+      priority: input.priority ?? "high",
+      category: input.category,
+      title: input.title,
+      body: input.body,
+      data: { ...input.data, routing: { area: routing.area, shiftType: routing.shiftType, date: routing.date } },
+      batchKey: `${input.category}_${routing.area}_${routing.date}_${routing.shiftType}`,
+    });
+  }
+
+  return { ...routing, notificationCount: recipientIds.size, fallback: false };
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -356,10 +490,27 @@ export const appRouter = router({
       totalTimeSeconds: z.number().optional(),
       percentComplete: z.number(),
       flaggedRush: z.boolean().optional(),
+      area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]).optional(),
+      shiftType: z.enum(["am", "pm", "close"]).optional(),
     })).mutation(async ({ input }) => {
       const result = await createChecklistCompletion(input);
       // Auto-progress "Machine" achievement
       processAchievementEvent(input.staffId, "checklist_complete").catch(() => {});
+
+      if (input.flaggedRush || input.percentComplete < 100) {
+        const staffMember = await getStaffById(input.staffId);
+        await queueShiftGovernanceAlert({
+          area: input.area ?? "kitchen",
+          shiftType: input.shiftType,
+          date: input.date,
+          priority: input.percentComplete < 75 ? "critical" : "high",
+          category: "checklist_exception",
+          title: `Checklist exception: ${input.percentComplete}% complete`,
+          body: `${staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : `Staff #${input.staffId}`} submitted checklist #${input.checklistId} at ${input.percentComplete}% complete${input.flaggedRush ? " and flagged rush conditions" : ""}. The scheduled key employee/manager for this shift owns follow-up before close.` ,
+          data: { checklistId: input.checklistId, staffId: input.staffId, percentComplete: input.percentComplete, flaggedRush: Boolean(input.flaggedRush) },
+        });
+      }
+
       return result;
     }),
   }),
@@ -393,7 +544,24 @@ export const appRouter = router({
           throw new Error("Cash must be handed by a manager or key employee");
         }
       }
-      return createDriverReport(input);
+      const result = await createDriverReport(input);
+      const hasException = Boolean(input.cashFromTill && parseFloat(input.cashFromTill) > 0)
+        || Boolean(input.cashReason)
+        || (Array.isArray(input.redeliveries) ? input.redeliveries.length > 0 : Boolean(input.redeliveries))
+        || (Array.isArray(input.specialRuns) ? input.specialRuns.length > 0 : Boolean(input.specialRuns));
+      if (hasException) {
+        const driver = await getStaffById(input.staffId);
+        await queueShiftGovernanceAlert({
+          area: "driver",
+          date: input.date,
+          priority: input.cashFromTill ? "critical" : "high",
+          category: "driver_exception",
+          title: "Driver close exception",
+          body: `${driver ? `${driver.firstName} ${driver.lastName}` : `Staff #${input.staffId}`} submitted a driver report with an exception. Cash-from-till: ${input.cashFromTill || "$0"}. Reason: ${input.cashReason || "none provided"}. The closing manager/key employee owns follow-up.`,
+          data: { staffId: input.staffId, handedByStaffId: input.handedByStaffId, cashFromTill: input.cashFromTill, cashReason: input.cashReason, totalDeliveries: input.totalDeliveries },
+        });
+      }
+      return result;
     }),
   }),
 
@@ -435,7 +603,8 @@ export const appRouter = router({
 
   // ============ ISSUES ============
   issues: router({
-    open: publicProcedure.query(() => getOpenIssues()),
+    // Production hardening: open issues can include sensitive staff/vendor/ops details, so require a staff or owner session.
+    open: staffOrAuthProcedure.query(() => getOpenIssues()),
     create: protectedProcedure.input(z.object({
       reportedById: z.number(),
       date: z.date(),
@@ -444,7 +613,25 @@ export const appRouter = router({
       category: z.enum(["equipment", "plumbing", "electrical", "inventory", "safety", "pest", "other"]),
       priority: z.enum(["low", "medium", "high", "critical"]),
       photoUrl: z.string().optional(),
-    })).mutation(({ input }) => createIssue(input)),
+      area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]).optional(),
+      shiftType: z.enum(["am", "pm", "close"]).optional(),
+    })).mutation(async ({ input }) => {
+      const issue = await createIssue(input);
+      if (input.priority === "high" || input.priority === "critical") {
+        const reporter = await getStaffById(input.reportedById);
+        await queueShiftGovernanceAlert({
+          area: input.area ?? "general",
+          shiftType: input.shiftType,
+          date: input.date,
+          priority: input.priority,
+          category: "issue_escalation",
+          title: `Issue escalation: ${input.title}`,
+          body: `${reporter ? `${reporter.firstName} ${reporter.lastName}` : `Staff #${input.reportedById}`} reported a ${input.priority} ${input.category} issue. ${input.description || "No description provided."}`,
+          data: { issueId: (issue as any)?.id, reportedById: input.reportedById, category: input.category, photoUrl: input.photoUrl },
+        });
+      }
+      return issue;
+    }),
   }),
 
   // ============ PHOTO UPLOAD ============
@@ -1613,6 +1800,34 @@ Respond in JSON with this exact structure:
     }).optional()).query(async ({ input }) => {
       return getUndeliveredNotifications(input?.staffId, input?.role);
     }),
+    shiftRecipients: protectedProcedure.input(z.object({
+      area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]),
+      date: z.date().optional(),
+      shiftType: z.enum(["am", "pm", "close"]).optional(),
+    })).query(async ({ input }) => {
+      const routing = await getShiftAlertRecipients(input);
+      return {
+        ...routing,
+        recipients: routing.recipients.map((recipient: any) => ({
+          id: recipient.id,
+          firstName: recipient.firstName,
+          lastName: recipient.lastName,
+          department: recipient.department,
+          jobRole: recipient.jobRole,
+          isKeyEmployee: recipient.isKeyEmployee,
+          canAuthPayouts: recipient.canAuthPayouts,
+        })),
+      };
+    }),
+    createShiftAlert: protectedProcedure.input(z.object({
+      area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]),
+      shiftType: z.enum(["am", "pm", "close"]).optional(),
+      title: z.string().min(1).max(255),
+      body: z.string().min(1).max(2000),
+      category: z.string().min(1).max(50).default("shift_governance"),
+      priority: z.enum(["critical", "high", "normal", "low"]).default("high"),
+      date: z.date().optional(),
+    })).mutation(async ({ input }) => queueShiftGovernanceAlert(input)),
     markDelivered: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       return markNotificationDelivered(input.id);
     }),
