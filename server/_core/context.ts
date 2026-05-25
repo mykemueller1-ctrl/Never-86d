@@ -5,7 +5,22 @@ import { ENV } from "./env";
 import * as jose from "jose";
 
 const STAFF_COOKIE_NAME = "staff_session";
-const STAFF_JWT_SECRET = new TextEncoder().encode(ENV.cookieSecret || "fallback-staff-secret");
+
+function getStaffJwtSecret(): Uint8Array {
+  const secret = ENV.cookieSecret.trim();
+
+  if (!secret) {
+    if (ENV.isProduction) {
+      throw new Error("JWT_SECRET must be set in production for staff session signing.");
+    }
+
+    return new TextEncoder().encode("fallback-staff-secret");
+  }
+
+  return new TextEncoder().encode(secret);
+}
+
+const STAFF_JWT_SECRET = getStaffJwtSecret();
 
 /** Sign a staff session JWT after PIN login */
 export async function signStaffSession(staffId: number): Promise<string> {

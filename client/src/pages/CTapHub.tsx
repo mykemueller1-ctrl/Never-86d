@@ -71,6 +71,14 @@ const DEPT_CONFIG: Record<Department, { label: string; desc: string; icon: any }
 
 const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"];
 
+// TODO(Facebook Login): Keep Facebook login hidden in production until the frontend loads
+// the Facebook SDK, calls FB.init with the app ID, and verifies the callback flow end-to-end.
+const ENABLE_FACEBOOK_LOGIN = !import.meta.env.PROD && import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === "true";
+
+// TODO(WebAuthn): Keep biometric/Face ID login hidden until proper credential enrollment,
+// assertion verification, server-side challenge handling, and recovery flows are implemented.
+const ENABLE_BIOMETRIC_LOGIN = false;
+
 function staffDisplayName(s: SafeStaff): string {
   return s.lastName ? `${s.firstName} ${s.lastName}` : s.firstName;
 }
@@ -112,6 +120,7 @@ export default function CTapHub() {
     } catch { return null; }
   });
   const [pin, setPin] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [checklistProgress, setChecklistProgress] = useState<Record<string, boolean>>({});
@@ -292,16 +301,34 @@ export default function CTapHub() {
     try {
       const result = await loginByPin.mutateAsync({ pin: fullPin });
       if (result.success && result.staff) {
+        setLoginError(null);
         setStaffUser(result.staff as SafeStaff);
         setScreen("welcome");
       } else {
+        const message = result.message || (result.locked ? "Account locked" : "Invalid PIN");
         setPin("");
-        if (result.locked) toast.error(result.message || "Account locked");
-        else toast.error("Invalid PIN");
+        setLoginError(message);
+        toast.error(message);
       }
     } catch {
+      const message = "Login failed — check connection";
       setPin("");
-      toast.error("Login failed — check connection");
+      setLoginError(message);
+      toast.error(message);
+    }
+  };
+
+  const handlePinPadPress = (value: number | string | null) => {
+    if (value === "⌫") {
+      setPin((current) => current.slice(0, -1));
+      return;
+    }
+
+    if (value !== null && pin.length < 4) {
+      const newPin = pin + value;
+      setLoginError(null);
+      setPin(newPin);
+      if (newPin.length === 4) handlePinLogin(newPin);
     }
   };
 
@@ -422,19 +449,19 @@ export default function CTapHub() {
 
           {/* Login Mode Tabs */}
           <div className="flex gap-1 mb-8 p-1 rounded-xl bg-zinc-900/80">
-            <button onClick={() => setLoginMode("pin")}
+            <button onClick={() => { setLoginMode("pin"); setLoginError(null); }}
               className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
                 loginMode === "pin" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
               }`}>
               <KeyRound size={14} className="inline mr-1.5 -mt-0.5" />PIN
             </button>
-            <button onClick={() => setLoginMode("email")}
+            <button onClick={() => { setLoginMode("email"); setLoginError(null); }}
               className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
                 loginMode === "email" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
               }`}>
               <Mail size={14} className="inline mr-1.5 -mt-0.5" />Email
             </button>
-            <button onClick={() => setLoginMode("register")}
+            <button onClick={() => { setLoginMode("register"); setLoginError(null); }}
               className={`flex-1 py-2.5 rounded-lg type-caption font-semibold transition-all ${
                 loginMode === "register" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-zinc-300"
               }`}>
@@ -452,7 +479,7 @@ export default function CTapHub() {
                     const cfg = DEPT_CONFIG[dept];
                     const Icon = cfg.icon;
                     return (
-                      <button key={dept} onClick={() => setSelectedDept(dept)}
+                      <button key={dept} onClick={() => { setSelectedDept(dept); setLoginError(null); }}
                         className="w-full flex items-center gap-4 p-4 rounded-xl surface-interactive group">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
                           <Icon size={18} className="text-amber-500" />
@@ -484,20 +511,18 @@ export default function CTapHub() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
-                        <button key={i} onClick={() => {
-                          if (n === "\u232b") setPin(p => p.slice(0, -1));
-                          else if (n !== null && pin.length < 4) {
-                            const newPin = pin + n;
-                            setPin(newPin);
-                            if (newPin.length === 4) handlePinLogin(newPin);
-                          }
-                        }} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
+                        <button key={i} onClick={() => handlePinPadPress(n)} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
                           n === null ? 'invisible' : 'bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/60 active:bg-amber-500 active:text-black active:scale-95'
                         }`}>
                           {n}
                         </button>
                       ))}
                     </div>
+                    {loginError && (
+                      <div role="alert" className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-200">
+                        {loginError}
+                      </div>
+                    )}
                     {loginByPin.isPending && (
                       <div className="flex items-center justify-center mt-4">
                         <Loader2 size={16} className="text-amber-500 animate-spin" />
@@ -508,7 +533,7 @@ export default function CTapHub() {
                 </div>
               ) : (
                 <div className="screen-slide-in">
-                  <button onClick={() => { setSelectedDept(null); setPin(""); }}
+                  <button onClick={() => { setSelectedDept(null); setPin(""); setLoginError(null); }}
                     className="text-amber-500 type-caption mb-6 flex items-center gap-1 hover:text-amber-400 transition-colors">
                     <ChevronLeft size={16} /> All departments
                   </button>
@@ -533,7 +558,12 @@ export default function CTapHub() {
                           )}
                         </button>
                       ))}
-                      {deptStaff.filter(s => s.status === "active").length === 0 && (
+                      {staffByDept.isError && (
+                        <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-200">
+                          Could not load this department. Use Quick PIN login or try again.
+                        </div>
+                      )}
+                      {!staffByDept.isError && deptStaff.filter(s => s.status === "active").length === 0 && (
                         <p className="text-zinc-500 type-body text-center py-8">No active staff in this department</p>
                       )}
                     </div>
@@ -557,20 +587,18 @@ export default function CTapHub() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
-                        <button key={i} onClick={() => {
-                          if (n === "\u232b") setPin(p => p.slice(0, -1));
-                          else if (n !== null && pin.length < 4) {
-                            const newPin = pin + n;
-                            setPin(newPin);
-                            if (newPin.length === 4) handlePinLogin(newPin);
-                          }
-                        }} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
+                        <button key={i} onClick={() => handlePinPadPress(n)} className={`h-12 rounded-xl font-semibold text-base transition-all duration-150 ${
                           n === null ? 'invisible' : 'bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/60 active:bg-amber-500 active:text-black active:scale-95'
                         }`}>
                           {n}
                         </button>
                       ))}
                     </div>
+                    {loginError && (
+                      <div role="alert" className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-200">
+                        {loginError}
+                      </div>
+                    )}
                     {loginByPin.isPending && (
                       <div className="flex items-center justify-center mt-4">
                         <Loader2 size={16} className="text-amber-500 animate-spin" />
@@ -615,12 +643,21 @@ export default function CTapHub() {
                 </button>
               </div>
 
-              {/* Facebook Login Button */}
-              <button onClick={handleFacebookLogin} disabled={facebookLogin.isPending}
-                className="w-full py-3.5 rounded-xl bg-[#1877F2] text-white font-semibold type-body hover:bg-[#166FE5] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                {facebookLogin.isPending ? "Connecting..." : "Continue with Facebook"}
-              </button>
+              {/* TODO(Facebook Login): Hidden in production until SDK loader + FB.init are implemented. */}
+              {ENABLE_FACEBOOK_LOGIN && (
+                <button onClick={handleFacebookLogin} disabled={facebookLogin.isPending}
+                  className="w-full py-3.5 rounded-xl bg-[#1877F2] text-white font-semibold type-body hover:bg-[#166FE5] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  {facebookLogin.isPending ? "Connecting..." : "Continue with Facebook"}
+                </button>
+              )}
+
+              {/* TODO(WebAuthn): Biometric/Face ID login remains hidden until WebAuthn is implemented. */}
+              {ENABLE_BIOMETRIC_LOGIN && (
+                <button type="button" className="hidden" aria-hidden="true" tabIndex={-1}>
+                  Continue with Face ID
+                </button>
+              )}
 
               <p className="text-center type-caption text-zinc-600">
                 Don't have an account?{" "}
