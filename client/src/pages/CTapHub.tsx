@@ -42,6 +42,10 @@ import ComplianceIntelScreen from "./ComplianceIntelScreen";
 import ScheduleScreen from "./ScheduleScreen";
 import SecurityRecordsScreen from "./SecurityRecordsScreen";
 import PinChangeScreen from "./PinChangeScreen";
+import VendorDirectoryScreen from "./VendorDirectoryScreen";
+import HyVeeLiquorOrderScreen from "./HyVeeLiquorOrderScreen";
+import EnhancedInvoiceCaptureScreen from "./EnhancedInvoiceCaptureScreen";
+import WeeklyCOGSTrackerScreen from "./WeeklyCOGSTrackerScreen";
 import ClockWidget from "./ClockWidget";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -55,6 +59,7 @@ type Screen =
   | "order-guide" | "shift-handoff"
   | "worker-profile" | "sales-intel" | "pos-training" | "management-briefing"
   | "forecast" | "recipe-cost" | "sku-tracker" | "station-broadcast" | "waste-log" | "compliance-intel"
+  | "vendor-directory" | "hyvee-liquor-order" | "invoice-capture" | "weekly-cogs"
   | "schedule" | "security-records" | "pin-change";
 
 type Department = "bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management";
@@ -280,7 +285,7 @@ export default function CTapHub() {
   }, [screen]);
 
   const navigateTo = (target: Screen) => {
-    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker", "compliance-intel", "security-records"];
+    const managerOnlyScreens: Screen[] = ["command", "store-run", "invoices", "voids", "order-guide", "sales-intel", "management-briefing", "forecast", "recipe-cost", "sku-tracker", "compliance-intel", "vendor-directory", "hyvee-liquor-order", "invoice-capture", "weekly-cogs", "security-records"];
     if (managerOnlyScreens.includes(target) && !isManager) {
       toast.error("Manager access required");
       return;
@@ -960,6 +965,10 @@ export default function CTapHub() {
             <div className="grid grid-cols-2 gap-2.5">
               {isManager && (
                 <>
+                  <QuickAction icon={Truck} label="Vendors" onClick={() => navigateTo("vendor-directory")} />
+                  <QuickAction icon={Receipt} label="Invoice Capture" onClick={() => navigateTo("invoice-capture")} />
+                  <QuickAction icon={ShoppingCart} label="Hy-Vee Liquor" onClick={() => navigateTo("hyvee-liquor-order")} />
+                  <QuickAction icon={BarChart3} label="Weekly COGS" onClick={() => navigateTo("weekly-cogs")} />
                   <QuickAction icon={Receipt} label="Store Runs" onClick={() => navigateTo("store-run")} />
                   <QuickAction icon={Package} label="Invoices" onClick={() => navigateTo("invoices")} />
                   <QuickAction icon={ShoppingCart} label="Order Guide" onClick={() => navigateTo("order-guide")} />
@@ -1899,6 +1908,10 @@ export default function CTapHub() {
       case "achievements": return <AchievementsScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
       case "rewards-shop": return <RewardsShopScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
       case "order-guide": return <OrderGuideScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
+      case "vendor-directory": return <VendorDirectoryScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
+      case "hyvee-liquor-order": return <HyVeeLiquorOrderScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
+      case "invoice-capture": return <EnhancedInvoiceCaptureScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
+      case "weekly-cogs": return <WeeklyCOGSTrackerScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
       case "shift-handoff": return <ShiftHandoffScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
       case "worker-profile": return <WorkerProfileScreen staffUser={staffUser!} allStaff={allStaff as SafeStaff[]} onBack={() => setScreen("home")} />;
       case "sales-intel": return <SalesIntelligenceScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;

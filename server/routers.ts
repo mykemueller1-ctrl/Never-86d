@@ -392,9 +392,26 @@ export const appRouter = router({
       date: z.date(),
       totalAmount: z.string(),
       category: z.enum(["meat", "bread", "produce", "liquor", "beer", "supplies", "misc"]),
-      items: z.any().optional(),
+      items: z.array(z.object({
+        product: z.string().optional(),
+        unitPrice: z.string().optional(),
+        unit: z.string().optional(),
+        quantity: z.number().optional(),
+        total: z.string().optional(),
+        note: z.string().optional(),
+      })).optional(),
       receiptPhotoUrl: z.string().optional(),
       orderedById: z.number().optional(),
+      receivedById: z.number().optional(),
+      sourceProvider: z.enum(["gmail", "outlook", "manual", "unknown"]).optional(),
+      sourceMailbox: z.string().optional(),
+      sourceMessageId: z.string().optional(),
+      sourceAttachmentHash: z.string().optional(),
+      parserVersion: z.string().optional(),
+      parserConfidence: z.string().optional(),
+      dedupeKey: z.string().optional(),
+      needsReview: z.boolean().optional(),
+      rawText: z.string().optional(),
     })).mutation(async ({ input }) => {
       const invoice = await createInvoice(input);
       // Auto-update vendor product prices from OCR-extracted line items
