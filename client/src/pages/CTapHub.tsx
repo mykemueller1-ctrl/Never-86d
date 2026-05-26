@@ -112,6 +112,7 @@ export default function CTapHub() {
     } catch { return null; }
   });
   const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [checklistProgress, setChecklistProgress] = useState<Record<string, boolean>>({});
@@ -242,7 +243,6 @@ export default function CTapHub() {
   const loginByPin = trpc.staff.loginByPin.useMutation();
   const emailLogin = trpc.emailAuth.login.useMutation();
   const emailRegister = trpc.emailAuth.register.useMutation();
-  const facebookLogin = trpc.emailAuth.facebookLogin.useMutation();
   const createFeedback = trpc.feedback.create.useMutation();
   const createDriverReport = trpc.driverReports.create.useMutation();
   const createIssue = trpc.issues.create.useMutation();
@@ -289,6 +289,7 @@ export default function CTapHub() {
   };
 
   const handlePinLogin = async (fullPin: string) => {
+    setPinError(null);
     try {
       const result = await loginByPin.mutateAsync({ pin: fullPin });
       if (result.success && result.staff) {
@@ -296,12 +297,15 @@ export default function CTapHub() {
         setScreen("welcome");
       } else {
         setPin("");
-        if (result.locked) toast.error(result.message || "Account locked");
-        else toast.error("Invalid PIN");
+        const message = result.locked ? (result.message || "Account locked") : "Invalid PIN";
+        setPinError(message);
+        toast.error(message);
       }
     } catch {
       setPin("");
-      toast.error("Login failed — check connection");
+      const message = "Login failed — check connection";
+      setPinError(message);
+      toast.error(message);
     }
   };
 
@@ -349,41 +353,7 @@ export default function CTapHub() {
     }
   };
 
-  const handleFacebookLogin = async () => {
-    // Facebook SDK login flow
-    if (typeof window !== "undefined" && (window as any).FB) {
-      (window as any).FB.login((response: any) => {
-        if (response.authResponse) {
-          const { accessToken, userID } = response.authResponse;
-          // Get user profile
-          (window as any).FB.api('/me', { fields: 'name,email,picture.type(large)' }, async (profile: any) => {
-            try {
-              const result = await facebookLogin.mutateAsync({
-                facebookId: userID,
-                accessToken,
-                name: profile.name,
-                email: profile.email,
-                profilePhotoUrl: profile.picture?.data?.url,
-              });
-              if (result.success && result.staff) {
-                setStaffUser(result.staff as SafeStaff);
-                setScreen("welcome");
-              } else if (result.needsRegistration) {
-                toast.error("No account linked. Register first, then link Facebook in your profile.");
-                setLoginMode("register");
-              } else {
-                toast.error(result.message || "Facebook login failed");
-              }
-            } catch (e: any) {
-              toast.error(e?.message || "Facebook login failed");
-            }
-          });
-        }
-      }, { scope: 'email,public_profile' });
-    } else {
-      toast.error("Facebook SDK not loaded. Try again in a moment.");
-    }
-  };
+
 
   // ════════════════════════════════════════════════════════════════
   // ─── SPLASH — The first thing anyone sees. Make it count. ──────
@@ -452,7 +422,7 @@ export default function CTapHub() {
                     const cfg = DEPT_CONFIG[dept];
                     const Icon = cfg.icon;
                     return (
-                      <button key={dept} onClick={() => setSelectedDept(dept)}
+                      <button key={dept} onClick={() => { setSelectedDept(dept); setPinError(null); }}
                         className="w-full flex items-center gap-4 p-4 rounded-xl surface-interactive group">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
                           <Icon size={18} className="text-amber-500" />
@@ -482,12 +452,18 @@ export default function CTapHub() {
                         {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {pinError && (
+                      <p role="alert" className="mb-4 text-center type-caption text-red-400">
+                        {pinError}
+                      </p>
+                    )}
                     <div className="grid grid-cols-3 gap-2">
                       {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
                         <button key={i} onClick={() => {
-                          if (n === "\u232b") setPin(p => p.slice(0, -1));
+                          if (n === "\u232b") { setPinError(null); setPin(p => p.slice(0, -1)); }
                           else if (n !== null && pin.length < 4) {
                             const newPin = pin + n;
+                            setPinError(null);
                             setPin(newPin);
                             if (newPin.length === 4) handlePinLogin(newPin);
                           }
@@ -508,7 +484,7 @@ export default function CTapHub() {
                 </div>
               ) : (
                 <div className="screen-slide-in">
-                  <button onClick={() => { setSelectedDept(null); setPin(""); }}
+                  <button onClick={() => { setSelectedDept(null); setPin(""); setPinError(null); }}
                     className="text-amber-500 type-caption mb-6 flex items-center gap-1 hover:text-amber-400 transition-colors">
                     <ChevronLeft size={16} /> All departments
                   </button>
@@ -555,12 +531,18 @@ export default function CTapHub() {
                         {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {pinError && (
+                      <p role="alert" className="mb-4 text-center type-caption text-red-400">
+                        {pinError}
+                      </p>
+                    )}
                     <div className="grid grid-cols-3 gap-2">
                       {[1,2,3,4,5,6,7,8,9,null,0,"\u232b"].map((n, i) => (
                         <button key={i} onClick={() => {
-                          if (n === "\u232b") setPin(p => p.slice(0, -1));
+                          if (n === "\u232b") { setPinError(null); setPin(p => p.slice(0, -1)); }
                           else if (n !== null && pin.length < 4) {
                             const newPin = pin + n;
+                            setPinError(null);
                             setPin(newPin);
                             if (newPin.length === 4) handlePinLogin(newPin);
                           }
@@ -615,12 +597,7 @@ export default function CTapHub() {
                 </button>
               </div>
 
-              {/* Facebook Login Button */}
-              <button onClick={handleFacebookLogin} disabled={facebookLogin.isPending}
-                className="w-full py-3.5 rounded-xl bg-[#1877F2] text-white font-semibold type-body hover:bg-[#166FE5] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                {facebookLogin.isPending ? "Connecting..." : "Continue with Facebook"}
-              </button>
+              {/* Facebook and biometric login options are intentionally hidden until their auth flows are fully implemented. */}
 
               <p className="text-center type-caption text-zinc-600">
                 Don't have an account?{" "}

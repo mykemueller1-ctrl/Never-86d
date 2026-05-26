@@ -238,7 +238,7 @@ export const appRouter = router({
     // SECURED: Staff list requires staff session or OAuth (no anonymous browsing)
     list: staffOrAuthProcedure.query(() => getAllStaff()),
     loginByPin: publicProcedure.input(z.object({ pin: z.string() })).mutation(async ({ input, ctx }) => {
-      // SECURITY: Rate limit PIN attempts (5 per IP per 15 min)
+      // SECURITY: Rate limit PIN attempts (5 per IP per 5 min)
       const clientIp = getClientIp(ctx.req);
       const userAgent = ctx.req?.headers?.["user-agent"] || "unknown";
       const rateCheck = checkPinRateLimit(clientIp, input.pin);

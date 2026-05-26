@@ -3,6 +3,7 @@
  * Tests PIN rate limiting, auth gating, prompt injection guardrails,
  * role-based access control, and session enforcement.
  */
+import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { checkPinRateLimit, recordFailedAttempt, recordSuccessfulLogin, getClientIp, _testing } from "./rateLimiter";
 
@@ -50,6 +51,8 @@ describe("PIN Rate Limiting", () => {
     expect(result.allowed).toBe(false);
     expect(result.remainingAttempts).toBe(0);
     expect(result.lockedUntil).toBeDefined();
+    expect(result.lockedUntil! - Date.now()).toBeLessThanOrEqual(5 * 60 * 1000);
+    expect(result.lockedUntil! - Date.now()).toBeGreaterThan(4 * 60 * 1000);
   });
 
   it("should reset attempts on successful login", () => {
@@ -88,6 +91,18 @@ describe("PIN Rate Limiting", () => {
     
     const ip = getClientIp(mockReq);
     expect(ip).toBe("192.168.0.50");
+  });
+});
+
+describe("Anonymous Owner Access Regression", () => {
+  it("does not register an anonymous owner-login route that can mint staff sessions", () => {
+    const source = readFileSync(new URL("./_core/index.ts", import.meta.url), "utf8");
+
+    expect(source).not.toContain('app.get("/owner-login"');
+    expect(source).not.toContain("app.get('/owner-login'");
+    expect(source).not.toContain('getStaffByPinInternal("8686")');
+    expect(source).not.toContain("getStaffByPinInternal('8686')");
+    expect(source).not.toContain("localStorage.setItem('ctap_staff_session'");
   });
 });
 

@@ -2,8 +2,8 @@
  * In-memory rate limiter for PIN login brute-force protection.
  * 
  * Rules:
- * - Max 5 failed attempts per IP per 15-minute window
- * - After 5 fails: 15-minute lockout from that IP
+ * - Max 5 failed attempts per IP per 5-minute window
+ * - After 5 fails: 5-minute lockout from that IP
  * - Successful login resets the counter for that IP
  * - Also tracks per-PIN attempts to prevent distributed attacks
  * 
@@ -17,9 +17,9 @@ interface AttemptRecord {
   lockedUntil: number | null;
 }
 
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
+const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes lockout
 
 // Track by IP address
 const ipAttempts = new Map<string, AttemptRecord>();
@@ -154,8 +154,8 @@ export function cleanupStaleEntries(): void {
   }
 }
 
-// Auto-cleanup every 30 minutes
-setInterval(cleanupStaleEntries, 30 * 60 * 1000);
+// Auto-cleanup every 10 minutes
+setInterval(cleanupStaleEntries, 10 * 60 * 1000);
 
 // Export for testing
 export const _testing = {
