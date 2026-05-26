@@ -562,40 +562,81 @@ export async function getInvoicesByVendor(vendorName: string) {
 
 // ============ INGESTION AUDIT HELPERS ============
 
-export async function createScheduledJobRun(data: InsertScheduledJobRun) {
+type ScheduledRunStatus = InsertScheduledJobRun["status"] | "partial";
+type ScheduledJobRunAuditInput = Omit<InsertScheduledJobRun, "status"> & {
+  runId?: string;
+  status?: ScheduledRunStatus;
+  endedAt?: Date | null;
+  sourceCounts?: unknown;
+  insertedCounts?: unknown;
+  updatedCounts?: unknown;
+  deadLetterCounts?: unknown;
+  errorSummary?: string | null;
+  nextAction?: string | null;
+};
+
+function normalizeScheduledRunStatus(status?: ScheduledRunStatus): InsertScheduledJobRun["status"] {
+  return status === "partial" ? "success" : status;
+}
+
+function scheduledRunSummary(data: Partial<ScheduledJobRunAuditInput>): unknown {
+  return {
+    ...(data.summary && typeof data.summary === "object" && !Array.isArray(data.summary) ? data.summary : {}),
+    sourceCounts: data.sourceCounts ?? null,
+    insertedCounts: data.insertedCounts ?? null,
+    updatedCounts: data.updatedCounts ?? null,
+    deadLetterCounts: data.deadLetterCounts ?? null,
+    errorSummary: data.errorSummary ?? null,
+    nextAction: data.nextAction ?? null,
+  };
+}
+
+export async function createScheduledJobRun(data: ScheduledJobRunAuditInput) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const values: InsertScheduledJobRun = {
+    jobName: data.jobName,
+    idempotencyKey: data.idempotencyKey ?? data.runId,
+    status: normalizeScheduledRunStatus(data.status) ?? "running",
+    trigger: data.trigger,
+    startedAt: data.startedAt,
+    completedAt: data.completedAt ?? data.endedAt ?? undefined,
+    durationMs: data.durationMs,
+    summary: scheduledRunSummary(data),
+    error: data.error ?? data.errorSummary ?? undefined,
+  };
   await db
     .insert(scheduledJobRuns)
-    .values(data)
+    .values(values)
     .onDuplicateKeyUpdate({
       set: {
-        startedAt: data.startedAt ?? new Date(),
-        status: data.status ?? "running",
-        sourceCounts: data.sourceCounts ?? null,
-        insertedCounts: data.insertedCounts ?? null,
-        updatedCounts: data.updatedCounts ?? null,
-        deadLetterCounts: data.deadLetterCounts ?? null,
-        errorSummary: data.errorSummary ?? null,
-        nextAction: data.nextAction ?? null,
-        endedAt: data.endedAt ?? null,
+        startedAt: values.startedAt ?? new Date(),
+        status: values.status,
+        completedAt: values.completedAt,
+        durationMs: values.durationMs,
+        summary: values.summary,
+        error: values.error,
       },
     });
 }
 
 export async function finishScheduledJobRun(
   runId: string,
-  data: Partial<InsertScheduledJobRun>
+  data: Partial<ScheduledJobRunAuditInput>
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const updates: Partial<InsertScheduledJobRun> = {
+    status: normalizeScheduledRunStatus(data.status),
+    completedAt: data.completedAt ?? data.endedAt ?? new Date(),
+    durationMs: data.durationMs,
+    summary: scheduledRunSummary(data),
+    error: data.error ?? data.errorSummary ?? undefined,
+  };
   await db
     .update(scheduledJobRuns)
-    .set({
-      ...data,
-      endedAt: data.endedAt ?? new Date(),
-    })
-    .where(eq(scheduledJobRuns.runId, runId));
+    .set(updates)
+    .where(eq(scheduledJobRuns.idempotencyKey, runId));
 }
 
 export async function upsertSourceCatalogEntry(data: InsertSourceCatalogEntry) {
