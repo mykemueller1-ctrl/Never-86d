@@ -1,4 +1,14 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  decimal,
+  boolean,
+  json,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow (Manus OAuth).
@@ -29,10 +39,28 @@ export const staff = mysqlTable("staff", {
   employeeNumber: varchar("employeeNumber", { length: 20 }),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
-  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]).notNull(),
+  department: mysqlEnum("department", [
+    "bar",
+    "dining_room",
+    "kitchen_line",
+    "pizza_side",
+    "driver",
+    "dishwasher",
+    "management",
+  ]).notNull(),
   jobRole: mysqlEnum("jobRole", [
-    "owner", "key_manager", "kitchen_manager", "kitchen_key",
-    "bartender", "bar_manager", "server", "wait_staff", "driver", "line_cook", "pizza", "dishwasher"
+    "owner",
+    "key_manager",
+    "kitchen_manager",
+    "kitchen_key",
+    "bartender",
+    "bar_manager",
+    "server",
+    "wait_staff",
+    "driver",
+    "line_cook",
+    "pizza",
+    "dishwasher",
   ]).notNull(),
   isKeyEmployee: boolean("isKeyEmployee").default(false).notNull(),
   canAuthPayouts: boolean("canAuthPayouts").default(false).notNull(),
@@ -42,7 +70,9 @@ export const staff = mysqlTable("staff", {
   facebookAccessToken: text("facebookAccessToken"),
   profilePhotoUrl: text("profilePhotoUrl"),
   lastLoginMethod: mysqlEnum("lastLoginMethod", ["pin", "email", "facebook"]),
-  status: mysqlEnum("status", ["active", "inactive", "terminated"]).default("active").notNull(),
+  status: mysqlEnum("status", ["active", "inactive", "terminated"])
+    .default("active")
+    .notNull(),
   hireDate: timestamp("hireDate"),
   lastClockIn: timestamp("lastClockIn"),
   // Gamification
@@ -69,8 +99,15 @@ export const payouts = mysqlTable("payouts", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
   category: mysqlEnum("category", [
-    "store_run", "supplies", "bread", "meat", "produce",
-    "miscellaneous", "driver_payout", "redelivery", "other"
+    "store_run",
+    "supplies",
+    "bread",
+    "meat",
+    "produce",
+    "miscellaneous",
+    "driver_payout",
+    "redelivery",
+    "other",
   ]).notNull(),
   vendor: varchar("vendor", { length: 200 }),
   receiptPhotoUrl: text("receiptPhotoUrl"),
@@ -98,12 +135,34 @@ export const invoices = mysqlTable("invoices", {
   date: timestamp("date").notNull(),
   totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }).notNull(),
   category: mysqlEnum("category", [
-    "meat", "bread", "produce", "liquor", "beer", "supplies", "misc"
+    "meat",
+    "bread",
+    "produce",
+    "liquor",
+    "beer",
+    "supplies",
+    "misc",
   ]).notNull(),
   items: json("items"), // Array of {item, price, quantity, total}
   receiptPhotoUrl: text("receiptPhotoUrl"),
   orderedById: int("orderedById"),
   receivedById: int("receivedById"),
+  // P1 ingestion provenance. These nullable fields preserve exactly where an
+  // automated invoice came from and allow deterministic dedupe before insert.
+  sourceProvider: mysqlEnum("sourceProvider", [
+    "gmail",
+    "outlook",
+    "manual",
+    "unknown",
+  ]),
+  sourceMailbox: varchar("sourceMailbox", { length: 320 }),
+  sourceMessageId: varchar("sourceMessageId", { length: 255 }),
+  sourceAttachmentHash: varchar("sourceAttachmentHash", { length: 128 }),
+  parserVersion: varchar("parserVersion", { length: 50 }),
+  parserConfidence: decimal("parserConfidence", { precision: 4, scale: 3 }),
+  dedupeKey: varchar("dedupeKey", { length: 255 }).unique(),
+  needsReview: boolean("needsReview").default(false).notNull(),
+  rawText: text("rawText"),
   flagged: boolean("flagged").default(false).notNull(),
   flagReason: text("flagReason"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -113,6 +172,82 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = typeof invoices.$inferInsert;
 
 /**
+ * Scheduled Job Runs — durable audit trail for deterministic ingestion jobs.
+ * Every scheduled import writes one row with source/insert/update/dead-letter counts.
+ */
+export const scheduledJobRuns = mysqlTable("scheduled_job_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  jobName: varchar("jobName", { length: 120 }).notNull(),
+  runId: varchar("runId", { length: 120 }).notNull().unique(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  endedAt: timestamp("endedAt"),
+  status: mysqlEnum("status", ["running", "success", "partial", "failed"])
+    .default("running")
+    .notNull(),
+  sourceCounts: json("sourceCounts"),
+  insertedCounts: json("insertedCounts"),
+  updatedCounts: json("updatedCounts"),
+  deadLetterCounts: json("deadLetterCounts"),
+  errorSummary: text("errorSummary"),
+  nextAction: text("nextAction"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ScheduledJobRun = typeof scheduledJobRuns.$inferSelect;
+export type InsertScheduledJobRun = typeof scheduledJobRuns.$inferInsert;
+
+/**
+ * Source Catalog — allowlisted mailbox sources and matching rules for ingestion.
+ */
+export const sourceCatalog = mysqlTable("source_catalog", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorName: varchar("vendorName", { length: 200 }).notNull(),
+  sourceProvider: mysqlEnum("sourceProvider", ["gmail", "outlook"]).notNull(),
+  senderEmail: varchar("senderEmail", { length: 320 }).notNull(),
+  subjectPattern: varchar("subjectPattern", { length: 500 }),
+  attachmentType: varchar("attachmentType", { length: 100 }),
+  frequency: varchar("frequency", { length: 120 }),
+  lastSeenAt: timestamp("lastSeenAt"),
+  status: mysqlEnum("status", ["active", "paused", "needs_review", "disabled"])
+    .default("active")
+    .notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SourceCatalogEntry = typeof sourceCatalog.$inferSelect;
+export type InsertSourceCatalogEntry = typeof sourceCatalog.$inferInsert;
+
+/**
+ * Ingestion Dead Letters — records parser/source failures without crashing jobs.
+ */
+export const ingestionDeadLetters = mysqlTable("ingestion_dead_letters", {
+  id: int("id").autoincrement().primaryKey(),
+  jobName: varchar("jobName", { length: 120 }).notNull(),
+  runId: varchar("runId", { length: 120 }).notNull(),
+  sourceProvider: mysqlEnum("sourceProvider", [
+    "gmail",
+    "outlook",
+    "manual",
+    "unknown",
+  ]),
+  sourceMailbox: varchar("sourceMailbox", { length: 320 }),
+  sourceMessageId: varchar("sourceMessageId", { length: 255 }),
+  sourceAttachmentHash: varchar("sourceAttachmentHash", { length: 128 }),
+  vendorName: varchar("vendorName", { length: 200 }),
+  parserName: varchar("parserName", { length: 120 }),
+  parserVersion: varchar("parserVersion", { length: 50 }),
+  errorSummary: text("errorSummary"),
+  rawText: text("rawText"),
+  payload: json("payload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type IngestionDeadLetter = typeof ingestionDeadLetters.$inferSelect;
+export type InsertIngestionDeadLetter =
+  typeof ingestionDeadLetters.$inferInsert;
+
+/**
  * Voids / Comps / Promos — tracked by employee with reasons.
  */
 export const voids = mysqlTable("voids", {
@@ -120,7 +255,13 @@ export const voids = mysqlTable("voids", {
   staffId: int("staffId").notNull(),
   date: timestamp("date").notNull(),
   orderNumber: varchar("orderNumber", { length: 20 }),
-  type: mysqlEnum("type", ["void", "comp", "promo", "discount", "credit"]).notNull(),
+  type: mysqlEnum("type", [
+    "void",
+    "comp",
+    "promo",
+    "discount",
+    "credit",
+  ]).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   reason: text("reason").notNull(),
   managerNotified: boolean("managerNotified").default(false).notNull(),
@@ -139,7 +280,16 @@ export type InsertVoid = typeof voids.$inferInsert;
 export const checklists = mysqlTable("checklists", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 200 }).notNull(),
-  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management", "all"]).notNull(),
+  department: mysqlEnum("department", [
+    "bar",
+    "dining_room",
+    "kitchen_line",
+    "pizza_side",
+    "driver",
+    "dishwasher",
+    "management",
+    "all",
+  ]).notNull(),
   type: mysqlEnum("type", ["opening", "closing", "weekly", "daily"]).notNull(),
   items: json("items"), // Array of {task, required, order}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -198,7 +348,12 @@ export const feedback = mysqlTable("feedback", {
   rating: int("rating"), // 1-5
   comment: text("comment"),
   category: mysqlEnum("category", [
-    "equipment", "staffing", "inventory", "customer", "management", "other"
+    "equipment",
+    "staffing",
+    "inventory",
+    "customer",
+    "management",
+    "other",
   ]),
   urgency: mysqlEnum("urgency", ["low", "medium", "high", "critical"]),
   resolved: boolean("resolved").default(false).notNull(),
@@ -233,10 +388,17 @@ export const gamificationEvents = mysqlTable("gamification_events", {
   staffId: int("staffId").notNull(),
   date: timestamp("date").notNull(),
   eventType: mysqlEnum("eventType", [
-    "checklist_complete", "zero_void_week", "on_time_streak",
-    "social_post", "social_engagement", "customer_review_mention",
-    "training_mentor", "feedback_submitted", "void_deduction",
-    "break_violation", "wifi_disconnect"
+    "checklist_complete",
+    "zero_void_week",
+    "on_time_streak",
+    "social_post",
+    "social_engagement",
+    "customer_review_mention",
+    "training_mentor",
+    "feedback_submitted",
+    "void_deduction",
+    "break_violation",
+    "wifi_disconnect",
   ]).notNull(),
   points: int("points").notNull(),
   description: text("description"),
@@ -255,11 +417,23 @@ export const issues = mysqlTable("issues", {
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   category: mysqlEnum("category", [
-    "equipment", "plumbing", "electrical", "inventory",
-    "safety", "pest", "other"
+    "equipment",
+    "plumbing",
+    "electrical",
+    "inventory",
+    "safety",
+    "pest",
+    "other",
   ]).notNull(),
-  priority: mysqlEnum("priority", ["low", "medium", "high", "critical"]).notNull(),
-  status: mysqlEnum("status", ["open", "in_progress", "resolved", "wont_fix"]).default("open").notNull(),
+  priority: mysqlEnum("priority", [
+    "low",
+    "medium",
+    "high",
+    "critical",
+  ]).notNull(),
+  status: mysqlEnum("status", ["open", "in_progress", "resolved", "wont_fix"])
+    .default("open")
+    .notNull(),
   photoUrl: text("photoUrl"),
   resolvedById: int("resolvedById"),
   resolvedAt: timestamp("resolvedAt"),
@@ -280,17 +454,42 @@ export type Issue = typeof issues.$inferSelect;
 export const knowledgeEntries = mysqlTable("knowledge_entries", {
   id: int("id").autoincrement().primaryKey(),
   station: mysqlEnum("station", [
-    "pizza_line", "fry_line", "bar", "waitstaff", "bbq_room",
-    "store_room", "bathroom", "dish_pit", "general"
+    "pizza_line",
+    "fry_line",
+    "bar",
+    "waitstaff",
+    "bbq_room",
+    "store_room",
+    "bathroom",
+    "dish_pit",
+    "general",
   ]).notNull(),
   category: mysqlEnum("category", [
-    "recipe", "location", "process", "equipment", "vendor",
-    "allergen", "prep", "cleaning", "safety", "menu_info"
+    "recipe",
+    "location",
+    "process",
+    "equipment",
+    "vendor",
+    "allergen",
+    "prep",
+    "cleaning",
+    "safety",
+    "menu_info",
   ]).notNull(),
   question: text("question").notNull(),
   answer: text("answer").notNull(),
-  confidence: mysqlEnum("confidence", ["high", "medium", "low"]).default("medium").notNull(),
-  source: mysqlEnum("source", ["manual", "photo_extraction", "correction", "ai_inferred", "imported"]).default("manual").notNull(),
+  confidence: mysqlEnum("confidence", ["high", "medium", "low"])
+    .default("medium")
+    .notNull(),
+  source: mysqlEnum("source", [
+    "manual",
+    "photo_extraction",
+    "correction",
+    "ai_inferred",
+    "imported",
+  ])
+    .default("manual")
+    .notNull(),
   correctionsCount: int("correctionsCount").default(0).notNull(),
   lastCorrectedAt: timestamp("lastCorrectedAt"),
   tags: json("tags"), // Array of string tags for search
@@ -313,7 +512,9 @@ export const knowledgeCorrections = mysqlTable("knowledge_corrections", {
   oldAnswer: text("oldAnswer").notNull(),
   newAnswer: text("newAnswer").notNull(),
   reason: text("reason"),
-  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"])
+    .default("pending")
+    .notNull(),
   approvedByStaffId: int("approvedByStaffId"),
   approvedAt: timestamp("approvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -331,14 +532,29 @@ export const achievementDefinitions = mysqlTable("achievement_definitions", {
   description: text("description").notNull(),
   badge: varchar("badge", { length: 10 }).notNull(), // emoji badge
   category: mysqlEnum("category", [
-    "onboarding", "reliability", "quality", "engagement", "leadership", "longevity"
+    "onboarding",
+    "reliability",
+    "quality",
+    "engagement",
+    "leadership",
+    "longevity",
   ]).notNull(),
-  thresholdType: mysqlEnum("thresholdType", ["cumulative", "consecutive", "window", "milestone"]).notNull(),
+  thresholdType: mysqlEnum("thresholdType", [
+    "cumulative",
+    "consecutive",
+    "window",
+    "milestone",
+  ]).notNull(),
   thresholdValue: int("thresholdValue").notNull(),
   windowDays: int("windowDays"), // for window type
   resetEvent: varchar("resetEvent", { length: 100 }), // what resets consecutive/window
   bonusPoints: int("bonusPoints").default(0).notNull(),
-  difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard", "legendary"]).notNull(),
+  difficulty: mysqlEnum("difficulty", [
+    "easy",
+    "medium",
+    "hard",
+    "legendary",
+  ]).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -347,21 +563,27 @@ export type AchievementDefinition = typeof achievementDefinitions.$inferSelect;
 /**
  * Staff Achievement Progress — per-worker progress toward each achievement.
  */
-export const staffAchievementProgress = mysqlTable("staff_achievement_progress", {
-  id: int("id").autoincrement().primaryKey(),
-  staffId: int("staffId").notNull(),
-  achievementId: int("achievementId").notNull(),
-  currentValue: int("currentValue").default(0).notNull(),
-  bestValue: int("bestValue").default(0).notNull(), // personal best (preserved on reset)
-  status: mysqlEnum("status", ["in_progress", "completed", "locked"]).default("in_progress").notNull(),
-  streakStartDate: timestamp("streakStartDate"),
-  lastEventDate: timestamp("lastEventDate"),
-  acknowledgedAt: timestamp("acknowledgedAt"), // null = celebration not yet shown
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const staffAchievementProgress = mysqlTable(
+  "staff_achievement_progress",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    staffId: int("staffId").notNull(),
+    achievementId: int("achievementId").notNull(),
+    currentValue: int("currentValue").default(0).notNull(),
+    bestValue: int("bestValue").default(0).notNull(), // personal best (preserved on reset)
+    status: mysqlEnum("status", ["in_progress", "completed", "locked"])
+      .default("in_progress")
+      .notNull(),
+    streakStartDate: timestamp("streakStartDate"),
+    lastEventDate: timestamp("lastEventDate"),
+    acknowledgedAt: timestamp("acknowledgedAt"), // null = celebration not yet shown
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  }
+);
 
-export type StaffAchievementProgress = typeof staffAchievementProgress.$inferSelect;
+export type StaffAchievementProgress =
+  typeof staffAchievementProgress.$inferSelect;
 
 /**
  * Staff Achievement Unlocks — immutable log of when achievements were earned.
@@ -376,18 +598,33 @@ export const staffAchievementUnlocks = mysqlTable("staff_achievement_unlocks", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type StaffAchievementUnlock = typeof staffAchievementUnlocks.$inferSelect;
+export type StaffAchievementUnlock =
+  typeof staffAchievementUnlocks.$inferSelect;
 
 /**
  * Rewards — tangible rewards workers can redeem with points.
  */
 export const rewards = mysqlTable("rewards", {
   id: int("id").autoincrement().primaryKey(),
-  tier: mysqlEnum("tier", ["bronze", "silver", "gold", "platinum", "diamond", "legend"]).notNull(),
+  tier: mysqlEnum("tier", [
+    "bronze",
+    "silver",
+    "gold",
+    "platinum",
+    "diamond",
+    "legend",
+  ]).notNull(),
   name: varchar("name", { length: 200 }).notNull(),
   description: text("description"),
   pointsCost: int("pointsCost").notNull(),
-  type: mysqlEnum("type", ["meal", "merch", "schedule", "gift_card", "time_off", "cash"]).notNull(),
+  type: mysqlEnum("type", [
+    "meal",
+    "merch",
+    "schedule",
+    "gift_card",
+    "time_off",
+    "cash",
+  ]).notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -402,7 +639,9 @@ export const rewardRedemptions = mysqlTable("reward_redemptions", {
   staffId: int("staffId").notNull(),
   rewardId: int("rewardId").notNull(),
   pointsSpent: int("pointsSpent").notNull(),
-  status: mysqlEnum("status", ["pending", "approved", "denied", "fulfilled"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "denied", "fulfilled"])
+    .default("pending")
+    .notNull(),
   approvedByStaffId: int("approvedByStaffId"),
   approvedAt: timestamp("approvedAt"),
   fulfilledAt: timestamp("fulfilledAt"),
@@ -420,7 +659,14 @@ export const photoMissions = mysqlTable("photo_missions", {
   name: varchar("name", { length: 200 }).notNull(),
   description: text("description"),
   category: mysqlEnum("category", [
-    "walk_in", "station_setup", "invoice", "equipment", "prep", "plate", "delivery", "general"
+    "walk_in",
+    "station_setup",
+    "invoice",
+    "equipment",
+    "prep",
+    "plate",
+    "delivery",
+    "general",
   ]).notNull(),
   pointsPerPhoto: int("pointsPerPhoto").default(5).notNull(),
   bonusPoints: int("bonusPoints").default(0).notNull(), // bonus for completing mission
@@ -442,7 +688,14 @@ export const photoSubmissions = mysqlTable("photo_submissions", {
   missionId: int("missionId"),
   photoUrl: text("photoUrl").notNull(),
   photoType: mysqlEnum("photoType", [
-    "invoice", "shelf", "station", "equipment", "plate", "delivery", "prep", "other"
+    "invoice",
+    "shelf",
+    "station",
+    "equipment",
+    "plate",
+    "delivery",
+    "prep",
+    "other",
   ]).notNull(),
   aiExtraction: json("aiExtraction"), // structured data extracted by LLM vision
   aiSummary: text("aiSummary"), // human-readable summary of what AI found
@@ -464,15 +717,33 @@ export const vendorProducts = mysqlTable("vendor_products", {
   sku: varchar("sku", { length: 50 }),
   productName: varchar("productName", { length: 300 }).notNull(),
   category: mysqlEnum("category", [
-    "meat", "dairy", "produce", "bread", "frozen", "dry_goods",
-    "paper", "chemicals", "liquor", "beer", "wine", "soda", "other"
+    "meat",
+    "dairy",
+    "produce",
+    "bread",
+    "frozen",
+    "dry_goods",
+    "paper",
+    "chemicals",
+    "liquor",
+    "beer",
+    "wine",
+    "soda",
+    "other",
   ]).notNull(),
   unit: varchar("unit", { length: 50 }), // "case", "lb", "each", "bottle"
   lastPrice: decimal("lastPrice", { precision: 10, scale: 2 }),
   previousPrice: decimal("previousPrice", { precision: 10, scale: 2 }),
   priceChangePercent: decimal("priceChangePercent", { precision: 5, scale: 2 }),
   parLevel: int("parLevel"), // how many to keep in stock
-  orderFrequency: mysqlEnum("orderFrequency", ["daily", "twice_weekly", "weekly", "biweekly", "monthly", "as_needed"]),
+  orderFrequency: mysqlEnum("orderFrequency", [
+    "daily",
+    "twice_weekly",
+    "weekly",
+    "biweekly",
+    "monthly",
+    "as_needed",
+  ]),
   lastOrderedAt: timestamp("lastOrderedAt"),
   notes: text("notes"),
   active: boolean("active").default(true).notNull(),
@@ -504,8 +775,14 @@ export type OrderGuideTemplate = typeof orderGuideTemplates.$inferSelect;
 export const briefingMemory = mysqlTable("briefing_memory", {
   id: int("id").autoincrement().primaryKey(),
   factType: mysqlEnum("factType", [
-    "event_pattern", "shortage", "equipment_issue", "staff_pattern",
-    "vendor_change", "menu_change", "seasonal", "custom"
+    "event_pattern",
+    "shortage",
+    "equipment_issue",
+    "staff_pattern",
+    "vendor_change",
+    "menu_change",
+    "seasonal",
+    "custom",
   ]).notNull(),
   fact: text("fact").notNull(),
   relevanceScore: int("relevanceScore").default(50).notNull(), // 0-100, decays over time
@@ -517,7 +794,6 @@ export const briefingMemory = mysqlTable("briefing_memory", {
 });
 
 export type BriefingMemory = typeof briefingMemory.$inferSelect;
-
 
 // ============================================================
 // PORTABLE WORKER PROFILE SYSTEM
@@ -531,13 +807,29 @@ export const workerTrainingModules = mysqlTable("worker_training_modules", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 200 }).notNull(),
   description: text("description"),
-  category: mysqlEnum("category", ["equipment", "food_prep", "service", "management", "safety"]).notNull(),
-  requiredForTrack: mysqlEnum("requiredForTrack", ["kitchen", "pizza", "foh", "driver", "all"]).notNull(),
+  category: mysqlEnum("category", [
+    "equipment",
+    "food_prep",
+    "service",
+    "management",
+    "safety",
+  ]).notNull(),
+  requiredForTrack: mysqlEnum("requiredForTrack", [
+    "kitchen",
+    "pizza",
+    "foh",
+    "driver",
+    "all",
+  ]).notNull(),
   requiredForLevel: int("requiredForLevel").default(1).notNull(),
   estimatedMinutes: int("estimatedMinutes"),
   assessmentType: mysqlEnum("assessmentType", [
-    "trainer_signoff", "written_test", "weight_check",
-    "checklist_completion", "manager_observation", "practical_demo"
+    "trainer_signoff",
+    "written_test",
+    "weight_check",
+    "checklist_completion",
+    "manager_observation",
+    "practical_demo",
   ]).notNull(),
   passingScore: int("passingScore"), // nullable, e.g., 80 for written test
   sourceDocument: varchar("sourceDocument", { length: 300 }), // reference to SOP
@@ -545,43 +837,58 @@ export const workerTrainingModules = mysqlTable("worker_training_modules", {
 });
 
 export type WorkerTrainingModule = typeof workerTrainingModules.$inferSelect;
-export type InsertWorkerTrainingModule = typeof workerTrainingModules.$inferInsert;
+export type InsertWorkerTrainingModule =
+  typeof workerTrainingModules.$inferInsert;
 
 /**
  * Worker Training Completions — who completed what training, when, and how they scored.
  */
-export const workerTrainingCompletions = mysqlTable("worker_training_completions", {
-  id: int("id").autoincrement().primaryKey(),
-  staffId: int("staffId").notNull(),
-  moduleId: int("moduleId").notNull(),
-  completedAt: timestamp("completedAt").notNull(),
-  trainerId: int("trainerId"), // FK → staff, who trained them
-  assessmentScore: int("assessmentScore"), // nullable
-  passed: boolean("passed").default(false).notNull(),
-  notes: text("notes"),
-  verifiedByManagerId: int("verifiedByManagerId"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const workerTrainingCompletions = mysqlTable(
+  "worker_training_completions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    staffId: int("staffId").notNull(),
+    moduleId: int("moduleId").notNull(),
+    completedAt: timestamp("completedAt").notNull(),
+    trainerId: int("trainerId"), // FK → staff, who trained them
+    assessmentScore: int("assessmentScore"), // nullable
+    passed: boolean("passed").default(false).notNull(),
+    notes: text("notes"),
+    verifiedByManagerId: int("verifiedByManagerId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  }
+);
 
-export type WorkerTrainingCompletion = typeof workerTrainingCompletions.$inferSelect;
+export type WorkerTrainingCompletion =
+  typeof workerTrainingCompletions.$inferSelect;
 
 /**
  * Worker Skill Certifications — specific equipment/process certifications.
  * Separate from training modules — these are ongoing competency markers.
  */
-export const workerSkillCertifications = mysqlTable("worker_skill_certifications", {
-  id: int("id").autoincrement().primaryKey(),
-  staffId: int("staffId").notNull(),
-  skillName: varchar("skillName", { length: 200 }).notNull(),
-  skillCategory: mysqlEnum("skillCategory", ["equipment", "food_prep", "service", "management", "safety"]).notNull(),
-  certifiedAt: timestamp("certifiedAt").notNull(),
-  certifiedById: int("certifiedById"), // FK → staff
-  expiresAt: timestamp("expiresAt"), // nullable, for recertification
-  notes: text("notes"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const workerSkillCertifications = mysqlTable(
+  "worker_skill_certifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    staffId: int("staffId").notNull(),
+    skillName: varchar("skillName", { length: 200 }).notNull(),
+    skillCategory: mysqlEnum("skillCategory", [
+      "equipment",
+      "food_prep",
+      "service",
+      "management",
+      "safety",
+    ]).notNull(),
+    certifiedAt: timestamp("certifiedAt").notNull(),
+    certifiedById: int("certifiedById"), // FK → staff
+    expiresAt: timestamp("expiresAt"), // nullable, for recertification
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  }
+);
 
-export type WorkerSkillCertification = typeof workerSkillCertifications.$inferSelect;
+export type WorkerSkillCertification =
+  typeof workerSkillCertifications.$inferSelect;
 
 /**
  * Worker Evaluations — the 9-category, 1-5 scoring system from bar staff evaluations.
@@ -619,8 +926,19 @@ export const workerWriteUps = mysqlTable("worker_write_ups", {
   staffId: int("staffId").notNull(),
   issuedById: int("issuedById").notNull(),
   issuedAt: timestamp("issuedAt").notNull(),
-  severity: mysqlEnum("severity", ["verbal", "written", "final", "termination"]).notNull(),
-  category: mysqlEnum("category", ["attendance", "performance", "conduct", "safety", "policy"]).notNull(),
+  severity: mysqlEnum("severity", [
+    "verbal",
+    "written",
+    "final",
+    "termination",
+  ]).notNull(),
+  category: mysqlEnum("category", [
+    "attendance",
+    "performance",
+    "conduct",
+    "safety",
+    "policy",
+  ]).notNull(),
   description: text("description").notNull(),
   employeeResponse: text("employeeResponse"),
   acknowledgedAt: timestamp("acknowledgedAt"), // digital signature timestamp
@@ -643,7 +961,9 @@ export const workerCareerTrack = mysqlTable("worker_career_track", {
   currentLevel: int("currentLevel").default(1).notNull(),
   promotedAt: timestamp("promotedAt"),
   promotedById: int("promotedById"),
-  advancementReadinessScore: int("advancementReadinessScore").default(0).notNull(), // 0-100
+  advancementReadinessScore: int("advancementReadinessScore")
+    .default(0)
+    .notNull(), // 0-100
   nextLevelRequirements: json("nextLevelRequirements"), // JSON: what's still needed
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -685,7 +1005,10 @@ export const dailySales = mysqlTable("daily_sales", {
   catPopQty: int("catPopQty"),
   catPopAmount: decimal("catPopAmount", { precision: 10, scale: 2 }),
   catLargePizzasQty: int("catLargePizzasQty"),
-  catLargePizzasAmount: decimal("catLargePizzasAmount", { precision: 10, scale: 2 }),
+  catLargePizzasAmount: decimal("catLargePizzasAmount", {
+    precision: 10,
+    scale: 2,
+  }),
   // Labor
   laborHeadcount: int("laborHeadcount"),
   laborTotal: decimal("laborTotal", { precision: 10, scale: 2 }),
@@ -712,6 +1035,17 @@ export const dailySales = mysqlTable("daily_sales", {
   avgPerGuest: decimal("avgPerGuest", { precision: 8, scale: 2 }),
   // Year-over-year
   totalLastYear: decimal("totalLastYear", { precision: 10, scale: 2 }),
+  // P1 ingestion provenance for PDQ Z-report imports. The raw text is kept so
+  // parser behavior can be audited when PDQ changes PDF layouts.
+  sourceProvider: mysqlEnum("sourceProvider", ["gmail", "manual", "unknown"]),
+  sourceMailbox: varchar("sourceMailbox", { length: 320 }),
+  sourceMessageId: varchar("sourceMessageId", { length: 255 }),
+  sourceAttachmentHash: varchar("sourceAttachmentHash", { length: 128 }),
+  parserVersion: varchar("parserVersion", { length: 50 }),
+  parserConfidence: decimal("parserConfidence", { precision: 4, scale: 3 }),
+  dedupeKey: varchar("dedupeKey", { length: 255 }).unique(),
+  needsReview: boolean("needsReview").default(false).notNull(),
+  rawText: text("rawText"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -742,7 +1076,6 @@ export const hourlySales = mysqlTable("hourly_sales", {
 
 export type HourlySales = typeof hourlySales.$inferSelect;
 export type InsertHourlySales = typeof hourlySales.$inferInsert;
-
 
 // ============ INTELLIGENCE ENGINE TABLES ============
 
@@ -776,7 +1109,14 @@ export const productMixEntries = mysqlTable("product_mix_entries", {
   periodEnd: varchar("periodEnd", { length: 20 }).notNull(),
   itemName: varchar("itemName", { length: 300 }).notNull(),
   itemId: varchar("itemId", { length: 20 }),
-  category: mysqlEnum("category", ["food", "pizza", "beer", "liquor", "pop", "other"]).default("other"),
+  category: mysqlEnum("category", [
+    "food",
+    "pizza",
+    "beer",
+    "liquor",
+    "pop",
+    "other",
+  ]).default("other"),
   totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }),
   totalQty: int("totalQty"),
   sourceFile: varchar("sourceFile", { length: 300 }),
@@ -812,8 +1152,20 @@ export const localEvents = mysqlTable("local_events", {
   venue: varchar("venue", { length: 300 }),
   city: varchar("city", { length: 100 }),
   distance: decimal("distance", { precision: 5, scale: 1 }),
-  category: mysqlEnum("category", ["sports", "school", "community", "concert", "festival", "holiday", "other"]).default("other"),
-  estimatedImpact: mysqlEnum("estimatedImpact", ["high", "medium", "low"]).default("low"),
+  category: mysqlEnum("category", [
+    "sports",
+    "school",
+    "community",
+    "concert",
+    "festival",
+    "holiday",
+    "other",
+  ]).default("other"),
+  estimatedImpact: mysqlEnum("estimatedImpact", [
+    "high",
+    "medium",
+    "low",
+  ]).default("low"),
   attendanceEstimate: int("attendanceEstimate"),
   notes: text("notes"),
   source: varchar("source", { length: 200 }),
@@ -850,7 +1202,6 @@ export const scheduleIntelligence = mysqlTable("schedule_intelligence", {
   acknowledgedBy: varchar("acknowledgedBy", { length: 200 }),
 });
 export type ScheduleIntelligence = typeof scheduleIntelligence.$inferSelect;
-
 
 /**
  * Management Briefings — role-based intelligence briefings for managers.
@@ -920,7 +1271,10 @@ export const priceAlerts = mysqlTable("price_alerts", {
   id: int("id").autoincrement().primaryKey(),
   vendorName: varchar("vendorName", { length: 255 }).notNull(),
   productName: varchar("productName", { length: 255 }).notNull(),
-  previousPrice: decimal("previousPrice", { precision: 10, scale: 2 }).notNull(),
+  previousPrice: decimal("previousPrice", {
+    precision: 10,
+    scale: 2,
+  }).notNull(),
   currentPrice: decimal("currentPrice", { precision: 10, scale: 2 }).notNull(),
   changePercent: decimal("changePercent", { precision: 5, scale: 2 }).notNull(),
   changeDirection: varchar("changeDirection", { length: 10 }).notNull(), // 'up' | 'down'
@@ -942,7 +1296,10 @@ export const skuCatalog = mysqlTable("sku_catalog", {
   category: varchar("category", { length: 50 }).notNull(), // 'meat' | 'produce' | 'dairy' | 'beer' | 'liquor' | 'bread' | 'supplies' | 'dry_goods'
   unitSize: varchar("unitSize", { length: 100 }), // '10 lb case', '24 pack', '1 gallon'
   unitOfMeasure: varchar("unitOfMeasure", { length: 30 }), // 'lb' | 'oz' | 'each' | 'case' | 'gallon'
-  currentPricePerUnit: decimal("currentPricePerUnit", { precision: 10, scale: 4 }), // price per unit of measure
+  currentPricePerUnit: decimal("currentPricePerUnit", {
+    precision: 10,
+    scale: 4,
+  }), // price per unit of measure
   lastOrderPrice: decimal("lastOrderPrice", { precision: 10, scale: 2 }), // last invoice price for the package
   lastOrderDate: timestamp("lastOrderDate"),
   avgPrice30d: decimal("avgPrice30d", { precision: 10, scale: 4 }), // rolling 30-day avg price per unit
@@ -980,7 +1337,10 @@ export const recipes = mysqlTable("recipes", {
   theoreticalCost: decimal("theoreticalCost", { precision: 10, scale: 4 }), // calculated from ingredients
   menuPrice: decimal("menuPrice", { precision: 10, scale: 2 }), // what we charge
   foodCostPercent: decimal("foodCostPercent", { precision: 5, scale: 2 }), // theoreticalCost / menuPrice * 100
-  targetFoodCostPercent: decimal("targetFoodCostPercent", { precision: 5, scale: 2 }).default("30.00"), // target
+  targetFoodCostPercent: decimal("targetFoodCostPercent", {
+    precision: 5,
+    scale: 2,
+  }).default("30.00"), // target
   isActive: boolean("isActive").default(true).notNull(),
   lastCostedAt: timestamp("lastCostedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -999,7 +1359,9 @@ export const recipeIngredients = mysqlTable("recipe_ingredients", {
   unitOfMeasure: varchar("unitOfMeasure", { length: 30 }).notNull(), // 'oz' | 'lb' | 'each' | 'cup'
   costPerUnit: decimal("costPerUnit", { precision: 10, scale: 4 }), // pulled from SKU or manual
   totalCost: decimal("totalCost", { precision: 10, scale: 4 }), // quantity * costPerUnit
-  yieldPercent: decimal("yieldPercent", { precision: 5, scale: 2 }).default("100.00"), // after trim/cooking loss
+  yieldPercent: decimal("yieldPercent", { precision: 5, scale: 2 }).default(
+    "100.00"
+  ), // after trim/cooking loss
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -1053,8 +1415,24 @@ export const scheduleShifts = mysqlTable("schedule_shifts", {
   startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00" HH:MM
   endTime: varchar("endTime", { length: 5 }).notNull(), // "17:00" HH:MM
   position: varchar("position", { length: 50 }), // station/role for this shift
-  department: mysqlEnum("department", ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]),
-  status: mysqlEnum("status", ["scheduled", "confirmed", "completed", "no_show", "cancelled"]).default("scheduled").notNull(),
+  department: mysqlEnum("department", [
+    "bar",
+    "dining_room",
+    "kitchen_line",
+    "pizza_side",
+    "driver",
+    "dishwasher",
+    "management",
+  ]),
+  status: mysqlEnum("status", [
+    "scheduled",
+    "confirmed",
+    "completed",
+    "no_show",
+    "cancelled",
+  ])
+    .default("scheduled")
+    .notNull(),
   notes: text("notes"),
   createdBy: int("createdBy"), // manager who scheduled
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1070,7 +1448,9 @@ export const availabilityWindows = mysqlTable("availability_windows", {
   dayOfWeek: int("dayOfWeek").notNull(), // 0=Sunday, 1=Monday, ..., 6=Saturday
   startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00"
   endTime: varchar("endTime", { length: 5 }).notNull(), // "22:00"
-  preference: mysqlEnum("preference", ["preferred", "available", "unavailable"]).default("available").notNull(),
+  preference: mysqlEnum("preference", ["preferred", "available", "unavailable"])
+    .default("available")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type AvailabilityWindow = typeof availabilityWindows.$inferSelect;
@@ -1083,7 +1463,9 @@ export const timeOffRequests = mysqlTable("time_off_requests", {
   startDate: timestamp("startDate").notNull(),
   endDate: timestamp("endDate").notNull(),
   reason: text("reason"),
-  status: mysqlEnum("status", ["pending", "approved", "denied"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "denied"])
+    .default("pending")
+    .notNull(),
   approvedBy: int("approvedBy"),
   approvedAt: timestamp("approvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1098,7 +1480,9 @@ export const shiftSwapRequests = mysqlTable("shift_swap_requests", {
   targetId: int("targetId"), // staff they want to swap with (null = open request)
   shiftId: int("shiftId").notNull(), // the shift being offered
   reason: text("reason"),
-  status: mysqlEnum("status", ["pending", "accepted", "denied", "cancelled"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "accepted", "denied", "cancelled"])
+    .default("pending")
+    .notNull(),
   approvedBy: int("approvedBy"), // manager approval
   approvedAt: timestamp("approvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1117,7 +1501,9 @@ export const timeEntries = mysqlTable("time_entries", {
   breakMinutes: int("breakMinutes").default(0),
   hoursWorked: decimal("hoursWorked", { precision: 5, scale: 2 }),
   overtime: decimal("overtime", { precision: 5, scale: 2 }).default("0"),
-  status: mysqlEnum("status", ["clocked_in", "on_break", "clocked_out"]).default("clocked_in").notNull(),
+  status: mysqlEnum("status", ["clocked_in", "on_break", "clocked_out"])
+    .default("clocked_in")
+    .notNull(),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -1128,16 +1514,27 @@ export type InsertTimeEntry = typeof timeEntries.$inferInsert;
 export const securityEvents = mysqlTable("security_events", {
   id: int("id").autoincrement().primaryKey(),
   eventType: mysqlEnum("eventType", [
-    "login_success", "login_failed", "lockout_triggered", "lockout_expired",
-    "pin_changed", "pin_change_failed", "clock_in", "clock_out",
-    "unauthorized_access", "prompt_injection_blocked", "staff_created", "staff_deactivated"
+    "login_success",
+    "login_failed",
+    "lockout_triggered",
+    "lockout_expired",
+    "pin_changed",
+    "pin_change_failed",
+    "clock_in",
+    "clock_out",
+    "unauthorized_access",
+    "prompt_injection_blocked",
+    "staff_created",
+    "staff_deactivated",
   ]).notNull(),
   staffId: int("staffId"), // nullable — some events happen before auth (failed logins)
   staffName: varchar("staffName", { length: 200 }), // denormalized for quick display
   ipAddress: varchar("ipAddress", { length: 45 }).notNull(), // IPv6 max length
   userAgent: varchar("userAgent", { length: 500 }),
   details: text("details"), // JSON string with event-specific data
-  severity: mysqlEnum("severity", ["info", "warning", "critical"]).default("info").notNull(),
+  severity: mysqlEnum("severity", ["info", "warning", "critical"])
+    .default("info")
+    .notNull(),
   resolved: boolean("resolved").default(false).notNull(),
   resolvedBy: varchar("resolvedBy", { length: 200 }),
   resolvedAt: timestamp("resolvedAt"),
@@ -1145,7 +1542,6 @@ export const securityEvents = mysqlTable("security_events", {
 });
 export type SecurityEvent = typeof securityEvents.$inferSelect;
 export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
-
 
 /**
  * Password Reset Tokens — time-limited tokens for forgot password flow.
