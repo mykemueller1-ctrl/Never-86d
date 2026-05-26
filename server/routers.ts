@@ -87,6 +87,7 @@ import { notifyOwner } from "./_core/notification";
 import { processAchievementEvent } from "./achievementEngine";
 import { seedAllData } from "./seedAllData";
 import { seedWave20 } from "./seedWave20";
+import { seedRecipeIngredients } from "./seedRecipeIngredients";
 
 
 type ShiftAlertArea = "kitchen" | "foh" | "driver" | "pizza" | "fry" | "vendor" | "general";
@@ -1583,6 +1584,26 @@ Respond in JSON with this exact structure:
     }),
     recalculateCost: protectedProcedure.input(z.object({ recipeId: z.number() })).mutation(async ({ input }) => {
       return recalculateRecipeCost(input.recipeId);
+    }),
+    seedIngredients: staffOrAuthProcedure.input(z.object({
+      dryRun: z.boolean().optional(),
+      refreshExisting: z.boolean().optional(),
+      recalculate: z.boolean().optional(),
+    }).optional()).mutation(async ({ input, ctx }) => {
+      const isAdminUser = ctx.user?.role === "admin";
+      const staffRecord = ctx.staffId ? await getStaffByIdInternal(ctx.staffId) : null;
+      const staffRole = staffRecord?.jobRole ?? "";
+      const isManagerStaff = Boolean(staffRecord && staffRecord.status === "active" && (
+        staffRecord.canAuthPayouts
+        || staffRecord.isKeyEmployee
+        || ["owner", "key_manager", "kitchen_manager", "bar_manager"].includes(staffRole)
+      ));
+
+      if (!isAdminUser && !isManagerStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Manager authorization is required to seed recipe ingredients." });
+      }
+
+      return seedRecipeIngredients(input ?? {});
     }),
     addIngredient: protectedProcedure.input(z.object({
       recipeId: z.number(),
