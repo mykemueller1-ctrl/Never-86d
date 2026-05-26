@@ -29,6 +29,16 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
   const addIngredient = trpc.recipes.addIngredient.useMutation({ onSuccess: () => { utils.recipes.getById.invalidate({ id: selectedRecipeId! }); setNewIngredient({ ingredientName: '', quantity: '', unitOfMeasure: '', costPerUnit: '', yieldPercent: '100' }); } });
   const deleteIngredient = trpc.recipes.deleteIngredient.useMutation({ onSuccess: () => { utils.recipes.getById.invalidate({ id: selectedRecipeId! }); } });
   const recalcCost = trpc.recipes.recalculateCost.useMutation({ onSuccess: () => { utils.recipes.getById.invalidate({ id: selectedRecipeId! }); utils.recipes.list.invalidate(); } });
+  const seedIngredients = trpc.recipes.seedIngredients.useMutation({ 
+    onSuccess: (data) => { 
+      utils.recipes.list.invalidate(); 
+      utils.menuCost.list.invalidate();
+      alert(`Successfully seeded ingredients for ${data.recipesSeeded} recipes. ${data.recipesRecalculated} recipes and ${data.linkedMenuItemsRecalculated} menu items recalculated.`);
+    },
+    onError: (err) => {
+      alert(`Error seeding ingredients: ${err.message}`);
+    }
+  });
 
   const formatCurrency = (n: string | number | null) => {
     const val = typeof n === 'string' ? parseFloat(n) : (n || 0);
@@ -258,6 +268,21 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
       <div className="px-4 py-4">
         {tab === 'recipes' && (
           <div className="space-y-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white/40 uppercase tracking-wider">Active Recipes</h3>
+              <button
+                onClick={() => {
+                  if (confirm("This will automatically link recipes to SKUs and calculate theoretical costs. Proceed?")) {
+                    seedIngredients.mutate({ dryRun: false, refreshExisting: false });
+                  }
+                }}
+                disabled={seedIngredients.isPending}
+                className="bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${seedIngredients.isPending ? 'animate-spin' : ''}`} />
+                {seedIngredients.isPending ? 'Seeding...' : 'Seed All Costs'}
+              </button>
+            </div>
             {recipes.isLoading ? (
               <div className="text-center py-10 text-white/30">Loading recipes...</div>
             ) : (recipes.data?.length || 0) === 0 ? (
