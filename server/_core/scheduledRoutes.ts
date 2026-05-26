@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import { sdk } from "./sdk";
 import { invokeLLM } from "./llm";
@@ -11,10 +12,212 @@ import {
   getAllPayouts,
   getDb,
   createScheduleShift,
+  createDailySalesIfNew,
+  createInvoiceIfNew,
+  createScheduledJobRun,
+  finishScheduledJobRun,
+  recordIngestionDeadLetter,
+  upsertSourceCatalogEntry,
 } from "../db";
 import { seedAllData } from "../seedAllData";
-import { staff } from "../../drizzle/schema";
+import { staff, type InsertInvoice } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import {
+  findPdfAttachments as findGmailPdfAttachments,
+  getAttachmentBuffer as getGmailAttachmentBuffer,
+  hashAttachment as hashGmailAttachment,
+  searchAndReadGmail,
+  type GmailMessage,
+} from "../integrations/gmail";
+import {
+  findPdfAttachments as findOutlookPdfAttachments,
+  getAttachmentBuffer as getOutlookAttachmentBuffer,
+  hashAttachment as hashOutlookAttachment,
+  searchAndReadOutlook,
+  type OutlookMessage,
+} from "../integrations/outlook";
+import { extractPdfTextFromBuffer } from "../integrations/pdf";
+import {
+  detectPdqZReports,
+  PDQ_MAILBOX,
+  PDQ_SENDER,
+} from "../integrations/pdq/detector";
+import {
+  parsePdqZReportText,
+  PDQ_PARSER_VERSION,
+  toDailySalesInsert,
+} from "../integrations/pdq/parser";
+import {
+  parsePfsOrderConfirmation,
+  PFS_PARSER_VERSION,
+  PFS_SENDER,
+  PFS_VENDOR_NAME,
+} from "../integrations/vendors/pfs";
+import {
+  NORTHERN_LIGHTS_PARSER_VERSION,
+  NORTHERN_LIGHTS_VENDOR_NAME,
+  parseNorthernLightsInvoice,
+} from "../integrations/vendors/northernLights";
+import {
+  HUMES_MAILBOX,
+  HUMES_PARSER_VERSION,
+  HUMES_SENDER,
+  HUMES_VENDOR_NAME,
+  parseHumesInvoice,
+} from "../integrations/vendors/humes";
+
+type IngestionCounters = {
+  source: Record<string, number>;
+  inserted: Record<string, number>;
+  updated: Record<string, number>;
+  dead: Record<string, number>;
+  errors: string[];
+};
+
+function makeRunId(jobName: string): string {
+  return `${jobName}-${new Date().toISOString()}-${randomUUID()}`;
+}
+
+function stableDedupeKey(
+  parts: Array<string | number | undefined | null>
+): string {
+  const payload = parts
+    .map(part =>
+      String(part ?? "")
+        .trim()
+        .toLowerCase()
+    )
+    .join("|");
+  return createHash("sha256").update(payload).digest("hex");
+}
+
+function stripHtml(value?: string): string {
+  return (value ?? "")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+\n/g, "\n")
+    .trim();
+}
+
+function count(counter: Record<string, number>, key: string, amount = 1) {
+  counter[key] = (counter[key] ?? 0) + amount;
+}
+
+async function authenticateScheduled(
+  req: Request,
+  res: Response
+): Promise<boolean> {
+  try {
+    const user = await sdk.authenticateRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "No user found" });
+      return false;
+    }
+    return true;
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+}
+
+async function finishIngestionRun(
+  jobName: string,
+  runId: string,
+  counters: IngestionCounters
+) {
+  const status =
+    counters.errors.length > 0 ||
+    Object.values(counters.dead).some(value => value > 0)
+      ? "partial"
+      : "success";
+  await finishScheduledJobRun(runId, {
+    jobName,
+    runId,
+    status,
+    sourceCounts: counters.source,
+    insertedCounts: counters.inserted,
+    updatedCounts: counters.updated,
+    deadLetterCounts: counters.dead,
+    errorSummary: counters.errors.slice(0, 10).join("\n") || null,
+    nextAction:
+      status === "partial"
+        ? "Review ingestion_dead_letters and parser warnings before relying on affected records."
+        : "No action required.",
+  });
+}
+
+async function deadLetter(input: {
+  jobName: string;
+  runId: string;
+  sourceProvider: "gmail" | "outlook" | "manual" | "unknown";
+  sourceMailbox?: string;
+  sourceMessageId?: string;
+  sourceAttachmentHash?: string;
+  vendorName?: string;
+  parserName: string;
+  parserVersion?: string;
+  errorSummary: string;
+  rawText?: string;
+  payload?: unknown;
+}) {
+  await recordIngestionDeadLetter({
+    jobName: input.jobName,
+    runId: input.runId,
+    sourceProvider: input.sourceProvider,
+    sourceMailbox: input.sourceMailbox,
+    sourceMessageId: input.sourceMessageId,
+    sourceAttachmentHash: input.sourceAttachmentHash,
+    vendorName: input.vendorName,
+    parserName: input.parserName,
+    parserVersion: input.parserVersion,
+    errorSummary: input.errorSummary,
+    rawText: input.rawText,
+    payload: input.payload as any,
+  });
+}
+
+function invoiceInsertFromParsed(input: {
+  vendorName: string;
+  invoiceNumber?: string;
+  date?: Date;
+  totalAmount?: string;
+  category: InsertInvoice["category"];
+  items: unknown;
+  rawText: string;
+  sourceProvider: "gmail" | "outlook";
+  sourceMailbox: string;
+  sourceMessageId: string;
+  sourceAttachmentHash?: string;
+  parserVersion: string;
+  parserConfidence: number;
+  dedupeKey: string;
+  needsReview: boolean;
+  warnings: string[];
+}): InsertInvoice | null {
+  if (!input.date || !input.totalAmount) return null;
+  return {
+    vendorName: input.vendorName,
+    invoiceNumber: input.invoiceNumber,
+    date: input.date,
+    totalAmount: input.totalAmount,
+    category: input.category,
+    items: input.items as any,
+    sourceProvider: input.sourceProvider,
+    sourceMailbox: input.sourceMailbox,
+    sourceMessageId: input.sourceMessageId,
+    sourceAttachmentHash: input.sourceAttachmentHash,
+    parserVersion: input.parserVersion,
+    parserConfidence: input.parserConfidence.toFixed(3),
+    dedupeKey: input.dedupeKey,
+    needsReview: input.needsReview,
+    rawText: input.rawText,
+    flagged: input.needsReview,
+    flagReason: input.warnings.join("; ") || undefined,
+  };
+}
 
 /**
  * Scheduled task endpoint for generating management briefings.
@@ -22,146 +225,195 @@ import { eq } from "drizzle-orm";
  * Auth: uses the auto-injected scheduled task cookie (user role).
  */
 export function registerScheduledRoutes(app: Express) {
-
   // ─── Reactivate All Staff (one-time fix for archive bug) ───
-  app.post("/api/scheduled/reactivate-staff", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
+  app.post(
+    "/api/scheduled/reactivate-staff",
+    async (req: Request, res: Response) => {
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "No user found" });
+        return;
+      }
+
+      console.log(
+        `[Scheduled] Reactivate-staff triggered by user: ${user.name || user.openId}`
+      );
+      try {
+        const db = await getDb();
+        if (!db) {
+          res.status(500).json({ error: "Database not available" });
+          return;
+        }
+
+        // Set all inactive staff back to active and give them a recent lastClockIn
+        const result = await db
+          .update(staff)
+          .set({ status: "active" as const, lastClockIn: new Date() })
+          .where(eq(staff.status, "inactive"));
+        const reactivated = (result as any)[0]?.affectedRows ?? 0;
+
+        console.log(`[Scheduled] Reactivated ${reactivated} staff members`);
+        await notifyOwner({
+          title: "Staff Reactivation Complete",
+          content: `${reactivated} staff member${reactivated !== 1 ? "s" : ""} reactivated after archive bug fix.`,
+        });
+
+        res.status(200).json({ success: true, reactivated });
+      } catch (err) {
+        console.error("[Scheduled] Reactivate-staff failed:", err);
+        res.status(500).json({ success: false, error: "Reactivation failed" });
+      }
     }
-    if (!user) { res.status(401).json({ error: "No user found" }); return; }
-
-    console.log(`[Scheduled] Reactivate-staff triggered by user: ${user.name || user.openId}`);
-    try {
-      const db = await getDb();
-      if (!db) { res.status(500).json({ error: "Database not available" }); return; }
-
-      // Set all inactive staff back to active and give them a recent lastClockIn
-      const result = await db.update(staff)
-        .set({ status: "active" as const, lastClockIn: new Date() })
-        .where(eq(staff.status, "inactive"));
-      const reactivated = (result as any)[0]?.affectedRows ?? 0;
-
-      console.log(`[Scheduled] Reactivated ${reactivated} staff members`);
-      await notifyOwner({
-        title: "Staff Reactivation Complete",
-        content: `${reactivated} staff member${reactivated !== 1 ? 's' : ''} reactivated after archive bug fix.`,
-      });
-
-      res.status(200).json({ success: true, reactivated });
-    } catch (err) {
-      console.error("[Scheduled] Reactivate-staff failed:", err);
-      res.status(500).json({ success: false, error: "Reactivation failed" });
-    }
-  });
+  );
 
   // ─── Auto-Archive Inactive Staff ───
-  app.post("/api/scheduled/auto-archive", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (!user) { res.status(401).json({ error: "No user found" }); return; }
-
-    console.log(`[Scheduled] Auto-archive triggered by user: ${user.name || user.openId}`);
-    try {
-      const archivedCount = await archiveInactiveStaff();
-      console.log(`[Scheduled] Archived ${archivedCount} inactive staff members`);
-
-      if (archivedCount > 0) {
-        await notifyOwner({
-          title: "Staff Auto-Archive Report",
-          content: `${archivedCount} staff member${archivedCount > 1 ? 's' : ''} archived (no clock-in for 30+ days).`,
-        });
+  app.post(
+    "/api/scheduled/auto-archive",
+    async (req: Request, res: Response) => {
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "No user found" });
+        return;
       }
 
-      res.status(200).json({ success: true, archivedCount });
-    } catch (err) {
-      console.error("[Scheduled] Auto-archive failed:", err);
-      res.status(500).json({ success: false, error: "Auto-archive failed" });
+      console.log(
+        `[Scheduled] Auto-archive triggered by user: ${user.name || user.openId}`
+      );
+      try {
+        const archivedCount = await archiveInactiveStaff();
+        console.log(
+          `[Scheduled] Archived ${archivedCount} inactive staff members`
+        );
+
+        if (archivedCount > 0) {
+          await notifyOwner({
+            title: "Staff Auto-Archive Report",
+            content: `${archivedCount} staff member${archivedCount > 1 ? "s" : ""} archived (no clock-in for 30+ days).`,
+          });
+        }
+
+        res.status(200).json({ success: true, archivedCount });
+      } catch (err) {
+        console.error("[Scheduled] Auto-archive failed:", err);
+        res.status(500).json({ success: false, error: "Auto-archive failed" });
+      }
     }
-  });
+  );
 
   // ─── Daily Payout Digest ───
-  app.post("/api/scheduled/payout-digest", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (!user) { res.status(401).json({ error: "No user found" }); return; }
-
-    console.log(`[Scheduled] Payout digest triggered by user: ${user.name || user.openId}`);
-    try {
-      const allPayouts = await getAllPayouts(200);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayPayouts = allPayouts.filter(p => new Date(p.date) >= today);
-      const totalAmount = todayPayouts.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-      const flaggedCount = todayPayouts.filter(p => p.flagged).length;
-
-      if (todayPayouts.length > 0) {
-        const lines = [
-          `Today's Payouts: ${todayPayouts.length} transactions totaling $${totalAmount.toFixed(2)}`,
-          flaggedCount > 0 ? `\n⚠️ ${flaggedCount} FLAGGED payout${flaggedCount > 1 ? 's' : ''} need review` : '',
-          '',
-          ...todayPayouts.map(p => `• $${parseFloat(p.amount).toFixed(2)} — ${p.category || 'misc'}${p.vendor ? ` at ${p.vendor}` : ''}`),
-        ].filter(Boolean);
-
-        await notifyOwner({
-          title: `CTap Payout Digest: $${totalAmount.toFixed(2)} (${todayPayouts.length} txns)`,
-          content: lines.join('\n'),
-        });
-        console.log(`[Scheduled] Payout digest sent: ${todayPayouts.length} payouts, $${totalAmount.toFixed(2)}`);
-      } else {
-        console.log("[Scheduled] No payouts today — skipping digest");
+  app.post(
+    "/api/scheduled/payout-digest",
+    async (req: Request, res: Response) => {
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "No user found" });
+        return;
       }
 
-      res.status(200).json({
-        success: true,
-        count: todayPayouts.length,
-        totalAmount: totalAmount.toFixed(2),
-        flaggedCount,
-      });
-    } catch (err) {
-      console.error("[Scheduled] Payout digest failed:", err);
-      res.status(500).json({ success: false, error: "Payout digest failed" });
+      console.log(
+        `[Scheduled] Payout digest triggered by user: ${user.name || user.openId}`
+      );
+      try {
+        const allPayouts = await getAllPayouts(200);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayPayouts = allPayouts.filter(p => new Date(p.date) >= today);
+        const totalAmount = todayPayouts.reduce(
+          (sum, p) => sum + parseFloat(p.amount),
+          0
+        );
+        const flaggedCount = todayPayouts.filter(p => p.flagged).length;
+
+        if (todayPayouts.length > 0) {
+          const lines = [
+            `Today's Payouts: ${todayPayouts.length} transactions totaling $${totalAmount.toFixed(2)}`,
+            flaggedCount > 0
+              ? `\n⚠️ ${flaggedCount} FLAGGED payout${flaggedCount > 1 ? "s" : ""} need review`
+              : "",
+            "",
+            ...todayPayouts.map(
+              p =>
+                `• $${parseFloat(p.amount).toFixed(2)} — ${p.category || "misc"}${p.vendor ? ` at ${p.vendor}` : ""}`
+            ),
+          ].filter(Boolean);
+
+          await notifyOwner({
+            title: `CTap Payout Digest: $${totalAmount.toFixed(2)} (${todayPayouts.length} txns)`,
+            content: lines.join("\n"),
+          });
+          console.log(
+            `[Scheduled] Payout digest sent: ${todayPayouts.length} payouts, $${totalAmount.toFixed(2)}`
+          );
+        } else {
+          console.log("[Scheduled] No payouts today — skipping digest");
+        }
+
+        res.status(200).json({
+          success: true,
+          count: todayPayouts.length,
+          totalAmount: totalAmount.toFixed(2),
+          flaggedCount,
+        });
+      } catch (err) {
+        console.error("[Scheduled] Payout digest failed:", err);
+        res.status(500).json({ success: false, error: "Payout digest failed" });
+      }
     }
-  });
+  );
 
   // ─── Seed All Platform Data (menu, achievements, rewards, missions) ───
-  app.post("/api/scheduled/seed-all-data", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (!user) { res.status(401).json({ error: "No user found" }); return; }
+  app.post(
+    "/api/scheduled/seed-all-data",
+    async (req: Request, res: Response) => {
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "No user found" });
+        return;
+      }
 
-    console.log(`[Scheduled] Seed-all-data triggered by user: ${user.name || user.openId}`);
-    try {
-      const results = await seedAllData();
-      console.log(`[Scheduled] Seed-all-data results:`, results);
-      await notifyOwner({
-        title: "Platform Data Seeded",
-        content: Object.entries(results).map(([k, v]) => `${k}: ${v}`).join('\n'),
-      });
-      res.status(200).json({ success: true, results });
-    } catch (err) {
-      console.error("[Scheduled] Seed-all-data failed:", err);
-      res.status(500).json({ success: false, error: "Seed failed" });
+      console.log(
+        `[Scheduled] Seed-all-data triggered by user: ${user.name || user.openId}`
+      );
+      try {
+        const results = await seedAllData();
+        console.log(`[Scheduled] Seed-all-data results:`, results);
+        await notifyOwner({
+          title: "Platform Data Seeded",
+          content: Object.entries(results)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("\n"),
+        });
+        res.status(200).json({ success: true, results });
+      } catch (err) {
+        console.error("[Scheduled] Seed-all-data failed:", err);
+        res.status(500).json({ success: false, error: "Seed failed" });
+      }
     }
-  });
+  );
 
   // ─── End-of-Day Digest ───
   app.post("/api/scheduled/eod-digest", async (req: Request, res: Response) => {
@@ -177,7 +429,9 @@ export function registerScheduledRoutes(app: Express) {
       return;
     }
 
-    console.log(`[Scheduled] EOD digest triggered by user: ${user.name || user.openId}`);
+    console.log(
+      `[Scheduled] EOD digest triggered by user: ${user.name || user.openId}`
+    );
 
     try {
       const { getEodDigestData } = await import("../db");
@@ -188,7 +442,11 @@ export function registerScheduledRoutes(app: Express) {
       }
 
       const today = new Date();
-      const dayName = today.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+      const dayName = today.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
 
       const digestContent = [
         `📋 END-OF-DAY DIGEST — ${dayName}`,
@@ -202,7 +460,9 @@ export function registerScheduledRoutes(app: Express) {
         `• ${data.checklistsCompleted} checklists completed`,
         `• ${data.voidsToday} voids ($${data.voidTotal})`,
         `• ${data.issuesReported} issues reported`,
-        data.active86dItems.length > 0 ? `• 86'd: ${data.active86dItems.join(", ")}` : `• No active 86'd items`,
+        data.active86dItems.length > 0
+          ? `• 86'd: ${data.active86dItems.join(", ")}`
+          : `• No active 86'd items`,
       ].join("\n");
 
       const sent = await notifyOwner({
@@ -219,50 +479,70 @@ export function registerScheduledRoutes(app: Express) {
   });
 
   // ─── Google Sheets Schedule Sync ───
-  app.post("/api/scheduled/sync-schedule", async (req: Request, res: Response) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (!user) { res.status(401).json({ error: "No user found" }); return; }
-
-    console.log(`[Scheduled] Schedule sync triggered by user: ${user.name || user.openId}`);
-    try {
-      const { shifts, department } = req.body;
-      if (!shifts || !Array.isArray(shifts) || !department) {
-        res.status(400).json({ success: false, error: "shifts array and department required" });
+  app.post(
+    "/api/scheduled/sync-schedule",
+    async (req: Request, res: Response) => {
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Unauthorized" });
         return;
       }
-      let synced = 0;
-      const db = await getDb();
-      if (!db) { res.status(500).json({ error: "Database not available" }); return; }
-
-      for (const shift of shifts) {
-        try {
-          await createScheduleShift({
-            staffId: shift.staffId || 0,
-            date: new Date(shift.date),
-            startTime: shift.startTime,
-            endTime: shift.endTime,
-            position: shift.station || department,
-            department: department as any,
-            status: "scheduled",
-            notes: shift.name ? `Synced: ${shift.name}` : undefined,
-          });
-          synced++;
-        } catch (e) { /* skip invalid */ }
+      if (!user) {
+        res.status(401).json({ error: "No user found" });
+        return;
       }
 
-      console.log(`[Scheduled] Synced ${synced}/${shifts.length} shifts for ${department}`);
-      res.status(200).json({ success: true, synced, total: shifts.length });
-    } catch (err) {
-      console.error("[Scheduled] Schedule sync failed:", err);
-      res.status(500).json({ success: false, error: "Schedule sync failed" });
+      console.log(
+        `[Scheduled] Schedule sync triggered by user: ${user.name || user.openId}`
+      );
+      try {
+        const { shifts, department } = req.body;
+        if (!shifts || !Array.isArray(shifts) || !department) {
+          res
+            .status(400)
+            .json({
+              success: false,
+              error: "shifts array and department required",
+            });
+          return;
+        }
+        let synced = 0;
+        const db = await getDb();
+        if (!db) {
+          res.status(500).json({ error: "Database not available" });
+          return;
+        }
+
+        for (const shift of shifts) {
+          try {
+            await createScheduleShift({
+              staffId: shift.staffId || 0,
+              date: new Date(shift.date),
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+              position: shift.station || department,
+              department: department as any,
+              status: "scheduled",
+              notes: shift.name ? `Synced: ${shift.name}` : undefined,
+            });
+            synced++;
+          } catch (e) {
+            /* skip invalid */
+          }
+        }
+
+        console.log(
+          `[Scheduled] Synced ${synced}/${shifts.length} shifts for ${department}`
+        );
+        res.status(200).json({ success: true, synced, total: shifts.length });
+      } catch (err) {
+        console.error("[Scheduled] Schedule sync failed:", err);
+        res.status(500).json({ success: false, error: "Schedule sync failed" });
+      }
     }
-  });
+  );
 
   // ─── Daily Briefing Generation ───
   app.post("/api/scheduled/briefing", async (req: Request, res: Response) => {
@@ -280,12 +560,16 @@ export function registerScheduledRoutes(app: Express) {
       return;
     }
 
-    console.log(`[Scheduled] Briefing generation triggered by user: ${user.name || user.openId}`);
+    console.log(
+      `[Scheduled] Briefing generation triggered by user: ${user.name || user.openId}`
+    );
 
     try {
       const snapshot = await getBriefingDataSnapshot();
       if (!snapshot) {
-        res.status(200).json({ success: false, error: "No data available for briefing" });
+        res
+          .status(200)
+          .json({ success: false, error: "No data available for briefing" });
         return;
       }
 
@@ -411,7 +695,14 @@ Respond in JSON:
                     actionItems: { type: "array", items: { type: "string" } },
                     alerts: { type: "array", items: { type: "string" } },
                   },
-                  required: ["title", "summary", "sections", "theories", "actionItems", "alerts"],
+                  required: [
+                    "title",
+                    "summary",
+                    "sections",
+                    "theories",
+                    "actionItems",
+                    "alerts",
+                  ],
                   additionalProperties: false,
                 },
               },
@@ -422,9 +713,18 @@ Respond in JSON:
           const parsed =
             typeof rawContent === "string"
               ? JSON.parse(rawContent)
-              : { title: "Briefing", summary: "No data", sections: [], theories: [], actionItems: [], alerts: [] };
+              : {
+                  title: "Briefing",
+                  summary: "No data",
+                  sections: [],
+                  theories: [],
+                  actionItems: [],
+                  alerts: [],
+                };
 
-          const fullContent = parsed.sections.map((s: any) => `## ${s.heading}\n\n${s.content}`).join("\n\n");
+          const fullContent = parsed.sections
+            .map((s: any) => `## ${s.heading}\n\n${s.content}`)
+            .join("\n\n");
 
           const id = await saveManagementBriefing({
             targetRole: role,
@@ -442,9 +742,14 @@ Respond in JSON:
           });
 
           if (id) briefingIds.push(id);
-          console.log(`[Scheduled] Generated ${role} briefing: ${parsed.title}`);
+          console.log(
+            `[Scheduled] Generated ${role} briefing: ${parsed.title}`
+          );
         } catch (err) {
-          console.error(`[Scheduled] Failed to generate briefing for ${role}:`, err);
+          console.error(
+            `[Scheduled] Failed to generate briefing for ${role}:`,
+            err
+          );
         }
       }
 
@@ -483,7 +788,551 @@ Respond in JSON:
       });
     } catch (err) {
       console.error("[Scheduled] Briefing generation failed:", err);
-      res.status(500).json({ success: false, error: "Briefing generation failed" });
+      res
+        .status(500)
+        .json({ success: false, error: "Briefing generation failed" });
     }
   });
+
+  // ─── P1 Data Ingestion: PDQ Z-Report Detection ───
+  app.post(
+    ["/api/scheduled/pdq-detect", "/scheduled/pdq-detect"],
+    async (req: Request, res: Response) => {
+      if (!(await authenticateScheduled(req, res))) return;
+
+      const jobName = "pdq-detect";
+      const runId = makeRunId(jobName);
+      const counters: IngestionCounters = {
+        source: {},
+        inserted: {},
+        updated: {},
+        dead: {},
+        errors: [],
+      };
+      await createScheduledJobRun({
+        jobName,
+        runId,
+        startedAt: new Date(),
+        status: "running",
+      });
+
+      try {
+        await upsertSourceCatalogEntry({
+          vendorName: "PDQ",
+          sourceProvider: "gmail",
+          senderEmail: PDQ_SENDER,
+          subjectPattern: "PDQ Z-report attachment",
+          attachmentType: "pdf",
+          frequency: "daily",
+          lastSeenAt: new Date(),
+          status: "active",
+        });
+
+        const candidates = await detectPdqZReports({
+          daysBack: Number(req.body?.daysBack ?? 14),
+          maxResults: Number(req.body?.maxResults ?? 50),
+        });
+        count(counters.source, "pdq_z_reports", candidates.length);
+
+        for (const candidate of candidates) {
+          try {
+            const parsed = parsePdqZReportText(candidate.rawText);
+            const dedupeKey = stableDedupeKey([
+              "pdq",
+              candidate.sourceProvider,
+              candidate.sourceMailbox,
+              candidate.attachmentHash,
+            ]);
+            const insert = toDailySalesInsert(parsed, {
+              sourceProvider: "gmail",
+              sourceMailbox: candidate.sourceMailbox,
+              sourceMessageId: candidate.messageId,
+              sourceAttachmentHash: candidate.attachmentHash,
+              dedupeKey,
+              rawText: candidate.rawText,
+            });
+
+            if (!insert || !parsed.grandTotal) {
+              count(counters.dead, "pdq_z_reports");
+              await deadLetter({
+                jobName,
+                runId,
+                sourceProvider: "gmail",
+                sourceMailbox: PDQ_MAILBOX,
+                sourceMessageId: candidate.messageId,
+                sourceAttachmentHash: candidate.attachmentHash,
+                vendorName: "PDQ",
+                parserName: "pdq-z-report",
+                parserVersion: PDQ_PARSER_VERSION,
+                errorSummary: `PDQ parse did not produce required daily-sales fields: ${parsed.warnings.join("; ")}`,
+                rawText: candidate.rawText,
+                payload: {
+                  subject: candidate.subject,
+                  warnings: parsed.warnings,
+                  extractionWarnings: candidate.extractionWarnings,
+                },
+              });
+              continue;
+            }
+
+            const result = await createDailySalesIfNew(
+              insert as typeof insert & { dedupeKey: string }
+            );
+            count(
+              counters.inserted,
+              result.action === "inserted"
+                ? "daily_sales"
+                : "daily_sales_skipped_duplicate"
+            );
+          } catch (error) {
+            const summary =
+              error instanceof Error ? error.message : String(error);
+            counters.errors.push(summary);
+            count(counters.dead, "pdq_z_reports");
+            await deadLetter({
+              jobName,
+              runId,
+              sourceProvider: "gmail",
+              sourceMailbox: PDQ_MAILBOX,
+              sourceMessageId: candidate.messageId,
+              sourceAttachmentHash: candidate.attachmentHash,
+              vendorName: "PDQ",
+              parserName: "pdq-z-report",
+              parserVersion: PDQ_PARSER_VERSION,
+              errorSummary: summary,
+              rawText: candidate.rawText,
+              payload: { subject: candidate.subject },
+            });
+          }
+        }
+
+        await finishIngestionRun(jobName, runId, counters);
+        res.status(200).json({ success: true, runId, ...counters });
+      } catch (error) {
+        const summary = error instanceof Error ? error.message : String(error);
+        counters.errors.push(summary);
+        await finishScheduledJobRun(runId, {
+          jobName,
+          runId,
+          status: "failed",
+          errorSummary: summary,
+          endedAt: new Date(),
+          sourceCounts: counters.source,
+          insertedCounts: counters.inserted,
+          deadLetterCounts: counters.dead,
+        });
+        res.status(500).json({ success: false, runId, error: summary });
+      }
+    }
+  );
+
+  // ─── P1 Data Ingestion: Performance Foodservice Order Confirmations ───
+  app.post(
+    ["/api/scheduled/pfs-import", "/scheduled/pfs-import"],
+    async (req: Request, res: Response) => {
+      if (!(await authenticateScheduled(req, res))) return;
+
+      const jobName = "pfs-import";
+      const runId = makeRunId(jobName);
+      const counters: IngestionCounters = {
+        source: {},
+        inserted: {},
+        updated: {},
+        dead: {},
+        errors: [],
+      };
+      await createScheduledJobRun({
+        jobName,
+        runId,
+        startedAt: new Date(),
+        status: "running",
+      });
+
+      try {
+        await upsertSourceCatalogEntry({
+          vendorName: PFS_VENDOR_NAME,
+          sourceProvider: "gmail",
+          senderEmail: PFS_SENDER,
+          subjectPattern: "order confirmation",
+          attachmentType: "body-text",
+          frequency: "as orders are placed",
+          lastSeenAt: new Date(),
+          status: "active",
+        });
+
+        const messages = await searchAndReadGmail(
+          `from:${PFS_SENDER} newer_than:${Number(req.body?.daysBack ?? 30)}d`,
+          Number(req.body?.maxResults ?? 50)
+        );
+        count(counters.source, "pfs_messages", messages.length);
+
+        for (const message of messages) {
+          const rawText = [
+            message.bodyText,
+            stripHtml(message.bodyHtml),
+            message.snippet,
+          ]
+            .filter(Boolean)
+            .join("\n\n");
+          try {
+            const parsed = parsePfsOrderConfirmation(rawText);
+            const dedupeKey = stableDedupeKey([
+              "pfs",
+              "gmail",
+              message.id,
+              parsed.invoiceNumber,
+              parsed.orderNumber,
+              parsed.date?.toISOString(),
+            ]);
+            const invoice = invoiceInsertFromParsed({
+              vendorName: parsed.vendorName,
+              invoiceNumber: parsed.invoiceNumber,
+              date: parsed.date,
+              totalAmount: parsed.totalAmount,
+              category: parsed.category,
+              items: parsed.items,
+              rawText: parsed.rawText,
+              sourceProvider: "gmail",
+              sourceMailbox: PDQ_MAILBOX,
+              sourceMessageId: message.id,
+              parserVersion: parsed.parserVersion,
+              parserConfidence: parsed.confidence,
+              dedupeKey,
+              needsReview: parsed.needsReview,
+              warnings: parsed.warnings,
+            });
+
+            if (!invoice) {
+              count(counters.dead, "pfs_messages");
+              await deadLetter({
+                jobName,
+                runId,
+                sourceProvider: "gmail",
+                sourceMailbox: PDQ_MAILBOX,
+                sourceMessageId: message.id,
+                vendorName: parsed.vendorName,
+                parserName: "pfs-order-confirmation",
+                parserVersion: PFS_PARSER_VERSION,
+                errorSummary:
+                  parsed.warnings.join("; ") ||
+                  "PFS parse missing required invoice fields",
+                rawText: parsed.rawText,
+                payload: { subject: message.subject },
+              });
+              continue;
+            }
+
+            const result = await createInvoiceIfNew(
+              invoice as InsertInvoice & { dedupeKey: string }
+            );
+            count(
+              counters.inserted,
+              result.action === "inserted"
+                ? "invoices"
+                : "invoices_skipped_duplicate"
+            );
+          } catch (error) {
+            const summary =
+              error instanceof Error ? error.message : String(error);
+            counters.errors.push(summary);
+            count(counters.dead, "pfs_messages");
+            await deadLetter({
+              jobName,
+              runId,
+              sourceProvider: "gmail",
+              sourceMailbox: PDQ_MAILBOX,
+              sourceMessageId: message.id,
+              vendorName: PFS_VENDOR_NAME,
+              parserName: "pfs-order-confirmation",
+              parserVersion: PFS_PARSER_VERSION,
+              errorSummary: summary,
+              rawText,
+              payload: { subject: message.subject },
+            });
+          }
+        }
+
+        await finishIngestionRun(jobName, runId, counters);
+        res.status(200).json({ success: true, runId, ...counters });
+      } catch (error) {
+        const summary = error instanceof Error ? error.message : String(error);
+        counters.errors.push(summary);
+        await finishScheduledJobRun(runId, {
+          jobName,
+          runId,
+          status: "failed",
+          errorSummary: summary,
+          endedAt: new Date(),
+          sourceCounts: counters.source,
+          insertedCounts: counters.inserted,
+          deadLetterCounts: counters.dead,
+        });
+        res.status(500).json({ success: false, runId, error: summary });
+      }
+    }
+  );
+
+  // ─── P1 Data Ingestion: Northern Lights + Humes Vendor Invoice Detection ───
+  app.post(
+    ["/api/scheduled/vendor-detect", "/scheduled/vendor-detect"],
+    async (req: Request, res: Response) => {
+      if (!(await authenticateScheduled(req, res))) return;
+
+      const jobName = "vendor-detect";
+      const runId = makeRunId(jobName);
+      const counters: IngestionCounters = {
+        source: {},
+        inserted: {},
+        updated: {},
+        dead: {},
+        errors: [],
+      };
+      await createScheduledJobRun({
+        jobName,
+        runId,
+        startedAt: new Date(),
+        status: "running",
+      });
+
+      try {
+        await upsertSourceCatalogEntry({
+          vendorName: NORTHERN_LIGHTS_VENDOR_NAME,
+          sourceProvider: "gmail",
+          senderEmail: "unknown",
+          subjectPattern: "Northern Lights invoice",
+          attachmentType: "pdf",
+          frequency: "invoice-driven",
+          lastSeenAt: new Date(),
+          status: "needs_review",
+        });
+        await upsertSourceCatalogEntry({
+          vendorName: HUMES_VENDOR_NAME,
+          sourceProvider: "outlook",
+          senderEmail: HUMES_SENDER,
+          subjectPattern: "invoice",
+          attachmentType: "pdf",
+          frequency: "twice weekly",
+          lastSeenAt: new Date(),
+          status: "active",
+        });
+
+        const gmailMessages = await searchAndReadGmail(
+          `Northern Lights invoice has:attachment newer_than:${Number(req.body?.daysBack ?? 30)}d`,
+          Number(req.body?.maxResults ?? 50)
+        );
+        count(
+          counters.source,
+          "northern_lights_messages",
+          gmailMessages.length
+        );
+        for (const message of gmailMessages as GmailMessage[]) {
+          for (const attachment of findGmailPdfAttachments(message)) {
+            try {
+              const buffer = await getGmailAttachmentBuffer(attachment);
+              const attachmentHash = hashGmailAttachment(buffer);
+              const extracted = await extractPdfTextFromBuffer(
+                buffer,
+                attachment.filename
+              );
+              const parsed = parseNorthernLightsInvoice(extracted.text);
+              const dedupeKey = stableDedupeKey([
+                "northern-lights",
+                "gmail",
+                message.id,
+                attachmentHash,
+                parsed.invoiceNumber,
+              ]);
+              const invoice = invoiceInsertFromParsed({
+                vendorName: parsed.vendorName,
+                invoiceNumber: parsed.invoiceNumber,
+                date: parsed.date,
+                totalAmount: parsed.totalAmount,
+                category: parsed.category,
+                items: parsed.items,
+                rawText: parsed.rawText,
+                sourceProvider: "gmail",
+                sourceMailbox: PDQ_MAILBOX,
+                sourceMessageId: message.id,
+                sourceAttachmentHash: attachmentHash,
+                parserVersion: parsed.parserVersion,
+                parserConfidence: parsed.confidence,
+                dedupeKey,
+                needsReview:
+                  parsed.needsReview || extracted.warnings.length > 0,
+                warnings: [...parsed.warnings, ...extracted.warnings],
+              });
+              if (!invoice) {
+                count(counters.dead, "northern_lights_invoices");
+                await deadLetter({
+                  jobName,
+                  runId,
+                  sourceProvider: "gmail",
+                  sourceMailbox: PDQ_MAILBOX,
+                  sourceMessageId: message.id,
+                  sourceAttachmentHash: attachmentHash,
+                  vendorName: parsed.vendorName,
+                  parserName: "northern-lights-invoice",
+                  parserVersion: NORTHERN_LIGHTS_PARSER_VERSION,
+                  errorSummary:
+                    parsed.warnings.join("; ") ||
+                    "Northern Lights parse missing required invoice fields",
+                  rawText: parsed.rawText,
+                  payload: {
+                    subject: message.subject,
+                    attachment: attachment.filename,
+                    extractionWarnings: extracted.warnings,
+                  },
+                });
+                continue;
+              }
+              const result = await createInvoiceIfNew(
+                invoice as InsertInvoice & { dedupeKey: string }
+              );
+              count(
+                counters.inserted,
+                result.action === "inserted"
+                  ? "northern_lights_invoices"
+                  : "northern_lights_skipped_duplicate"
+              );
+            } catch (error) {
+              const summary =
+                error instanceof Error ? error.message : String(error);
+              counters.errors.push(summary);
+              count(counters.dead, "northern_lights_invoices");
+              await deadLetter({
+                jobName,
+                runId,
+                sourceProvider: "gmail",
+                sourceMailbox: PDQ_MAILBOX,
+                sourceMessageId: message.id,
+                vendorName: NORTHERN_LIGHTS_VENDOR_NAME,
+                parserName: "northern-lights-invoice",
+                parserVersion: NORTHERN_LIGHTS_PARSER_VERSION,
+                errorSummary: summary,
+                payload: {
+                  subject: message.subject,
+                  attachment: attachment.filename,
+                },
+              });
+            }
+          }
+        }
+
+        const outlookMessages = await searchAndReadOutlook(
+          `from:${HUMES_SENDER} AND hasAttachments:true`,
+          Number(req.body?.maxResults ?? 50)
+        );
+        count(counters.source, "humes_messages", outlookMessages.length);
+        for (const message of outlookMessages as OutlookMessage[]) {
+          for (const attachment of findOutlookPdfAttachments(message)) {
+            try {
+              const buffer = await getOutlookAttachmentBuffer(attachment);
+              const attachmentHash = hashOutlookAttachment(buffer);
+              const extracted = await extractPdfTextFromBuffer(
+                buffer,
+                attachment.filename
+              );
+              const parsed = parseHumesInvoice(extracted.text);
+              const dedupeKey = stableDedupeKey([
+                "humes",
+                "outlook",
+                message.id,
+                attachmentHash,
+                parsed.invoiceNumber,
+              ]);
+              const invoice = invoiceInsertFromParsed({
+                vendorName: parsed.vendorName,
+                invoiceNumber: parsed.invoiceNumber,
+                date: parsed.date,
+                totalAmount: parsed.totalAmount,
+                category: parsed.category,
+                items: parsed.items,
+                rawText: parsed.rawText,
+                sourceProvider: "outlook",
+                sourceMailbox: HUMES_MAILBOX,
+                sourceMessageId: message.id,
+                sourceAttachmentHash: attachmentHash,
+                parserVersion: parsed.parserVersion,
+                parserConfidence: parsed.confidence,
+                dedupeKey,
+                needsReview:
+                  parsed.needsReview || extracted.warnings.length > 0,
+                warnings: [...parsed.warnings, ...extracted.warnings],
+              });
+              if (!invoice) {
+                count(counters.dead, "humes_invoices");
+                await deadLetter({
+                  jobName,
+                  runId,
+                  sourceProvider: "outlook",
+                  sourceMailbox: HUMES_MAILBOX,
+                  sourceMessageId: message.id,
+                  sourceAttachmentHash: attachmentHash,
+                  vendorName: parsed.vendorName,
+                  parserName: "humes-invoice",
+                  parserVersion: HUMES_PARSER_VERSION,
+                  errorSummary:
+                    parsed.warnings.join("; ") ||
+                    "Humes parse missing required invoice fields",
+                  rawText: parsed.rawText,
+                  payload: {
+                    subject: message.subject,
+                    attachment: attachment.filename,
+                    extractionWarnings: extracted.warnings,
+                  },
+                });
+                continue;
+              }
+              const result = await createInvoiceIfNew(
+                invoice as InsertInvoice & { dedupeKey: string }
+              );
+              count(
+                counters.inserted,
+                result.action === "inserted"
+                  ? "humes_invoices"
+                  : "humes_skipped_duplicate"
+              );
+            } catch (error) {
+              const summary =
+                error instanceof Error ? error.message : String(error);
+              counters.errors.push(summary);
+              count(counters.dead, "humes_invoices");
+              await deadLetter({
+                jobName,
+                runId,
+                sourceProvider: "outlook",
+                sourceMailbox: HUMES_MAILBOX,
+                sourceMessageId: message.id,
+                vendorName: HUMES_VENDOR_NAME,
+                parserName: "humes-invoice",
+                parserVersion: HUMES_PARSER_VERSION,
+                errorSummary: summary,
+                payload: {
+                  subject: message.subject,
+                  attachment: attachment.filename,
+                },
+              });
+            }
+          }
+        }
+
+        await finishIngestionRun(jobName, runId, counters);
+        res.status(200).json({ success: true, runId, ...counters });
+      } catch (error) {
+        const summary = error instanceof Error ? error.message : String(error);
+        counters.errors.push(summary);
+        await finishScheduledJobRun(runId, {
+          jobName,
+          runId,
+          status: "failed",
+          errorSummary: summary,
+          endedAt: new Date(),
+          sourceCounts: counters.source,
+          insertedCounts: counters.inserted,
+          deadLetterCounts: counters.dead,
+        });
+        res.status(500).json({ success: false, runId, error: summary });
+      }
+    }
+  );
 }
