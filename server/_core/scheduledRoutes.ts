@@ -218,6 +218,7 @@ function invoiceInsertFromParsed(input: {
     flagReason: input.warnings.join("; ") || undefined,
   };
 }
+import { registerP2ScheduledRoutes } from "../scheduled/p2ScheduledRoutes";
 
 /**
  * Scheduled task endpoint for generating management briefings.
@@ -225,6 +226,7 @@ function invoiceInsertFromParsed(input: {
  * Auth: uses the auto-injected scheduled task cookie (user role).
  */
 export function registerScheduledRoutes(app: Express) {
+  registerP2ScheduledRoutes(app);
   // ─── Reactivate All Staff (one-time fix for archive bug) ───
   app.post(
     "/api/scheduled/reactivate-staff",
