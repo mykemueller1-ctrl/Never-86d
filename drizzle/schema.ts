@@ -171,30 +171,7 @@ export const invoices = mysqlTable("invoices", {
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = typeof invoices.$inferInsert;
 
-/**
- * Scheduled Job Runs — durable audit trail for deterministic ingestion jobs.
- * Every scheduled import writes one row with source/insert/update/dead-letter counts.
- */
-export const scheduledJobRuns = mysqlTable("scheduled_job_runs", {
-  id: int("id").autoincrement().primaryKey(),
-  jobName: varchar("jobName", { length: 120 }).notNull(),
-  runId: varchar("runId", { length: 120 }).notNull().unique(),
-  startedAt: timestamp("startedAt").defaultNow().notNull(),
-  endedAt: timestamp("endedAt"),
-  status: mysqlEnum("status", ["running", "success", "partial", "failed"])
-    .default("running")
-    .notNull(),
-  sourceCounts: json("sourceCounts"),
-  insertedCounts: json("insertedCounts"),
-  updatedCounts: json("updatedCounts"),
-  deadLetterCounts: json("deadLetterCounts"),
-  errorSummary: text("errorSummary"),
-  nextAction: text("nextAction"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
 
-export type ScheduledJobRun = typeof scheduledJobRuns.$inferSelect;
-export type InsertScheduledJobRun = typeof scheduledJobRuns.$inferInsert;
 
 /**
  * Source Catalog — allowlisted mailbox sources and matching rules for ingestion.
