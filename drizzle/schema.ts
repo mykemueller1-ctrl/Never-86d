@@ -1556,3 +1556,21 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+// ─── Scheduled Job Runs (P2 orchestration audit log) ────────────────────────
+export const scheduledJobRuns = mysqlTable("scheduled_job_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  jobName: varchar("jobName", { length: 120 }).notNull(),
+  idempotencyKey: varchar("idempotencyKey", { length: 191 }),
+  status: mysqlEnum("status", ["running", "success", "failed", "skipped"]).default("running").notNull(),
+  trigger: mysqlEnum("trigger", ["scheduled", "manual", "api"]).default("scheduled").notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+  durationMs: int("durationMs"),
+  summary: json("summary"),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ScheduledJobRun = typeof scheduledJobRuns.$inferSelect;
+export type InsertScheduledJobRun = typeof scheduledJobRuns.$inferInsert;
