@@ -53,7 +53,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
       liquor: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
       pop: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20',
     };
-    return colors[cat] || 'bg-white/5 text-white/60 border-white/10';
+    return colors[cat] || 'bg-white/5 text-slate-500 border-slate-200';
   };
 
   // Recipe detail view
@@ -67,15 +67,15 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
     const isOverTarget = foodCostPct > targetPct;
 
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
-        <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 border-b border-white/10">
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 border-b border-slate-200">
           <div className="px-4 py-3 flex items-center gap-3">
             <button onClick={() => setSelectedRecipeId(null)} className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="flex-1">
               <h1 className="text-lg font-bold">{r.name}</h1>
-              <p className="text-xs text-white/60">{r.category} · {r.servingSize || 'No serving size'}</p>
+              <p className="text-xs text-slate-500">{r.category} · {r.servingSize || 'No serving size'}</p>
             </div>
             <button
               onClick={() => recalcCost.mutate({ recipeId: r.id })}
@@ -91,19 +91,19 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
           {/* Cost Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white/5 rounded-xl p-3 text-center">
-              <div className="text-[10px] uppercase text-white/40">Recipe Cost</div>
+              <div className="text-[10px] uppercase text-slate-400">Recipe Cost</div>
               <div className="text-xl font-black text-orange-300">{formatCurrency(totalCost)}</div>
             </div>
             <div className="bg-white/5 rounded-xl p-3 text-center">
-              <div className="text-[10px] uppercase text-white/40">Menu Price</div>
+              <div className="text-[10px] uppercase text-slate-400">Menu Price</div>
               <div className="text-xl font-black">{formatCurrency(menuPrice)}</div>
             </div>
             <div className={`rounded-xl p-3 text-center ${isOverTarget ? 'bg-red-500/10 border border-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
-              <div className="text-[10px] uppercase text-white/40">Food Cost %</div>
+              <div className="text-[10px] uppercase text-slate-400">Food Cost %</div>
               <div className={`text-xl font-black ${isOverTarget ? 'text-red-400' : 'text-emerald-400'}`}>
                 {foodCostPct.toFixed(1)}%
               </div>
-              <div className="text-[10px] text-white/30">Target: {targetPct}%</div>
+              <div className="text-[10px] text-slate-900/30">Target: {targetPct}%</div>
             </div>
           </div>
 
@@ -111,7 +111,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
           {menuPrice > 0 && (
             <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 rounded-xl p-4 border border-emerald-500/20">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-white/60">Gross Margin</span>
+                <span className="text-sm text-slate-500">Gross Margin</span>
                 <span className="text-lg font-bold text-emerald-400">{formatCurrency(menuPrice - totalCost)}</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 mt-2">
@@ -125,34 +125,34 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
 
           {/* Prep Info */}
           {(r.prepTimeMinutes || r.prepInstructions) && (
-            <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+            <div className="bg-white/5 rounded-xl p-4 border border-slate-200">
               {r.prepTimeMinutes && (
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-white/40" />
+                  <Clock className="w-4 h-4 text-slate-400" />
                   <span className="text-sm">{r.prepTimeMinutes} min prep</span>
                 </div>
               )}
               {r.prepInstructions && (
-                <p className="text-xs text-white/50 whitespace-pre-wrap">{r.prepInstructions}</p>
+                <p className="text-xs text-slate-500 whitespace-pre-wrap">{r.prepInstructions}</p>
               )}
             </div>
           )}
 
           {/* Ingredients */}
-          <div className="bg-white/5 rounded-2xl border border-white/5 overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+          <div className="bg-white/5 rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-sm font-bold">Ingredients ({ingredients.length})</h3>
-              <span className="text-xs text-white/40">Total: {formatCurrency(totalCost)}</span>
+              <span className="text-xs text-slate-400">Total: {formatCurrency(totalCost)}</span>
             </div>
             {ingredients.length === 0 ? (
-              <div className="px-4 py-8 text-center text-white/30 text-sm">No ingredients yet</div>
+              <div className="px-4 py-8 text-center text-slate-900/30 text-sm">No ingredients yet</div>
             ) : (
               <div className="divide-y divide-white/5">
                 {ingredients.map((ing: any) => (
                   <div key={ing.id} className="px-4 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{ing.ingredientName}</div>
-                      <div className="text-[10px] text-white/40">
+                      <div className="text-[10px] text-slate-400">
                         {ing.quantity} {ing.unitOfMeasure} @ {formatCurrency(ing.costPerUnit)}/{ing.unitOfMeasure}
                         {ing.yieldPercent && parseFloat(ing.yieldPercent) < 100 && ` · ${ing.yieldPercent}% yield`}
                       </div>
@@ -167,35 +167,35 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
             )}
 
             {/* Add Ingredient Form */}
-            <div className="px-4 py-3 bg-white/[0.02] border-t border-white/5">
-              <div className="text-xs font-semibold text-white/40 mb-2">Add Ingredient</div>
+            <div className="px-4 py-3 bg-white/[0.02] border-t border-slate-200">
+              <div className="text-xs font-semibold text-slate-400 mb-2">Add Ingredient</div>
               <div className="grid grid-cols-2 gap-2">
                 <input
-                  className="col-span-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="col-span-2 bg-white/5 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                   placeholder="Ingredient name"
                   value={newIngredient.ingredientName}
                   onChange={e => setNewIngredient(p => ({ ...p, ingredientName: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                   placeholder="Quantity"
                   value={newIngredient.quantity}
                   onChange={e => setNewIngredient(p => ({ ...p, quantity: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                   placeholder="Unit (oz, lb, ea)"
                   value={newIngredient.unitOfMeasure}
                   onChange={e => setNewIngredient(p => ({ ...p, unitOfMeasure: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                   placeholder="Cost per unit"
                   value={newIngredient.costPerUnit}
                   onChange={e => setNewIngredient(p => ({ ...p, costPerUnit: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                   placeholder="Yield % (100)"
                   value={newIngredient.yieldPercent}
                   onChange={e => setNewIngredient(p => ({ ...p, yieldPercent: e.target.value }))}
@@ -231,9 +231,9 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 border-b border-white/10">
+      <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 border-b border-slate-200">
         <div className="px-4 py-3 flex items-center gap-3">
           <button onClick={onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
             <ArrowLeft className="w-5 h-5" />
@@ -243,13 +243,13 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
               <ChefHat className="w-5 h-5 text-orange-400" />
               Recipe & Food Cost
             </h1>
-            <p className="text-xs text-white/60">Recipe costing, menu engineering, margin analysis</p>
+            <p className="text-xs text-slate-500">Recipe costing, menu engineering, margin analysis</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/5">
+      <div className="flex border-b border-slate-200">
         {[
           { key: 'recipes' as Tab, label: 'Recipes' },
           { key: 'menu-cost' as Tab, label: 'Menu Cost' },
@@ -258,7 +258,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === t.key ? 'text-orange-400 border-b-2 border-orange-400' : 'text-white/40'}`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === t.key ? 'text-orange-400 border-b-2 border-orange-400' : 'text-slate-400'}`}
           >
             {t.label}
           </button>
@@ -269,7 +269,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
         {tab === 'recipes' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-white/40 uppercase tracking-wider">Active Recipes</h3>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Active Recipes</h3>
               <button
                 onClick={() => {
                   if (confirm("This will automatically link recipes to SKUs and calculate theoretical costs. Proceed?")) {
@@ -284,11 +284,11 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
               </button>
             </div>
             {recipes.isLoading ? (
-              <div className="text-center py-10 text-white/30">Loading recipes...</div>
+              <div className="text-center py-10 text-slate-900/30">Loading recipes...</div>
             ) : (recipes.data?.length || 0) === 0 ? (
               <div className="text-center py-10">
-                <ChefHat className="w-12 h-12 text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No recipes yet</p>
+                <ChefHat className="w-12 h-12 text-slate-900/10 mx-auto mb-3" />
+                <p className="text-slate-900/30 text-sm">No recipes yet</p>
                 <button onClick={() => setTab('add')} className="mt-3 text-orange-400 text-sm font-medium">+ Add first recipe</button>
               </div>
             ) : (
@@ -298,7 +298,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                   ? ((parseFloat(r.totalCost || '0') / parseFloat(r.menuPrice)) * 100)
                   : null;
                 return (
-                  <div key={r.id} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                  <div key={r.id} className="bg-white/5 rounded-xl border border-slate-200 overflow-hidden">
                     <button
                       onClick={() => setExpandedRecipe(isExpanded ? null : r.id)}
                       className="w-full px-4 py-3 flex items-center gap-3 text-left"
@@ -310,7 +310,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                             {r.category}
                           </span>
                           {r.prepTimeMinutes && (
-                            <span className="text-[10px] text-white/30 flex items-center gap-1">
+                            <span className="text-[10px] text-slate-900/30 flex items-center gap-1">
                               <Clock className="w-3 h-3" />{r.prepTimeMinutes}m
                             </span>
                           )}
@@ -324,10 +324,10 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                           </div>
                         )}
                       </div>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-900/30" /> : <ChevronDown className="w-4 h-4 text-slate-900/30" />}
                     </button>
                     {isExpanded && (
-                      <div className="px-4 pb-3 border-t border-white/5 pt-2">
+                      <div className="px-4 pb-3 border-t border-slate-200 pt-2">
                         <div className="flex gap-2">
                           <button
                             onClick={() => setSelectedRecipeId(r.id)}
@@ -337,13 +337,13 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                           </button>
                           <button
                             onClick={() => { recalcCost.mutate({ recipeId: r.id }); }}
-                            className="bg-white/5 text-white/60 rounded-lg px-3 py-2 text-xs hover:bg-white/10 transition-colors flex items-center gap-1"
+                            className="bg-white/5 text-slate-500 rounded-lg px-3 py-2 text-xs hover:bg-white/10 transition-colors flex items-center gap-1"
                           >
                             <RefreshCw className="w-3 h-3" /> Recalc
                           </button>
                         </div>
                         {r.menuPrice && (
-                          <div className="mt-2 text-xs text-white/40">
+                          <div className="mt-2 text-xs text-slate-400">
                             Menu: {formatCurrency(r.menuPrice)} · Margin: {formatCurrency(parseFloat(r.menuPrice) - parseFloat(r.totalCost || '0'))}
                           </div>
                         )}
@@ -367,7 +367,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                     <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
                       <span className="text-sm capitalize">{cat.category}</span>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-white/40">{cat.itemCount} items</span>
+                        <span className="text-xs text-slate-400">{cat.itemCount} items</span>
                         <span className="text-sm font-bold">{formatCurrency(cat.avgCost)}</span>
                         <span className={`text-xs font-medium ${parseFloat(cat.avgFoodCostPct || '0') > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
                           {parseFloat(cat.avgFoodCostPct || '0').toFixed(1)}%
@@ -381,22 +381,22 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
 
             {/* Menu Items */}
             {menuItems.isLoading ? (
-              <div className="text-center py-10 text-white/30">Loading menu items...</div>
+              <div className="text-center py-10 text-slate-900/30">Loading menu items...</div>
             ) : (menuItems.data?.length || 0) === 0 ? (
               <div className="text-center py-10">
-                <Package className="w-12 h-12 text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No menu items linked yet</p>
-                <p className="text-white/20 text-xs mt-1">Create recipes first, then link them to POS menu items</p>
+                <Package className="w-12 h-12 text-slate-900/10 mx-auto mb-3" />
+                <p className="text-slate-900/30 text-sm">No menu items linked yet</p>
+                <p className="text-slate-900/20 text-xs mt-1">Create recipes first, then link them to POS menu items</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {(menuItems.data as any[]).map((item: any) => {
                   const costPct = item.actualFoodCostPercent ? parseFloat(item.actualFoodCostPercent) : null;
                   return (
-                    <div key={item.id} className="bg-white/5 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3">
+                    <div key={item.id} className="bg-white/5 rounded-xl px-4 py-3 border border-slate-200 flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{item.posItemName}</div>
-                        <div className="text-[10px] text-white/40">{item.category}</div>
+                        <div className="text-[10px] text-slate-400">{item.category}</div>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold">{formatCurrency(item.menuPrice)}</div>
@@ -419,14 +419,14 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
             <h3 className="text-sm font-bold">New Recipe</h3>
             <div className="space-y-3">
               <input
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                className="w-full bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                 placeholder="Recipe name (e.g., Loaded Nachos)"
                 value={newRecipe.name}
                 onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))}
               />
               <div className="grid grid-cols-2 gap-3">
                 <select
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   value={newRecipe.category}
                   onChange={e => setNewRecipe(p => ({ ...p, category: e.target.value }))}
                 >
@@ -437,7 +437,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                   <option value="pop">Pop</option>
                 </select>
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   placeholder="Subcategory"
                   value={newRecipe.subcategory}
                   onChange={e => setNewRecipe(p => ({ ...p, subcategory: e.target.value }))}
@@ -445,13 +445,13 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   placeholder="Serving size"
                   value={newRecipe.servingSize}
                   onChange={e => setNewRecipe(p => ({ ...p, servingSize: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   placeholder="Prep time (min)"
                   type="number"
                   value={newRecipe.prepTimeMinutes || ''}
@@ -460,13 +460,13 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   placeholder="Menu price"
                   value={newRecipe.menuPrice}
                   onChange={e => setNewRecipe(p => ({ ...p, menuPrice: e.target.value }))}
                 />
                 <input
-                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm"
+                  className="bg-white/5 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
                   placeholder="Target food cost %"
                   value={newRecipe.targetFoodCostPercent}
                   onChange={e => setNewRecipe(p => ({ ...p, targetFoodCostPercent: e.target.value }))}

@@ -44,13 +44,13 @@ export function PWAInstallPrompt() {
 
   return (
     <div className="fixed top-4 left-4 right-4 z-[9999] animate-in slide-in-from-top">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-3 shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3 shadow-xl">
         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
           <Download className="w-5 h-5 text-amber-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white">Install Never 86'd</p>
-          <p className="text-xs text-zinc-400">Add to home screen for quick access</p>
+          <p className="text-sm font-medium text-slate-900">Install Never 86'd</p>
+          <p className="text-xs text-slate-500">Add to home screen for quick access</p>
         </div>
         <button
           onClick={handleInstall}
@@ -58,7 +58,7 @@ export function PWAInstallPrompt() {
         >
           Install
         </button>
-        <button onClick={handleDismiss} className="p-1 text-zinc-500 hover:text-zinc-300">
+        <button onClick={handleDismiss} className="p-1 text-slate-500 hover:text-slate-600">
           <X className="w-4 h-4" />
         </button>
       </div>

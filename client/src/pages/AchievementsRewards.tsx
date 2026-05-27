@@ -29,7 +29,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 // Reward tier colors
 const TIER_COLORS: Record<string, { border: string; bg: string; text: string }> = {
   bronze: { border: "border-amber-700/50", bg: "bg-amber-700/10", text: "text-amber-600" },
-  silver: { border: "border-zinc-400/50", bg: "bg-zinc-400/10", text: "text-zinc-300" },
+  silver: { border: "border-zinc-400/50", bg: "bg-zinc-400/10", text: "text-slate-600" },
   gold: { border: "border-yellow-500/50", bg: "bg-yellow-500/10", text: "text-yellow-500" },
   platinum: { border: "border-cyan-400/50", bg: "bg-cyan-400/10", text: "text-cyan-400" },
   diamond: { border: "border-purple-400/50", bg: "bg-purple-400/10", text: "text-purple-400" },
@@ -111,10 +111,10 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
   const isLoading = defsLoading || progressLoading;
 
   return (
-    <div className="h-screen bg-black flex flex-col">
+    <div className="h-screen bg-slate-50 flex flex-col">
       {/* Celebration Overlay */}
       {celebratingAchievement && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6" onClick={handleAcknowledge}>
+        <div className="fixed inset-0 z-50 bg-slate-50/90 flex flex-col items-center justify-center p-6" onClick={handleAcknowledge}>
           <div className="animate-bounce mb-4">
             <div className="w-24 h-24 rounded-3xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center">
               <span className="text-5xl">{celebratingAchievement.badge}</span>
@@ -122,10 +122,10 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
           </div>
           <div className="text-center">
             <p className="text-amber-500 text-xs uppercase font-bold mb-1 tracking-widest">Achievement Unlocked!</p>
-            <h2 className="text-3xl font-black text-white mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            <h2 className="text-3xl font-black text-slate-900 mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
               {celebratingAchievement.name}
             </h2>
-            <p className="text-zinc-400 text-sm mb-4">{celebratingAchievement.description}</p>
+            <p className="text-slate-500 text-sm mb-4">{celebratingAchievement.description}</p>
             {celebratingAchievement.bonusPoints > 0 && (
               <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
                 <Sparkles size={12} className="text-amber-500" />
@@ -139,14 +139,14 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
 
       {/* Header */}
       <div className="p-4 pb-2 flex items-center gap-3 border-b border-zinc-900">
-        <button onClick={onBack} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
-          <ChevronLeft size={14} className="text-zinc-400" />
+        <button onClick={onBack} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0">
+          <ChevronLeft size={14} className="text-slate-500" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-black text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <h1 className="text-lg font-black text-slate-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             {tab === "achievements" ? "ACHIEVEMENTS" : "REWARDS"}
           </h1>
-          <p className="text-zinc-500 text-[10px]">
+          <p className="text-slate-500 text-[10px]">
             {tab === "achievements" ? `${earnedCount}/${definitions?.length || 0} unlocked` : `${staffUser.totalPoints?.toLocaleString()} pts available`}
           </p>
         </div>
@@ -160,13 +160,13 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
       <div className="flex p-4 pb-0 gap-2">
         <button
           onClick={() => setTab("achievements")}
-          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === "achievements" ? "bg-amber-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800"}`}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === "achievements" ? "bg-amber-500 text-black" : "bg-white text-slate-500 border border-slate-200"}`}
         >
           <Award size={12} className="inline mr-1" />Achievements
         </button>
         <button
           onClick={() => setTab("rewards")}
-          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === "rewards" ? "bg-amber-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800"}`}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${tab === "rewards" ? "bg-amber-500 text-black" : "bg-white text-slate-500 border border-slate-200"}`}
         >
           <Gift size={12} className="inline mr-1" />Rewards
         </button>
@@ -186,24 +186,24 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
               if (catDefs.length === 0) return null;
               return (
                 <div key={cat}>
-                  <p className="text-zinc-500 text-[10px] uppercase font-semibold mb-2 tracking-wider">{CATEGORY_LABELS[cat] || cat}</p>
+                  <p className="text-slate-500 text-[10px] uppercase font-semibold mb-2 tracking-wider">{CATEGORY_LABELS[cat] || cat}</p>
                   <div className="space-y-2">
                     {catDefs.map((def: any) => {
                       const unlocked = isUnlocked(def.id);
                       const pct = getProgressPercent(def);
                       const prog = getProgressForAchievement(def.id);
                       return (
-                        <div key={def.id} className={`rounded-xl p-3 border transition-all ${unlocked ? "bg-amber-500/5 border-amber-500/30" : "bg-zinc-900 border-zinc-800"}`}>
+                        <div key={def.id} className={`rounded-xl p-3 border transition-all ${unlocked ? "bg-amber-500/5 border-amber-500/30" : "bg-white border-slate-200"}`}>
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${unlocked ? "bg-amber-500/20" : "bg-zinc-800 grayscale opacity-50"}`}>
                               {def.badge}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm font-semibold ${unlocked ? "text-white" : "text-zinc-400"}`}>{def.name}</span>
+                                <span className={`text-sm font-semibold ${unlocked ? "text-slate-900" : "text-slate-500"}`}>{def.name}</span>
                                 {unlocked && <CheckCircle2 size={12} className="text-amber-500" />}
                               </div>
-                              <p className="text-zinc-500 text-[10px]">{def.description}</p>
+                              <p className="text-slate-500 text-[10px]">{def.description}</p>
                             </div>
                             {!unlocked && (
                               <span className="text-zinc-600 text-[10px] font-mono">{pct}%</span>
@@ -233,10 +233,10 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
         ) : (
           /* Rewards Store */
           <>
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 mb-4">
+            <div className="bg-white rounded-xl p-3 border border-slate-200 mb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase">Your Balance</p>
+                  <p className="text-slate-500 text-[10px] uppercase">Your Balance</p>
                   <p className="text-2xl font-black text-amber-500" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                     {staffUser.totalPoints?.toLocaleString()} PTS
                   </p>
@@ -248,11 +248,11 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
             {/* Pending redemptions */}
             {myRedemptions && (myRedemptions as any[]).filter((r: any) => r.status === "pending").length > 0 && (
               <div className="mb-4">
-                <p className="text-zinc-500 text-[10px] uppercase font-semibold mb-2">Pending Approval</p>
+                <p className="text-slate-500 text-[10px] uppercase font-semibold mb-2">Pending Approval</p>
                 {(myRedemptions as any[]).filter((r: any) => r.status === "pending").map((r: any) => (
                   <div key={r.id} className="bg-amber-500/5 rounded-lg p-2 border border-amber-500/20 flex items-center gap-2 mb-1">
                     <Clock size={12} className="text-amber-500" />
-                    <span className="text-white text-xs">Reward #{r.rewardId} — awaiting manager approval</span>
+                    <span className="text-slate-900 text-xs">Reward #{r.rewardId} — awaiting manager approval</span>
                   </div>
                 ))}
               </div>
@@ -271,10 +271,10 @@ export default function AchievementsRewards({ staffUser, onBack }: { staffUser: 
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-white text-sm font-semibold">{reward.name}</span>
+                          <span className="text-slate-900 text-sm font-semibold">{reward.name}</span>
                           <span className={`text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${tier.bg} ${tier.text}`}>{reward.tier}</span>
                         </div>
-                        <p className="text-zinc-500 text-[10px]">{reward.description}</p>
+                        <p className="text-slate-500 text-[10px]">{reward.description}</p>
                       </div>
                       <button
                         onClick={() => handleRedeem(reward)}

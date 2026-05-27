@@ -119,11 +119,11 @@ function buildEmailBody(quantities: Record<string, number>): string {
 
 function AccessDenied({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center px-8">
+    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center px-8">
       <Lock size={32} className="text-zinc-700 mb-4" />
-      <p className="text-zinc-300 text-sm font-bold">Manager Access Required</p>
+      <p className="text-slate-600 text-sm font-bold">Manager Access Required</p>
       <p className="text-zinc-600 text-xs text-center mt-2">Liquor ordering is manager-only.</p>
-      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-zinc-900 text-zinc-300 text-xs font-semibold border border-zinc-800">Back</button>
+      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-white text-slate-600 text-xs font-semibold border border-slate-200">Back</button>
     </div>
   );
 }
@@ -194,43 +194,43 @@ export default function HyVeeLiquorOrderScreen({ staffUser, onBack }: Props) {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24">
-      <div className="sticky top-0 z-10 bg-black/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
-        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800">
-          <ChevronLeft size={15} className="text-zinc-400" />
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-24">
+      <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
+        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-200">
+          <ChevronLeft size={15} className="text-slate-500" />
         </button>
         <div className="flex-1">
-          <h2 className="text-white font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>HY-VEE LIQUOR ORDER</h2>
-          <p className="text-zinc-500 text-[10px]">Sunday email workflow · invoice #{LAST_INVOICE_NUMBER} · {LAST_INVOICE_TOTAL_COUNT} invoice items</p>
+          <h2 className="text-slate-900 font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>HY-VEE LIQUOR ORDER</h2>
+          <p className="text-slate-500 text-[10px]">Sunday email workflow · invoice #{LAST_INVOICE_NUMBER} · {LAST_INVOICE_TOTAL_COUNT} invoice items</p>
         </div>
       </div>
 
       <div className="p-3 space-y-3">
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide">Lines</p>
-            <p className="text-white text-lg font-bold">{orderLines.length}</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide">Lines</p>
+            <p className="text-slate-900 text-lg font-bold">{orderLines.length}</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide">Units</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide">Units</p>
             <p className="text-amber-400 text-lg font-bold">{Object.values(quantities).reduce((sum, qty) => sum + qty, 0)}</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide">Known $</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide">Known $</p>
             <p className="text-green-400 text-sm font-bold mt-1">{formatMoney(knownEstimate)}</p>
           </div>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3 space-y-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-3">
           <div className="flex items-start gap-2">
             <Mail size={14} className="text-amber-400 mt-0.5" />
             <div>
-              <p className="text-white text-xs font-bold">Email recipient</p>
-              <p className="text-zinc-500 text-[10px]">{ORDER_EMAIL}</p>
+              <p className="text-slate-900 text-xs font-bold">Email recipient</p>
+              <p className="text-slate-500 text-[10px]">{ORDER_EMAIL}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={copyEmail} className="rounded-lg bg-zinc-950 border border-zinc-800 py-2.5 text-zinc-200 text-[10px] font-bold flex items-center justify-center gap-1.5">
+            <button onClick={copyEmail} className="rounded-lg bg-slate-50 border border-slate-200 py-2.5 text-slate-700 text-[10px] font-bold flex items-center justify-center gap-1.5">
               <ClipboardCopy size={12} /> Copy Order
             </button>
             <button onClick={openEmail} className="rounded-lg bg-amber-500 text-black py-2.5 text-[10px] font-black flex items-center justify-center gap-1.5">
@@ -253,7 +253,7 @@ export default function HyVeeLiquorOrderScreen({ staffUser, onBack }: Props) {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`rounded-lg px-2 py-2 text-[9px] font-bold border capitalize ${activeCategory === category ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}
+              className={`rounded-lg px-2 py-2 text-[9px] font-bold border capitalize ${activeCategory === category ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-white text-slate-500 border-slate-200"}`}
             >
               {category === "all" ? "All" : category}
             </button>
@@ -264,26 +264,26 @@ export default function HyVeeLiquorOrderScreen({ staffUser, onBack }: Props) {
           {filteredProducts.map(product => {
             const quantity = quantities[product.sku] ?? 0;
             return (
-              <div key={product.sku} className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
+              <div key={product.sku} className="bg-white rounded-xl border border-slate-200 p-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                     {product.category === "wine" ? <Wine size={14} className="text-amber-400" /> : <DollarSign size={14} className="text-amber-400" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-xs font-semibold truncate">{product.productName}</p>
-                    <p className="text-zinc-500 text-[9px]">{product.size} · {product.sku} · par {product.parLevel}{product.lastPrice ? ` · $${product.lastPrice}` : ""}</p>
+                    <p className="text-slate-900 text-xs font-semibold truncate">{product.productName}</p>
+                    <p className="text-slate-500 text-[9px]">{product.size} · {product.sku} · par {product.parLevel}{product.lastPrice ? ` · $${product.lastPrice}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => updateQuantity(product.sku, quantity - 1)} className="w-7 h-7 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center">
-                      <Minus size={12} className="text-zinc-400" />
+                    <button onClick={() => updateQuantity(product.sku, quantity - 1)} className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
+                      <Minus size={12} className="text-slate-500" />
                     </button>
                     <input
                       value={quantity}
                       onChange={event => updateQuantity(product.sku, Number(event.target.value) || 0)}
-                      className="w-10 h-7 rounded-lg bg-black border border-zinc-800 text-white text-xs text-center font-bold"
+                      className="w-10 h-7 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-xs text-center font-bold"
                       inputMode="numeric"
                     />
-                    <button onClick={() => updateQuantity(product.sku, quantity + 1)} className="w-7 h-7 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center">
+                    <button onClick={() => updateQuantity(product.sku, quantity + 1)} className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
                       <Plus size={12} className="text-amber-400" />
                     </button>
                   </div>

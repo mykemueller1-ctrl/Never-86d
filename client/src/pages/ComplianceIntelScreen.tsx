@@ -49,11 +49,11 @@ export default function ComplianceIntelScreen({ onBack, staffRole }: Props) {
   const visibleTabs = tabs.filter((t) => !t.managerOnly || isManager);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-b from-zinc-900 to-black border-b border-zinc-800 px-4 py-3">
+      <div className="bg-gradient-to-b from-zinc-900 to-black border-b border-slate-200 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack} className="text-zinc-400 hover:text-white">
+          <Button variant="ghost" size="icon" onClick={onBack} className="text-slate-500 hover:text-slate-900">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -61,13 +61,13 @@ export default function ComplianceIntelScreen({ onBack, staffRole }: Props) {
               <Shield className="w-5 h-5 text-orange-500" />
               Compliance & Intel
             </h1>
-            <p className="text-xs text-zinc-500">Iowa Laws · Commodity Trends · Cost Benchmarks</p>
+            <p className="text-xs text-slate-500">Iowa Laws · Commodity Trends · Cost Benchmarks</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 px-3 py-2 overflow-x-auto border-b border-zinc-800">
+      <div className="flex gap-1 px-3 py-2 overflow-x-auto border-b border-slate-200">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -75,7 +75,7 @@ export default function ComplianceIntelScreen({ onBack, staffRole }: Props) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.id
                 ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-zinc-700"
+                : "bg-white text-slate-500 border border-slate-200 hover:border-zinc-700"
             }`}
           >
             {tab.icon}
@@ -128,8 +128,8 @@ function FoodSafetyTab({
         </CardHeader>
         <CardContent className="space-y-1">
           {tempRequirements.map((t, i) => (
-            <div key={i} className="flex justify-between items-center py-1.5 border-b border-zinc-800/50 last:border-0">
-              <span className="text-xs text-zinc-300">{t.item}</span>
+            <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-200/50 last:border-0">
+              <span className="text-xs text-slate-600">{t.item}</span>
               <span className={`text-xs font-mono font-bold ${t.critical ? "text-red-400" : "text-yellow-400"}`}>
                 {t.temp}
               </span>
@@ -146,16 +146,16 @@ function FoodSafetyTab({
         expanded={expandedSections.has("cfpm")}
         onToggle={() => toggleSection("cfpm")}
       >
-        <div className="space-y-2 text-xs text-zinc-300">
+        <div className="space-y-2 text-xs text-slate-600">
           <p>
-            <strong className="text-white">CFPM Required:</strong> At least one Certified Food Protection Manager per establishment
+            <strong className="text-slate-900">CFPM Required:</strong> At least one Certified Food Protection Manager per establishment
             (FDA Food Code 2-102.12).
           </p>
           <p>
-            <strong className="text-white">Accredited Programs:</strong> ServSafe (Iowa Restaurant Association), 360training, Inc.
+            <strong className="text-slate-900">Accredited Programs:</strong> ServSafe (Iowa Restaurant Association), 360training, Inc.
           </p>
           <p>
-            <strong className="text-white">All Staff:</strong> General food handler training recommended for all employees.
+            <strong className="text-slate-900">All Staff:</strong> General food handler training recommended for all employees.
           </p>
         </div>
       </CollapsibleCard>
@@ -168,24 +168,24 @@ function FoodSafetyTab({
         expanded={expandedSections.has("violations")}
         onToggle={() => toggleSection("violations")}
       >
-        <div className="space-y-2 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+        <div className="space-y-2 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Civil Penalty</span>
             <span className="text-red-400 font-bold">Up to $1,000/day</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Risk Factor Violations</span>
             <span className="text-yellow-400 font-bold">Correct within 10 days</span>
           </div>
           <div className="flex justify-between py-1">
             <span>Good Retail Practice</span>
-            <span className="text-zinc-400 font-bold">90-day correction</span>
+            <span className="text-slate-500 font-bold">90-day correction</span>
           </div>
         </div>
       </CollapsibleCard>
 
       {/* Inspection Database */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardContent className="py-3">
           <a
             href="https://iowa.safefoodinspection.com/Inspection/PublicInspectionSearch.aspx"
@@ -193,7 +193,7 @@ function FoodSafetyTab({
             rel="noopener noreferrer"
             className="flex items-center justify-between text-xs"
           >
-            <span className="text-zinc-300">Iowa Public Inspection Database</span>
+            <span className="text-slate-600">Iowa Public Inspection Database</span>
             <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
           </a>
         </CardContent>
@@ -231,10 +231,10 @@ function LaborLawTab({
         </CardHeader>
         <CardContent className="space-y-1">
           {wageData.map((w, i) => (
-            <div key={i} className="flex justify-between items-center py-1.5 border-b border-zinc-800/50 last:border-0">
+            <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-200/50 last:border-0">
               <div>
-                <span className="text-xs text-zinc-300">{w.label}</span>
-                {w.note && <span className="text-[10px] text-zinc-500 ml-2">({w.note})</span>}
+                <span className="text-xs text-slate-600">{w.label}</span>
+                {w.note && <span className="text-[10px] text-slate-500 ml-2">({w.note})</span>}
               </div>
               <span className="text-xs font-mono font-bold text-blue-400">{w.value}</span>
             </div>
@@ -250,21 +250,21 @@ function LaborLawTab({
         expanded={expandedSections.has("labor-rules")}
         onToggle={() => toggleSection("labor-rules")}
       >
-        <div className="space-y-2 text-xs text-zinc-300">
+        <div className="space-y-2 text-xs text-slate-600">
           <p>
             <strong className="text-yellow-400">⚠ Overtime for tipped:</strong> Calculated on full $7.25, NOT the $4.35 tipped
             wage.
           </p>
           <p>
-            <strong className="text-white">Breaks:</strong> No mandatory breaks for adults. Minors under 16 get 30-min break for
+            <strong className="text-slate-900">Breaks:</strong> No mandatory breaks for adults. Minors under 16 get 30-min break for
             5+ hour shifts.
           </p>
           <p>
-            <strong className="text-white">Tip Pooling:</strong> Allowed, but if tip credit taken, pool can ONLY include tipped
+            <strong className="text-slate-900">Tip Pooling:</strong> Allowed, but if tip credit taken, pool can ONLY include tipped
             employees (servers, bussers, bartenders).
           </p>
           <p>
-            <strong className="text-white">At-Will:</strong> Iowa is at-will employment — either party can terminate at any time for
+            <strong className="text-slate-900">At-Will:</strong> Iowa is at-will employment — either party can terminate at any time for
             any legal reason.
           </p>
         </div>
@@ -278,7 +278,7 @@ function LaborLawTab({
         expanded={expandedSections.has("youth")}
         onToggle={() => toggleSection("youth")}
       >
-        <div className="space-y-2 text-xs text-zinc-300">
+        <div className="space-y-2 text-xs text-slate-600">
           <p>16-17 year olds CAN serve alcohol in restaurants (not bars) with:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>Written parental consent</li>
@@ -296,26 +296,26 @@ function LaborLawTab({
         expanded={expandedSections.has("workers-comp")}
         onToggle={() => toggleSection("workers-comp")}
       >
-        <div className="space-y-1 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+        <div className="space-y-1 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Coverage Required</span>
-            <span className="text-white font-bold">1+ employees</span>
+            <span className="text-slate-900 font-bold">1+ employees</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Employee Report Deadline</span>
-            <span className="text-white font-bold">90 days</span>
+            <span className="text-slate-900 font-bold">90 days</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Employer Report Deadline</span>
             <span className="text-red-400 font-bold">4 days</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Weekly Disability Cap</span>
-            <span className="text-white font-bold">$1,864 (80%)</span>
+            <span className="text-slate-900 font-bold">$1,864 (80%)</span>
           </div>
           <div className="flex justify-between py-1">
             <span>Claims Statute of Limitations</span>
-            <span className="text-white font-bold">2 years</span>
+            <span className="text-slate-900 font-bold">2 years</span>
           </div>
         </div>
       </CollapsibleCard>
@@ -346,7 +346,7 @@ function CommodityTrendsTab() {
   return (
     <div className="space-y-4">
       {/* 2026 Forecast */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-orange-400 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
@@ -355,14 +355,14 @@ function CommodityTrendsTab() {
         </CardHeader>
         <CardContent className="space-y-1">
           {commodities.map((c, i) => (
-            <div key={i} className="flex justify-between items-center py-1.5 border-b border-zinc-800/50 last:border-0">
+            <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-200/50 last:border-0">
               <div>
-                <span className="text-xs text-zinc-300">{c.name}</span>
-                <span className="text-[10px] text-zinc-500 ml-2">{c.note}</span>
+                <span className="text-xs text-slate-600">{c.name}</span>
+                <span className="text-[10px] text-slate-500 ml-2">{c.note}</span>
               </div>
               <span
                 className={`text-xs font-mono font-bold ${
-                  c.direction === "up" ? "text-red-400" : c.direction === "down" ? "text-green-400" : "text-zinc-400"
+                  c.direction === "up" ? "text-red-400" : c.direction === "down" ? "text-green-400" : "text-slate-500"
                 }`}
               >
                 {c.direction === "up" ? "▲" : c.direction === "down" ? "▼" : "─"} {c.change}
@@ -373,27 +373,27 @@ function CommodityTrendsTab() {
       </Card>
 
       {/* Current Futures */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-400">Current Commodity Prices</CardTitle>
+          <CardTitle className="text-sm text-slate-500">Current Commodity Prices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {futures.map((f, i) => (
-            <div key={i} className="flex justify-between items-center py-1.5 border-b border-zinc-800/50 last:border-0">
+            <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-200/50 last:border-0">
               <div>
-                <span className="text-xs text-zinc-300">{f.name}</span>
+                <span className="text-xs text-slate-600">{f.name}</span>
                 <span className="text-[10px] text-zinc-600 ml-2">{f.source}</span>
               </div>
-              <span className="text-xs font-mono font-bold text-white">{f.price}</span>
+              <span className="text-xs font-mono font-bold text-slate-900">{f.price}</span>
             </div>
           ))}
         </CardContent>
       </Card>
 
       {/* Data Sources */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-400">Live Data Sources</CardTitle>
+          <CardTitle className="text-sm text-slate-500">Live Data Sources</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {[
@@ -410,7 +410,7 @@ function CommodityTrendsTab() {
               rel="noopener noreferrer"
               className="flex items-center justify-between text-xs py-1"
             >
-              <span className="text-zinc-300">{s.name}</span>
+              <span className="text-slate-600">{s.name}</span>
               <ExternalLink className="w-3 h-3 text-orange-400" />
             </a>
           ))}
@@ -440,9 +440,9 @@ function CostBenchmarksTab() {
       </Card>
 
       {/* Industry Comparison */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-400">Industry Benchmarks (2026)</CardTitle>
+          <CardTitle className="text-sm text-slate-500">Industry Benchmarks (2026)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {[
@@ -451,13 +451,13 @@ function CostBenchmarksTab() {
             { type: "Fast Casual", foodCost: "25-32%", margin: "4-10%" },
             { type: "QSR", foodCost: "25-30%", margin: "5-12%" },
           ].map((b, i) => (
-            <div key={i} className="flex justify-between items-center py-2 border-b border-zinc-800/50 last:border-0">
-              <span className="text-xs text-zinc-300 font-medium">{b.type}</span>
+            <div key={i} className="flex justify-between items-center py-2 border-b border-slate-200/50 last:border-0">
+              <span className="text-xs text-slate-600 font-medium">{b.type}</span>
               <div className="flex gap-4">
-                <span className="text-xs text-zinc-400">
-                  Food: <span className="text-white font-mono">{b.foodCost}</span>
+                <span className="text-xs text-slate-500">
+                  Food: <span className="text-slate-900 font-mono">{b.foodCost}</span>
                 </span>
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-slate-500">
                   Margin: <span className="text-green-400 font-mono">{b.margin}</span>
                 </span>
               </div>
@@ -467,26 +467,26 @@ function CostBenchmarksTab() {
       </Card>
 
       {/* NRA Stats */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-400">NRA Industry Stats (2026)</CardTitle>
+          <CardTitle className="text-sm text-slate-500">NRA Industry Stats (2026)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+        <CardContent className="space-y-2 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Total Foodservice Sales</span>
-            <span className="text-white font-bold">$1.55 Trillion</span>
+            <span className="text-slate-900 font-bold">$1.55 Trillion</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Operators Reporting No Profit (2025)</span>
             <span className="text-red-400 font-bold">42%</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Food Costs vs Pre-Pandemic</span>
             <span className="text-red-400 font-bold">+35%</span>
           </div>
           <div className="flex justify-between py-1">
             <span>Avg Full-Service Food Cost</span>
-            <span className="text-white font-bold">32.4%</span>
+            <span className="text-slate-900 font-bold">32.4%</span>
           </div>
         </CardContent>
       </Card>
@@ -512,16 +512,16 @@ function LiquorLawTab({
             Dramshop Liability (Iowa Code §123.92)
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-xs text-zinc-300 space-y-2">
+        <CardContent className="text-xs text-slate-600 space-y-2">
           <p>
             You are <strong className="text-red-400">legally liable</strong> for damages caused by intoxicated patrons you served
             while visibly intoxicated.
           </p>
-          <div className="flex justify-between py-1 border-t border-zinc-800">
+          <div className="flex justify-between py-1 border-t border-slate-200">
             <span>Noneconomic Damages Cap</span>
             <span className="text-red-400 font-bold">$250,000</span>
           </div>
-          <p className="text-zinc-500">Extends to injuries/damages sustained by third parties.</p>
+          <p className="text-slate-500">Extends to injuries/damages sustained by third parties.</p>
         </CardContent>
       </Card>
 
@@ -533,22 +533,22 @@ function LiquorLawTab({
         expanded={expandedSections.has("license")}
         onToggle={() => toggleSection("license")}
       >
-        <div className="space-y-1 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+        <div className="space-y-1 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Application Lead Time</span>
-            <span className="text-white font-bold">45 days</span>
+            <span className="text-slate-900 font-bold">45 days</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Local Approval Lead Time</span>
-            <span className="text-white font-bold">15 days</span>
+            <span className="text-slate-900 font-bold">15 days</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Minimum Seating</span>
-            <span className="text-white font-bold">25 patrons</span>
+            <span className="text-slate-900 font-bold">25 patrons</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Annual Fee</span>
-            <span className="text-white font-bold">$150-$400</span>
+            <span className="text-slate-900 font-bold">$150-$400</span>
           </div>
           <div className="flex justify-between py-1">
             <span>Portal</span>
@@ -565,12 +565,12 @@ function LiquorLawTab({
         expanded={expandedSections.has("alcohol-penalties")}
         onToggle={() => toggleSection("alcohol-penalties")}
       >
-        <div className="space-y-1 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+        <div className="space-y-1 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Selling to Minor (Individual)</span>
             <span className="text-red-400 font-bold">$1,500 fine</span>
           </div>
-          <div className="flex justify-between py-1 border-b border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-slate-200">
             <span>Selling to Minor (Business)</span>
             <span className="text-red-400 font-bold">$500 penalty</span>
           </div>
@@ -582,20 +582,20 @@ function LiquorLawTab({
       </CollapsibleCard>
 
       {/* NW Iowa Distributors */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-400">NW Iowa Distributors</CardTitle>
+          <CardTitle className="text-sm text-slate-500">NW Iowa Distributors</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-xs text-zinc-300">
-          <div className="flex justify-between py-1 border-b border-zinc-800">
-            <span className="font-medium text-white">Johnson Brothers</span>
+        <CardContent className="space-y-2 text-xs text-slate-600">
+          <div className="flex justify-between py-1 border-b border-slate-200">
+            <span className="font-medium text-slate-900">Johnson Brothers</span>
             <span>Spencer, IA (since 1986)</span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="font-medium text-white">Doll Distributing</span>
+            <span className="font-medium text-slate-900">Doll Distributing</span>
             <span>Spencer, IA</span>
           </div>
-          <p className="text-zinc-500 pt-1">Iowa Spirits Price Book available from ABD for exact wholesale costs.</p>
+          <p className="text-slate-500 pt-1">Iowa Spirits Price Book available from ABD for exact wholesale costs.</p>
         </CardContent>
       </Card>
     </div>
@@ -619,13 +619,13 @@ function CollapsibleCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-white border-slate-200">
       <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-sm font-medium text-white">{title}</span>
+          <span className="text-sm font-medium text-slate-900">{title}</span>
         </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+        {expanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
       </button>
       {expanded && <CardContent className="pt-0 pb-3">{children}</CardContent>}
     </Card>
@@ -642,15 +642,15 @@ function BenchmarkBar({ label, target, current, color }: { label: string; target
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-zinc-300">{label}</span>
-        <span className={`font-bold ${colorMap[color]?.split(" ")[1] || "text-white"}`}>Target: {target}</span>
+        <span className="text-slate-600">{label}</span>
+        <span className={`font-bold ${colorMap[color]?.split(" ")[1] || "text-slate-900"}`}>Target: {target}</span>
       </div>
       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
         {current !== null ? (
           <div className={`h-full rounded-full ${colorMap[color]?.split(" ")[0] || "bg-zinc-600"}`} style={{ width: `${Math.min(current, 100)}%` }} />
         ) : (
           <div className="h-full bg-zinc-700/50 rounded-full flex items-center justify-center">
-            <span className="text-[8px] text-zinc-500">Connect POS for live data</span>
+            <span className="text-[8px] text-slate-500">Connect POS for live data</span>
           </div>
         )}
       </div>

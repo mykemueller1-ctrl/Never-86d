@@ -77,6 +77,7 @@ import {
   InsertIngestionDeadLetter,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { operationalChecklists, normalizeChecklistItems } from "./operationalChecklists";
 
 // Use a type alias to avoid conflict with the Feedback type from schema
 type InsertFeedbackType = typeof feedback.$inferInsert;
@@ -715,19 +716,59 @@ export async function getWeeklyVoidsByStaff(staffId: number) {
 
 // ============ CHECKLIST HELPERS ============
 
+let operationalChecklistsEnsured = false;
+
+async function ensureOperationalChecklists(db: Awaited<ReturnType<typeof getDb>>) {
+  if (!db || operationalChecklistsEnsured) return;
+
+  try {
+    const existing = await db.select().from(checklists);
+    const byName = new Map(existing.map((row) => [row.name, row]));
+
+    for (const checklist of operationalChecklists) {
+      const current = byName.get(checklist.name);
+      if (current) {
+        await db
+          .update(checklists)
+          .set({
+            department: checklist.department,
+            type: checklist.type,
+            items: checklist.items,
+          })
+          .where(eq(checklists.id, current.id));
+      } else {
+        await db.insert(checklists).values(checklist);
+      }
+    }
+
+    operationalChecklistsEnsured = true;
+  } catch (error) {
+    console.warn("[Database] Failed to ensure operational checklists:", error);
+  }
+}
+
+function normalizeChecklistRow<T extends { items: unknown }>(row: T) {
+  return { ...row, items: normalizeChecklistItems(row.items) };
+}
+
 export async function getAllChecklists() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(checklists);
+  await ensureOperationalChecklists(db);
+  const rows = await db.select().from(checklists).orderBy(checklists.department, checklists.type, checklists.name);
+  return rows.map(normalizeChecklistRow);
 }
 
 export async function getChecklistsByDepartment(department: string) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  await ensureOperationalChecklists(db);
+  const rows = await db
     .select()
     .from(checklists)
-    .where(eq(checklists.department, department as any));
+    .where(or(eq(checklists.department, department as any), eq(checklists.department, "all")))
+    .orderBy(checklists.type, checklists.name);
+  return rows.map(normalizeChecklistRow);
 }
 
 export async function createChecklistCompletion(
@@ -792,8 +833,8 @@ export async function getLeaderboard(): Promise<SafeStaff[]> {
     .select()
     .from(staff)
     .where(eq(staff.status, "active"))
-    .orderBy(desc(staff.totalPoints))
-    .limit(20);
+    .orderBy(desc(staff.totalPoints), desc(staff.currentStreak), asc(staff.lastName), asc(staff.firstName))
+    .limit(50);
   return stripSensitiveFieldsArray(rows);
 }
 
@@ -1950,22 +1991,18 @@ export async function verifyPhotoSubmission(
 export async function getVendorProducts(vendorName?: string) {
   const db = await getDb();
   if (!db) return [];
+  const activeFilter = sql`(${vendorProducts.active} = 1 OR ${vendorProducts.active} IS NULL)`;
   if (vendorName) {
     return db
       .select()
       .from(vendorProducts)
-      .where(
-        and(
-          eq(vendorProducts.vendorName, vendorName),
-          sql`${vendorProducts.active} = 1`
-        )
-      )
+      .where(and(eq(vendorProducts.vendorName, vendorName), activeFilter))
       .orderBy(vendorProducts.category, vendorProducts.productName);
   }
   return db
     .select()
     .from(vendorProducts)
-    .where(sql`${vendorProducts.active} = 1`)
+    .where(activeFilter)
     .orderBy(
       vendorProducts.vendorName,
       vendorProducts.category,
@@ -3877,16 +3914,18 @@ export async function getActiveBroadcasts(station?: string) {
     .orderBy(desc(stationBroadcasts.createdAt));
 
   if (station) {
-    // Filter to broadcasts targeting this station
+    // Filter to broadcasts targeting this station. Treat malformed or missing target lists as "all" so active 86'd items never disappear from the floor view.
     return rows.filter((b: any) => {
-      const targets =
-        typeof b.targetStations === "string"
-          ? JSON.parse(b.targetStations)
-          : b.targetStations;
-      return (
-        Array.isArray(targets) &&
-        (targets.includes(station) || targets.includes("all"))
-      );
+      let targets = b.targetStations;
+      if (typeof targets === "string") {
+        try {
+          targets = JSON.parse(targets);
+        } catch {
+          targets = ["all"];
+        }
+      }
+      if (!Array.isArray(targets) || targets.length === 0) targets = ["all"];
+      return targets.includes(station) || targets.includes("all");
     });
   }
   return rows;

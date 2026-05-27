@@ -21,8 +21,8 @@ function ScreenHeader({ title, subtitle, onBack }: { title: string; subtitle?: s
       <button onClick={onBack} className="text-amber-500 type-caption mb-3 flex items-center gap-1 hover:text-amber-400 transition-colors">
         <ChevronLeft size={16} /> Back
       </button>
-      <h2 className="type-display text-white">{title}</h2>
-      {subtitle && <p className="type-caption text-zinc-500 mt-1">{subtitle}</p>}
+      <h2 className="type-display text-slate-900">{title}</h2>
+      {subtitle && <p className="type-caption text-slate-500 mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
     : ["What did we do in sales yesterday?", "Who do I call about a broken keg?", "What does 86'd mean?"];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-black screen-enter overscroll-contain">
+    <div className="min-h-[100dvh] flex flex-col bg-slate-50 screen-enter overscroll-contain">
       <ScreenHeader title="ASK THE BRAIN" subtitle={station ? `Station: ${station.replace("_", " ")}` : "General knowledge"} onBack={onBack} />
 
       {/* Chat Area */}
@@ -78,12 +78,12 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
             <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4">
               <Brain size={24} className="text-amber-500" />
             </div>
-            <h3 className="text-white font-semibold type-body mb-1">What do you need to know?</h3>
-            <p className="type-caption text-zinc-500 mb-5">Recipes, procedures, vendors — anything about the restaurant.</p>
+            <h3 className="text-slate-900 font-semibold type-body mb-1">What do you need to know?</h3>
+            <p className="type-caption text-slate-500 mb-5">Recipes, procedures, vendors — anything about the restaurant.</p>
             <div className="space-y-2">
               {quickQuestions.map((q, i) => (
                 <button key={i} onClick={() => setQuestion(q)}
-                  className="w-full text-left px-4 py-3 rounded-xl surface-interactive type-caption text-zinc-300">
+                  className="w-full text-left px-4 py-3 rounded-xl surface-interactive type-caption text-slate-600">
                   <MessageSquare size={12} className="inline mr-2 text-amber-500" />{q}
                 </button>
               ))}
@@ -93,18 +93,18 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
         {chatHistory.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] rounded-xl px-4 py-2.5 type-body ${
-              msg.role === "user" ? "bg-amber-500 text-black" : "surface-base text-zinc-200"
+              msg.role === "user" ? "bg-amber-500 text-black" : "surface-base text-slate-700"
             }`}>
               {msg.text}
               {msg.sources !== undefined && msg.sources > 0 && (
-                <div className="mt-1 type-micro text-zinc-500">{msg.sources} source{msg.sources > 1 ? "s" : ""} used</div>
+                <div className="mt-1 type-micro text-slate-500">{msg.sources} source{msg.sources > 1 ? "s" : ""} used</div>
               )}
             </div>
           </div>
         ))}
         {isAsking && (
           <div className="flex justify-start">
-            <div className="surface-base rounded-xl px-4 py-2.5 type-body text-zinc-400 flex items-center gap-2">
+            <div className="surface-base rounded-xl px-4 py-2.5 type-body text-slate-500 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin text-amber-500" /> Thinking...
             </div>
           </div>
@@ -112,11 +112,11 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
       </div>
 
       {/* Input */}
-      <form onSubmit={handleAsk} className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-0 right-0 z-[60] px-6 py-4 nav-glass border-t border-white/5">
+      <form onSubmit={handleAsk} className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-0 right-0 z-[60] px-6 py-4 nav-glass border-t border-slate-200">
         <div className="flex gap-2.5">
           <input value={question} onChange={e => setQuestion(e.target.value)}
             placeholder="Ask anything..."
-            className="flex-1 bg-zinc-800/50 rounded-xl px-4 py-3 type-body text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30" />
+            className="flex-1 bg-zinc-800/50 rounded-xl px-4 py-3 type-body text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500/30" />
           <button type="submit" disabled={!question.trim() || isAsking || askBrain.isPending}
             className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center disabled:opacity-40 glow-amber transition-all active:scale-95">
             {isAsking || askBrain.isPending ? <Loader2 size={16} className="animate-spin text-black" /> : <Send size={16} className="text-black" />}
@@ -171,7 +171,7 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-y-auto overscroll-contain bg-black pb-32 screen-enter">
+    <div className="min-h-[100dvh] overflow-y-auto overscroll-contain bg-slate-50 pb-32 screen-enter">
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
       <ScreenHeader title="PHOTO MISSIONS" subtitle="Earn points by documenting the restaurant" onBack={onBack} />
 
@@ -180,11 +180,11 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
         <div className="surface-base p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="type-micro text-zinc-500">Photos Submitted</p>
-              <p className="text-xl font-semibold text-white font-data">{myPhotos.data?.length || 0}</p>
+              <p className="type-micro text-slate-500">Photos Submitted</p>
+              <p className="text-xl font-semibold text-slate-900 font-data">{myPhotos.data?.length || 0}</p>
             </div>
             <div className="text-right">
-              <p className="type-micro text-zinc-500">Points Earned</p>
+              <p className="type-micro text-slate-500">Points Earned</p>
               <p className="text-xl font-semibold text-amber-500 font-data">{(myPhotos.data?.length || 0) * 5}</p>
             </div>
           </div>
@@ -199,12 +199,12 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
         ) : missions.isError ? (
           <div className="surface-base p-5 text-center">
             <p className="type-body text-red-300 font-medium">Photo missions unavailable</p>
-            <p className="type-caption text-zinc-500 mt-1">Refresh the page or ask a manager to confirm missions are enabled.</p>
+            <p className="type-caption text-slate-500 mt-1">Refresh the page or ask a manager to confirm missions are enabled.</p>
           </div>
         ) : !missions.data || missions.data.length === 0 ? (
           <div className="surface-base p-5 text-center">
             <Camera size={22} className="text-zinc-600 mx-auto mb-3" />
-            <p className="type-body text-zinc-400 font-medium">No active missions right now</p>
+            <p className="type-body text-slate-500 font-medium">No active missions right now</p>
             <p className="type-caption text-zinc-600 mt-1">When managers create photo missions, they will appear here.</p>
           </div>
         ) : (
@@ -212,15 +212,15 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
             <div key={mission.id} className="surface-base p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <h4 className="type-body font-semibold text-white">{mission.name}</h4>
-                  <p className="type-caption text-zinc-500 mt-0.5">{mission.description}</p>
+                  <h4 className="type-body font-semibold text-slate-900">{mission.name}</h4>
+                  <p className="type-caption text-slate-500 mt-0.5">{mission.description}</p>
                 </div>
                 <span className="type-caption font-semibold text-amber-500 font-data">+{mission.pointsPerPhoto}</span>
               </div>
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center gap-1.5">
                   <Target size={12} className="text-zinc-600" />
-                  <span className="type-caption text-zinc-500">{mission.targetPhotoCount} photos needed</span>
+                  <span className="type-caption text-slate-500">{mission.targetPhotoCount} photos needed</span>
                 </div>
                 <button onClick={() => handlePhotoCapture(mission.id)} disabled={uploading && selectedMission === mission.id}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black type-caption font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-all active:scale-95">
@@ -272,7 +272,7 @@ export function AchievementsScreen({ staffUser, onBack }: { staffUser: SafeStaff
   const totalAvailable = definitions.data?.length || 0;
 
   return (
-    <div className="h-screen overflow-y-auto bg-black pb-24 screen-enter">
+    <div className="h-screen overflow-y-auto bg-slate-50 pb-24 screen-enter">
       <ScreenHeader title="ACHIEVEMENTS" subtitle={`${totalEarned} of ${totalAvailable} earned`} onBack={onBack} />
 
       {/* Summary */}
@@ -283,8 +283,8 @@ export function AchievementsScreen({ staffUser, onBack }: { staffUser: SafeStaff
               <Trophy size={22} className="text-amber-500" />
             </div>
             <div className="flex-1">
-              <p className="text-lg font-semibold text-white font-data">{totalEarned} <span className="text-zinc-500 type-caption font-normal">of {totalAvailable}</span></p>
-              <p className="type-caption text-zinc-500">achievements unlocked</p>
+              <p className="text-lg font-semibold text-slate-900 font-data">{totalEarned} <span className="text-slate-500 type-caption font-normal">of {totalAvailable}</span></p>
+              <p className="type-caption text-slate-500">achievements unlocked</p>
             </div>
             <div className="text-right">
               <p className="type-body font-semibold text-amber-500 font-data">{staffUser.totalPoints || 0}</p>
@@ -315,11 +315,11 @@ export function AchievementsScreen({ staffUser, onBack }: { staffUser: SafeStaff
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className={`type-body font-semibold ${unlocked ? 'text-amber-500' : 'text-white'}`}>{def.name}</h4>
+                            <h4 className={`type-body font-semibold ${unlocked ? 'text-amber-500' : 'text-slate-900'}`}>{def.name}</h4>
                             {unlocked && <CheckCircle2 size={14} className="text-amber-500" />}
                             {!unlocked && pct >= 80 && <Zap size={14} className="text-amber-500 animate-pulse" />}
                           </div>
-                          <p className="type-caption text-zinc-500">{def.description}</p>
+                          <p className="type-caption text-slate-500">{def.description}</p>
                           {!unlocked && (
                             <div className="mt-2">
                               <div className="flex items-center justify-between mb-1">
@@ -378,15 +378,15 @@ export function RewardsShopScreen({ staffUser, onBack }: { staffUser: SafeStaff;
   })).filter(g => g.rewards.length > 0), [rewards.data]);
 
   return (
-    <div className="h-screen overflow-y-auto bg-black pb-24 screen-enter">
+    <div className="h-screen overflow-y-auto bg-slate-50 pb-24 screen-enter">
       <ScreenHeader title="REWARDS SHOP" subtitle="Spend your points on real rewards" onBack={onBack} />
 
       {/* Balance */}
       <div className="px-6 mb-4">
         <div className="surface-base p-6 text-center">
-          <p className="type-micro text-zinc-500 mb-1">Your Balance</p>
-          <p className="text-3xl font-semibold text-white font-data">{currentPoints}</p>
-          <p className="type-caption text-zinc-500">points available</p>
+          <p className="type-micro text-slate-500 mb-1">Your Balance</p>
+          <p className="text-3xl font-semibold text-slate-900 font-data">{currentPoints}</p>
+          <p className="type-caption text-slate-500">points available</p>
         </div>
       </div>
 
@@ -405,8 +405,8 @@ export function RewardsShopScreen({ staffUser, onBack }: { staffUser: SafeStaff;
                     <div key={reward.id} className="surface-base p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h4 className="type-body font-semibold text-white">{reward.name}</h4>
-                          <p className="type-caption text-zinc-500 mt-0.5">{reward.description}</p>
+                          <h4 className="type-body font-semibold text-slate-900">{reward.name}</h4>
+                          <p className="type-caption text-slate-500 mt-0.5">{reward.description}</p>
                         </div>
                         <div className="text-right ml-3">
                           <p className={`type-body font-semibold font-data ${canAfford ? 'text-amber-500' : 'text-zinc-600'}`}>{reward.pointsCost}</p>
@@ -438,12 +438,12 @@ export function RewardsShopScreen({ staffUser, onBack }: { staffUser: SafeStaff;
             {myRedemptions.data?.map((r: any) => (
               <div key={r.id} className="surface-base p-3 flex items-center justify-between">
                 <div>
-                  <p className="type-body text-white font-medium">{r.rewardName || "Reward"}</p>
-                  <p className="type-caption text-zinc-500">{r.pointsSpent} pts · {new Date(r.createdAt).toLocaleDateString()}</p>
+                  <p className="type-body text-slate-900 font-medium">{r.rewardName || "Reward"}</p>
+                  <p className="type-caption text-slate-500">{r.pointsSpent} pts · {new Date(r.createdAt).toLocaleDateString()}</p>
                 </div>
                 <span className={`type-micro px-2 py-0.5 rounded-full ${
                   r.status === "approved" ? "bg-amber-500/15 text-amber-500" :
-                  r.status === "pending" ? "bg-zinc-800 text-zinc-400" :
+                  r.status === "pending" ? "bg-zinc-800 text-slate-500" :
                   "bg-red-500/15 text-red-400"
                 }`}>{r.status}</span>
               </div>

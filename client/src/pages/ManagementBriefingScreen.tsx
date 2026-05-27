@@ -13,7 +13,7 @@ const ROLE_CONFIG: Record<string, { label: string; icon: typeof Brain; color: st
   michael: { label: "Mychael", icon: CalendarClock, color: "text-amber-400", description: "Full Schedule Picture" },
   ashley: { label: "Ashley", icon: Beer, color: "text-blue-400", description: "Bar Intelligence" },
   tom: { label: "Tom", icon: ChefHat, color: "text-green-400", description: "BOH / Kitchen" },
-  all: { label: "All", icon: Brain, color: "text-white", description: "All Briefings" },
+  all: { label: "All", icon: Brain, color: "text-slate-900", description: "All Briefings" },
 };
 
 export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
@@ -64,9 +64,9 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/95 backdrop-blur border-b border-white/10 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -74,7 +74,7 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
             </button>
             <div>
               <h1 className="font-bold text-lg tracking-wide">INTELLIGENCE BRIEFINGS</h1>
-              <p className="text-xs text-white/50">Role-based insights for management</p>
+              <p className="text-xs text-slate-500">Role-based insights for management</p>
             </div>
           </div>
           <button
@@ -98,7 +98,7 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
                 key={role}
                 onClick={() => setRoleFilter(role)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  isActive ? "bg-white/15 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"
+                  isActive ? "bg-white/15 text-slate-900" : "bg-white/5 text-slate-500 hover:bg-white/10"
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? config.color : ""}`} />
@@ -112,7 +112,7 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
       {/* Briefing List */}
       <div className="p-4 space-y-3">
         {briefingsQuery.isLoading && (
-          <div className="text-center py-12 text-white/40">
+          <div className="text-center py-12 text-slate-400">
             <Brain className="w-8 h-8 mx-auto mb-2 animate-pulse" />
             <p>Loading briefings...</p>
           </div>
@@ -120,8 +120,8 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
 
         {!briefingsQuery.isLoading && briefings.length === 0 && (
           <div className="text-center py-12">
-            <Brain className="w-12 h-12 mx-auto mb-3 text-white/20" />
-            <p className="text-white/40 mb-4">No briefings yet</p>
+            <Brain className="w-12 h-12 mx-auto mb-3 text-slate-900/20" />
+            <p className="text-slate-400 mb-4">No briefings yet</p>
             <button
               onClick={handleGenerate}
               disabled={generating}
@@ -146,7 +146,7 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
             <div
               key={b.id}
               className={`rounded-xl border transition-all ${
-                isRead ? "border-white/5 bg-white/[0.02]" : "border-amber-500/30 bg-amber-500/5"
+                isRead ? "border-slate-200 bg-white/[0.02]" : "border-amber-500/30 bg-amber-500/5"
               }`}
             >
               {/* Briefing Header */}
@@ -163,20 +163,20 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleConfig.color} bg-white/5`}>
                         {roleConfig.label}
                       </span>
-                      <span className="text-xs text-white/30">{formatTime(b.generatedAt)}</span>
+                      <span className="text-xs text-slate-900/30">{formatTime(b.generatedAt)}</span>
                       {!isRead && <span className="w-2 h-2 rounded-full bg-amber-400" />}
                       {b.notificationSent && <span className="text-xs text-green-400/50">notified</span>}
                     </div>
                     <h3 className="font-semibold text-sm truncate">{b.title}</h3>
-                    <p className="text-xs text-white/50 mt-1 line-clamp-2">{b.summary}</p>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{b.summary}</p>
                   </div>
-                  <Eye className={`w-4 h-4 flex-shrink-0 mt-1 transition-transform ${isExpanded ? "text-amber-400" : "text-white/20"}`} />
+                  <Eye className={`w-4 h-4 flex-shrink-0 mt-1 transition-transform ${isExpanded ? "text-amber-400" : "text-slate-900/20"}`} />
                 </div>
               </button>
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-4">
+                <div className="px-4 pb-4 space-y-4 border-t border-slate-200 pt-4">
                   {/* Anomaly Alerts */}
                   {anomalyData && anomalyData.length > 0 && (
                     <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
@@ -193,11 +193,11 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
                   {/* Full Content */}
                   <div className="prose prose-invert prose-sm max-w-none">
                     <div
-                      className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap"
+                      className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap"
                       dangerouslySetInnerHTML={{
                         __html: fullContent
                           .replace(/## (.*)/g, '<h3 class="text-amber-400 font-bold mt-4 mb-2 text-sm">$1</h3>')
-                          .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                          .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900">$1</strong>')
                           .replace(/\n/g, "<br/>"),
                       }}
                     />
@@ -232,13 +232,13 @@ export default function ManagementBriefingScreen({ staffUser, onBack }: Props) {
                   {/* Data Context */}
                   {b.eventsContext && (b.eventsContext as any[]).length > 0 && (
                     <div className="bg-white/5 rounded-lg p-3">
-                      <p className="text-xs font-medium text-white/40 mb-2">EVENTS WITHIN 30 MILES</p>
+                      <p className="text-xs font-medium text-slate-400 mb-2">EVENTS WITHIN 30 MILES</p>
                       {(b.eventsContext as any[]).map((evt: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 text-xs text-white/50 mb-1">
+                        <div key={i} className="flex items-center gap-2 text-xs text-slate-500 mb-1">
                           <span className={`w-2 h-2 rounded-full ${evt.estimatedImpact === "high" ? "bg-red-400" : evt.estimatedImpact === "medium" ? "bg-amber-400" : "bg-green-400"}`} />
                           <span>{evt.eventName}</span>
-                          <span className="text-white/30">— {evt.eventDate}</span>
-                          {evt.distance && <span className="text-white/20">{evt.distance}mi</span>}
+                          <span className="text-slate-900/30">— {evt.eventDate}</span>
+                          {evt.distance && <span className="text-slate-900/20">{evt.distance}mi</span>}
                         </div>
                       ))}
                     </div>

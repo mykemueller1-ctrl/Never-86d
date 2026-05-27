@@ -96,11 +96,11 @@ function isManagerOrOwner(s: SafeStaff | null): boolean {
 }
 
 function salesVibe(amount: number | null | undefined): { label: string; color: string } {
-  if (!amount || amount === 0) return { label: "No data yet", color: "text-zinc-500" };
+  if (!amount || amount === 0) return { label: "No data yet", color: "text-slate-500" };
   if (amount >= 5000) return { label: "Legendary Night", color: "text-amber-400" };
   if (amount >= 3500) return { label: "Great Night", color: "text-amber-400" };
   if (amount >= 2000) return { label: "Solid Night", color: "text-zinc-700" };
-  return { label: "Steady Night", color: "text-zinc-500" };
+  return { label: "Steady Night", color: "text-slate-500" };
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────
@@ -379,8 +379,8 @@ export default function CTapHub() {
 
         <div className="w-8 h-px bg-zinc-200 mx-auto mt-6 mb-6" />
 
-        <p className="type-micro text-zinc-500">Fort Dodge, Iowa</p>
-        <p className="text-zinc-500 text-[10px] mt-6 tracking-wider">Powered by Never 86'd</p>
+        <p className="type-micro text-slate-500">Fort Dodge, Iowa</p>
+        <p className="text-slate-500 text-[10px] mt-6 tracking-wider">Powered by Never 86'd</p>
       </div>
     </div>
   );
@@ -397,20 +397,20 @@ export default function CTapHub() {
         </div>
 
         <h2 className="type-display text-zinc-900 text-center mb-1">START YOUR SHIFT</h2>
-        <p className="type-body text-zinc-500 text-center mb-10">Enter your 4-digit PIN</p>
+        <p className="type-body text-slate-500 text-center mb-10">Enter your 4-digit PIN</p>
 
         {/* PIN Dots */}
         <div className="flex items-center gap-3 mb-6 justify-center">
           <div className="flex gap-3">
             {[0,1,2,3].map(i => (
               <div key={i} className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-semibold transition-all duration-200 ${
-                pin.length > i ? 'bg-amber-50 text-amber-600 ring-2 ring-amber-400 shadow-sm' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                pin.length > i ? 'bg-amber-50 text-amber-600 ring-2 ring-amber-400 shadow-sm' : 'bg-zinc-100 text-slate-500 border border-zinc-200'
               }`}>
                 {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
               </div>
             ))}
           </div>
-          <button onClick={() => setShowPin(!showPin)} className="text-zinc-500 p-2 hover:text-zinc-600 transition-colors">
+          <button onClick={() => setShowPin(!showPin)} className="text-slate-500 p-2 hover:text-zinc-600 transition-colors">
             {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
@@ -443,11 +443,11 @@ export default function CTapHub() {
         {loginByPin.isPending && (
           <div className="flex items-center justify-center mt-6">
             <Loader2 size={18} className="text-amber-500 animate-spin" />
-            <span className="text-zinc-500 type-caption ml-2">Verifying...</span>
+            <span className="text-slate-500 type-caption ml-2">Verifying...</span>
           </div>
         )}
 
-        <p className="text-center type-micro text-zinc-500 mt-8">Community Tap & Pizza · Fort Dodge, Iowa</p>
+        <p className="text-center type-micro text-slate-500 mt-8">Community Tap & Pizza · Fort Dodge, Iowa</p>
       </div>
     </div>
   );
@@ -467,7 +467,7 @@ export default function CTapHub() {
           <h1 className="type-display text-zinc-900 mb-3">
             HEY {staffUser?.firstName?.toUpperCase()}
           </h1>
-          <p className="type-body text-zinc-500 mb-2">
+          <p className="type-body text-slate-500 mb-2">
             Let's have a great shift.
           </p>
 
@@ -475,19 +475,19 @@ export default function CTapHub() {
           <div className="flex items-center justify-center gap-6 mt-8 mb-10">
             <div className="text-center">
               <p className="text-amber-600 font-semibold text-lg font-data">{staffUser?.totalPoints?.toLocaleString()}</p>
-              <p className="type-micro text-zinc-500 mt-0.5">Score</p>
+              <p className="type-micro text-slate-500 mt-0.5">Score</p>
             </div>
             <div className="w-px h-8 bg-zinc-200" />
             <div className="text-center">
-              <p className="text-zinc-900 font-semibold text-lg font-data">{staffUser?.currentStreak}<span className="text-zinc-500 text-sm">d</span></p>
-              <p className="type-micro text-zinc-500 mt-0.5">Streak</p>
+              <p className="text-zinc-900 font-semibold text-lg font-data">{staffUser?.currentStreak}<span className="text-slate-500 text-sm">d</span></p>
+              <p className="type-micro text-slate-500 mt-0.5">Streak</p>
             </div>
             {rank > 0 && (
               <>
                 <div className="w-px h-8 bg-zinc-200" />
                 <div className="text-center">
                   <p className="text-zinc-900 font-semibold text-lg font-data">#{rank}</p>
-                  <p className="type-micro text-zinc-500 mt-0.5">Rank</p>
+                  <p className="type-micro text-slate-500 mt-0.5">Rank</p>
                 </div>
               </>
             )}
@@ -516,7 +516,7 @@ export default function CTapHub() {
     return (
       <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <div className="px-6 pt-12">
-          <p className="type-micro text-zinc-500 mb-2">{today}</p>
+          <p className="type-micro text-slate-500 mb-2">{today}</p>
           <h2 className="type-display text-zinc-900 mb-8">TODAY'S BRIEFING</h2>
 
           {briefingQuery.isLoading ? (
@@ -527,16 +527,16 @@ export default function CTapHub() {
             <div className="space-y-4">
               {/* Yesterday recap */}
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                <p className="type-micro text-zinc-500 mb-3">Yesterday</p>
+                <p className="type-micro text-slate-500 mb-3">Yesterday</p>
                 {isManager ? (
                   <div className="flex gap-8">
                     <div>
                       <p className="text-2xl font-semibold text-zinc-900 font-data">${briefing.salesYesterday || "—"}</p>
-                      <p className="type-caption text-zinc-500 mt-0.5">sales</p>
+                      <p className="type-caption text-slate-500 mt-0.5">sales</p>
                     </div>
                     <div>
                       <p className="text-2xl font-semibold text-zinc-900 font-data">{briefing.ordersYesterday || "—"}</p>
-                      <p className="type-caption text-zinc-500 mt-0.5">orders</p>
+                      <p className="type-caption text-slate-500 mt-0.5">orders</p>
                     </div>
                   </div>
                 ) : (
@@ -566,7 +566,7 @@ export default function CTapHub() {
               {/* Specials */}
               {specials.length > 0 && (
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                  <p className="type-micro text-zinc-500 mb-3">Specials</p>
+                  <p className="type-micro text-slate-500 mb-3">Specials</p>
                   {specials.map((s, i) => (
                     <p key={i} className="type-body text-zinc-600"><span className="text-zinc-900 font-medium">{s.name}</span> — {s.description}</p>
                   ))}
@@ -576,7 +576,7 @@ export default function CTapHub() {
               {/* Open Issues */}
               {openIssuesBriefing.length > 0 && (
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                  <p className="type-micro text-zinc-500 mb-3">Open Issues</p>
+                  <p className="type-micro text-slate-500 mb-3">Open Issues</p>
                   {openIssuesBriefing.map((issue, i) => (
                     <div key={i} className="flex items-start gap-3 mb-2 last:mb-0">
                       <div className="w-1.5 h-1.5 rounded-full mt-2 bg-amber-500 shrink-0" />
@@ -588,7 +588,7 @@ export default function CTapHub() {
             </div>
           ) : (
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-8 text-center">
-              <p className="type-body text-zinc-500">No briefing posted yet today.</p>
+              <p className="type-body text-slate-500">No briefing posted yet today.</p>
             </div>
           )}
 
@@ -624,7 +624,7 @@ export default function CTapHub() {
         <div className="px-6 pt-8 pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="type-caption text-zinc-500">{greeting}</p>
+              <p className="type-caption text-slate-500">{greeting}</p>
               <h1 className="type-display text-zinc-900">{staffUser.firstName}</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -669,7 +669,7 @@ export default function CTapHub() {
                 <div className="flex-1 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${totalTasks > 0 ? (doneTasks / totalTasks) * 100 : 0}%` }} />
                 </div>
-                <span className="text-zinc-500 type-caption font-data">{doneTasks}/{totalTasks}</span>
+                <span className="text-slate-500 type-caption font-data">{doneTasks}/{totalTasks}</span>
               </div>
             </button>
           )}
@@ -683,7 +683,7 @@ export default function CTapHub() {
                   <Truck size={18} className="text-amber-500" />
                   <div>
                     <span className="text-zinc-900 font-semibold type-body">End of Day Report</span>
-                    <p className="type-caption text-zinc-500">Required before clocking out</p>
+                    <p className="type-caption text-slate-500">Required before clocking out</p>
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-zinc-600" />
@@ -700,7 +700,7 @@ export default function CTapHub() {
                   <BarChart3 size={18} className="text-amber-500" />
                   <div>
                     <span className="text-zinc-900 font-semibold type-body">Command Center</span>
-                    <p className="type-caption text-zinc-500">Operations & intelligence</p>
+                    <p className="type-caption text-slate-500">Operations & intelligence</p>
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-amber-500" />
@@ -753,7 +753,7 @@ export default function CTapHub() {
                 <button key={item.s} onClick={() => navigateTo(item.s)}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98]">
                   <item.icon size={20} className="text-amber-500" />
-                  <span className="type-micro text-zinc-500 normal-case">{item.label}</span>
+                  <span className="type-micro text-slate-500 normal-case">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -768,7 +768,7 @@ export default function CTapHub() {
                   <Trophy size={16} className="text-amber-500" />
                   <span className="text-zinc-900 font-semibold type-body">Leaderboard</span>
                 </div>
-                <span className="type-caption text-zinc-500 font-data">#{rank || "—"} of {leaderboard.length}</span>
+                <span className="type-caption text-slate-500 font-data">#{rank || "—"} of {leaderboard.length}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {leaderboard.slice(0, 5).map((s) => (
@@ -786,7 +786,7 @@ export default function CTapHub() {
           {/* Open Issues */}
           {openIssues.length > 0 && (
             <div className="bg-white border border-zinc-200 rounded-xl p-5">
-              <p className="type-micro text-zinc-500 mb-3">{openIssues.length} Open Issue{openIssues.length > 1 ? "s" : ""}</p>
+              <p className="type-micro text-slate-500 mb-3">{openIssues.length} Open Issue{openIssues.length > 1 ? "s" : ""}</p>
               {openIssues.slice(0, 2).map(issue => (
                 <div key={issue.id} className="flex items-center gap-3 mb-2 last:mb-0">
                   <div className={`w-2 h-2 rounded-full shrink-0 ${issue.priority === 'critical' ? 'bg-red-500' : issue.priority === 'high' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
@@ -830,7 +830,7 @@ export default function CTapHub() {
           </button>
         )}
         <h2 className="type-display text-zinc-900">{title}</h2>
-        {subtitle && <p className="type-caption text-zinc-500 mt-1">{subtitle}</p>}
+        {subtitle && <p className="type-caption text-slate-500 mt-1">{subtitle}</p>}
       </div>
     );
   }
@@ -842,7 +842,7 @@ export default function CTapHub() {
     <div className="h-screen bg-white flex flex-col items-center justify-center px-8 screen-enter">
       <Lock size={32} className="text-zinc-700 mb-4" />
       <p className="type-heading text-zinc-700 mb-2">Manager Access Required</p>
-      <p className="type-body text-zinc-500 mb-6">This section requires manager or owner permissions.</p>
+      <p className="type-body text-slate-500 mb-6">This section requires manager or owner permissions.</p>
       <button onClick={() => setScreen("home")} className="px-6 py-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-700 type-caption font-semibold hover:bg-zinc-200 transition-colors">
         Back to Home
       </button>
@@ -859,7 +859,7 @@ export default function CTapHub() {
         {checklistsQuery.isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
         ) : myChecklists.length === 0 ? (
-          <p className="text-zinc-500 type-body text-center py-12">No checklists for your department yet</p>
+          <p className="text-slate-500 type-body text-center py-12">No checklists for your department yet</p>
         ) : (
           myChecklists.map(cl => {
             const items = (cl.items as any[]) || [];
@@ -869,7 +869,7 @@ export default function CTapHub() {
                 <div className="p-5 border-b border-zinc-100">
                   <div className="flex items-center justify-between">
                     <p className="text-zinc-900 font-semibold type-body">{cl.name}</p>
-                    <span className="type-caption text-zinc-500 font-data">{doneCount}/{items.length}</span>
+                    <span className="type-caption text-slate-500 font-data">{doneCount}/{items.length}</span>
                   </div>
                   <div className="h-1 bg-zinc-200 rounded-full mt-3 overflow-hidden">
                     <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${items.length > 0 ? (doneCount / items.length) * 100 : 0}%` }} />
@@ -886,7 +886,7 @@ export default function CTapHub() {
                           ? <CheckCircle2 size={16} className="text-amber-500 shrink-0" />
                           : <Circle size={16} className="text-zinc-700 shrink-0" />
                         }
-                        <span className={`type-body text-left ${done ? 'text-zinc-500 line-through' : 'text-zinc-800'}`}>{item.task}</span>
+                        <span className={`type-body text-left ${done ? 'text-slate-500 line-through' : 'text-zinc-800'}`}>{item.task}</span>
                       </button>
                     );
                   })}
@@ -962,22 +962,22 @@ export default function CTapHub() {
         <ScreenHeader title="STORE RUNS" subtitle="Receipt capture · Manager approval" />
         <div className="px-6 space-y-4">
           <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-zinc-500">Log New Store Run</p>
-            <input value={storeRunForm.description} onChange={e => setStoreRunForm(f => ({ ...f, description: e.target.value }))} placeholder="What was purchased?" className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+            <p className="type-micro text-slate-500">Log New Store Run</p>
+            <input value={storeRunForm.description} onChange={e => setStoreRunForm(f => ({ ...f, description: e.target.value }))} placeholder="What was purchased?" className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             <div className="flex gap-2.5">
-              <input value={storeRunForm.amount} onChange={e => setStoreRunForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-              <input value={storeRunForm.vendor} onChange={e => setStoreRunForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Where?" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={storeRunForm.amount} onChange={e => setStoreRunForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={storeRunForm.vendor} onChange={e => setStoreRunForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Where?" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             </div>
             <div className="flex gap-2 flex-wrap">
               {["food", "supplies", "equipment", "misc"].map(cat => (
                 <button key={cat} onClick={() => setStoreRunForm(f => ({ ...f, category: cat }))}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${storeRunForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${storeRunForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
                   {cat}
                 </button>
               ))}
             </div>
             <div>
-              <p className="type-micro text-zinc-500 mb-2">Authorized By</p>
+              <p className="type-micro text-slate-500 mb-2">Authorized By</p>
               <select value={storeRunForm.authorizedById} onChange={e => setStoreRunForm(f => ({ ...f, authorizedById: Number(e.target.value) }))}
                 className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body focus:outline-none focus:ring-1 focus:ring-amber-300">
                 <option value={0}>{staffUser?.isKeyEmployee ? `${staffDisplayName(staffUser)} (me)` : "Select authorizer..."}</option>
@@ -987,9 +987,9 @@ export default function CTapHub() {
               </select>
             </div>
             <div>
-              <p className="type-micro text-zinc-500 mb-2">Receipt Photo</p>
+              <p className="type-micro text-slate-500 mb-2">Receipt Photo</p>
               <label className={`flex items-center justify-center gap-2 py-3 rounded-xl cursor-pointer transition-all ${
-                receiptPhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-700'
+                receiptPhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500 hover:text-zinc-700'
               }`}>
                 {uploadingPhoto ? <><Loader2 size={14} className="animate-spin" /><span className="type-caption">Uploading...</span></> :
                  receiptPhotoUrl ? <><CheckCircle2 size={14} /><span className="type-caption">Receipt Attached</span></> :
@@ -1007,7 +1007,7 @@ export default function CTapHub() {
           {/* Summary */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5">
             <div className="flex items-center justify-between">
-              <p className="type-micro text-zinc-500">This Week</p>
+              <p className="type-micro text-slate-500">This Week</p>
               <p className="text-zinc-900 font-semibold font-data">${weeklyTotal.toFixed(2)}</p>
             </div>
             {flaggedCount > 0 && <p className="type-caption text-red-600 mt-1">{flaggedCount} flagged</p>}
@@ -1025,7 +1025,7 @@ export default function CTapHub() {
                     <span className="text-zinc-900 type-body font-medium">Staff #{po.staffId}</span>
                     <span className="text-amber-500 font-semibold font-data">${po.amount}</span>
                   </div>
-                  <p className="type-caption text-zinc-500">{po.description || "—"} · {po.vendor || "Unknown"}</p>
+                  <p className="type-caption text-slate-500">{po.description || "—"} · {po.vendor || "Unknown"}</p>
                   <div className="flex items-center gap-3 mt-2">
                     {po.receiptPhotoUrl ? <span className="type-micro text-amber-500 flex items-center gap-1"><CheckCircle2 size={10} />Receipt</span> : <span className="type-micro text-zinc-600">No receipt</span>}
                     {po.authorizedById ? <span className="type-micro text-amber-500 flex items-center gap-1"><CheckCircle2 size={10} />Authorized</span> : <span className="type-micro text-red-600">Unauthorized</span>}
@@ -1073,14 +1073,14 @@ export default function CTapHub() {
         <div className="px-6 space-y-4">
           {/* Weekly Spend */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5">
-            <p className="type-micro text-zinc-500 mb-3">This Week's Spend</p>
+            <p className="type-micro text-slate-500 mb-3">This Week's Spend</p>
             <p className="text-2xl font-semibold text-zinc-900 font-data">${weeklyTotal.toFixed(2)}</p>
             {vendorTotals.length > 0 && (
               <div className="mt-4 space-y-2">
                 {vendorTotals.map(([vendor, total]) => (
                   <div key={vendor} className="flex items-center gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    <span className="type-caption text-zinc-500 flex-1">{vendor}</span>
+                    <span className="type-caption text-slate-500 flex-1">{vendor}</span>
                     <span className="type-caption text-zinc-900 font-data">${total.toFixed(2)}</span>
                   </div>
                 ))}
@@ -1090,7 +1090,7 @@ export default function CTapHub() {
 
           {/* New Invoice Form */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-zinc-500">Log New Invoice</p>
+            <p className="type-micro text-slate-500">Log New Invoice</p>
             <div>
               <p className="type-micro text-zinc-600 mb-1.5">Vendor</p>
               {!invoiceForm.customVendor ? (
@@ -1104,19 +1104,19 @@ export default function CTapHub() {
                 </select>
               ) : (
                 <div className="flex gap-2">
-                  <input value={invoiceForm.vendorName} onChange={e => setInvoiceForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="Enter vendor name" autoFocus className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-                  <button onClick={() => setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: false }))} className="text-zinc-500 type-caption px-3 rounded-xl bg-zinc-100 hover:text-zinc-700 transition-colors">Back</button>
+                  <input value={invoiceForm.vendorName} onChange={e => setInvoiceForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="Enter vendor name" autoFocus className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+                  <button onClick={() => setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: false }))} className="text-slate-500 type-caption px-3 rounded-xl bg-zinc-100 hover:text-zinc-700 transition-colors">Back</button>
                 </div>
               )}
             </div>
             <div className="flex gap-2.5">
-              <input value={invoiceForm.totalAmount} onChange={e => setInvoiceForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="Total ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-              <input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice #" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={invoiceForm.totalAmount} onChange={e => setInvoiceForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="Total ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice #" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             </div>
             <div className="flex gap-2 flex-wrap">
               {INVOICE_CATEGORIES.map(cat => (
                 <button key={cat} onClick={() => setInvoiceForm(f => ({ ...f, category: cat }))}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${invoiceForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${invoiceForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
                   {cat}
                 </button>
               ))}
@@ -1124,7 +1124,7 @@ export default function CTapHub() {
             <div>
               <p className="type-micro text-zinc-600 mb-1.5">Invoice Photo</p>
               <label className={`flex items-center justify-center gap-2 py-3 rounded-xl cursor-pointer transition-all ${
-                invoicePhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-700'
+                invoicePhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500 hover:text-zinc-700'
               }`}>
                 {uploadingInvoicePhoto ? <><Loader2 size={14} className="animate-spin" /><span className="type-caption">Uploading...</span></> :
                  invoicePhotoUrl ? <><CheckCircle2 size={14} /><span className="type-caption">Invoice Attached</span></> :
@@ -1150,7 +1150,7 @@ export default function CTapHub() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-zinc-900 type-body font-medium">{inv.vendorName}</p>
-                      <p className="type-caption text-zinc-500">{new Date(inv.date).toLocaleDateString()} · {inv.category}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ''}</p>
+                      <p className="type-caption text-slate-500">{new Date(inv.date).toLocaleDateString()} · {inv.category}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ''}</p>
                     </div>
                     <p className="text-amber-500 font-semibold font-data">${inv.totalAmount}</p>
                   </div>
@@ -1195,15 +1195,15 @@ export default function CTapHub() {
 
           {voidsByStaff.length > 0 && (
             <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-              <div className="p-4 border-b border-zinc-200"><p className="type-micro text-zinc-500">By Employee</p></div>
+              <div className="p-4 border-b border-zinc-200"><p className="type-micro text-slate-500">By Employee</p></div>
               {voidsByStaff.map((vs, i) => (
                 <div key={i} className={`flex items-center justify-between p-4 border-b border-zinc-200 last:border-0 ${vs.count >= 3 ? 'bg-red-950/10' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"><span className="text-zinc-500 type-caption">{vs.initial}</span></div>
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"><span className="text-slate-500 type-caption">{vs.initial}</span></div>
                     <span className="text-zinc-900 type-body">{vs.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`type-body font-semibold font-data ${vs.count >= 3 ? 'text-red-600' : vs.count >= 2 ? 'text-amber-500' : 'text-zinc-500'}`}>{vs.count}</span>
+                    <span className={`type-body font-semibold font-data ${vs.count >= 3 ? 'text-red-600' : vs.count >= 2 ? 'text-amber-500' : 'text-slate-500'}`}>{vs.count}</span>
                     {vs.count >= 3 && <AlertTriangle size={12} className="text-red-600" />}
                   </div>
                 </div>
@@ -1216,7 +1216,7 @@ export default function CTapHub() {
           ) : (
             <div className="space-y-2">
               <p className="type-micro text-zinc-600">Recent Voids</p>
-              {allVoids.length === 0 && <p className="type-body text-zinc-500 text-center py-8">No voids — clean week!</p>}
+              {allVoids.length === 0 && <p className="type-body text-slate-500 text-center py-8">No voids — clean week!</p>}
               {allVoids.slice(0, 10).map(v => {
                 const staffName = allStaff.find(s => s.id === v.staffId);
                 return (
@@ -1225,7 +1225,7 @@ export default function CTapHub() {
                       <span className="text-zinc-900 type-body font-medium">{staffName ? staffDisplayName(staffName) : `Staff #${v.staffId}`}</span>
                       <span className="type-caption text-zinc-600 font-data">{new Date(v.date).toLocaleDateString()}</span>
                     </div>
-                    <p className="type-caption text-zinc-500">{v.type} · ${v.amount} — "{v.reason}"</p>
+                    <p className="type-caption text-slate-500">{v.type} · ${v.amount} — "{v.reason}"</p>
                   </div>
                 );
               })}
@@ -1265,9 +1265,9 @@ export default function CTapHub() {
             { key: "notes", label: "Notes", placeholder: "Anything else" },
           ].map(field => (
             <div key={field.key} className="bg-white border border-zinc-200 rounded-xl p-4">
-              <p className="type-micro text-zinc-500 mb-2">{field.label}</p>
+              <p className="type-micro text-slate-500 mb-2">{field.label}</p>
               <textarea value={(driverEOD as any)[field.key]} onChange={e => setDriverEOD(d => ({ ...d, [field.key]: e.target.value }))} placeholder={field.placeholder}
-                className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
+                className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
             </div>
           ))}
           <button onClick={handleSubmitEOD} disabled={createDriverReport.isPending}
@@ -1300,11 +1300,11 @@ export default function CTapHub() {
         <div className="px-6 space-y-4">
           <div className="bg-white border border-zinc-200 rounded-xl p-5">
             <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} placeholder="What worked? What didn't? What was blocked?"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[120px] resize-none" />
+              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[120px] resize-none" />
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {["equipment", "staffing", "inventory", "customer", "management"].map(t => (
                 <button key={t} onClick={() => setFeedbackCategory(feedbackCategory === t ? null : t)}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${feedbackCategory === t ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${feedbackCategory === t ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
                   {t}
                 </button>
               ))}
@@ -1341,11 +1341,11 @@ export default function CTapHub() {
         <ScreenHeader title="ISSUES" subtitle="Report · Route · Resolve" />
         <div className="px-6 space-y-4">
           <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-zinc-500">Report New Issue</p>
+            <p className="type-micro text-slate-500">Report New Issue</p>
             <input value={issueTitle} onChange={e => setIssueTitle(e.target.value)} placeholder="What's the issue?"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             <textarea value={issueDesc} onChange={e => setIssueDesc(e.target.value)} placeholder="Details (optional)"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
+              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
             <div>
               <p className="type-micro text-zinc-600 mb-1.5">Priority</p>
               <div className="flex gap-2">
@@ -1353,7 +1353,7 @@ export default function CTapHub() {
                   <button key={p} onClick={() => setIssuePriority(p)}
                     className={`px-3 py-1.5 rounded-full type-micro transition-all ${issuePriority === p
                       ? (p === 'critical' ? 'bg-red-500/15 text-red-600 ring-1 ring-red-500/30' : 'bg-amber-100 text-amber-500 ring-1 ring-amber-300')
-                      : 'bg-zinc-100 text-zinc-500'}`}>
+                      : 'bg-zinc-100 text-slate-500'}`}>
                     {p}
                   </button>
                 ))}
@@ -1364,7 +1364,7 @@ export default function CTapHub() {
               <div className="flex gap-2 flex-wrap">
                 {["equipment", "staffing", "inventory", "safety", "other"].map(c => (
                   <button key={c} onClick={() => setIssueCategory(c)}
-                    className={`px-3 py-1.5 rounded-full type-micro transition-all ${issueCategory === c ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-zinc-500'}`}>
+                    className={`px-3 py-1.5 rounded-full type-micro transition-all ${issueCategory === c ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
                     {c}
                   </button>
                 ))}
@@ -1385,10 +1385,10 @@ export default function CTapHub() {
                 <div key={issue.id} className="bg-white border border-zinc-200 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-zinc-900 type-body font-medium">{issue.title}</p>
-                    <span className={`type-micro px-2 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/15 text-red-600' : issue.priority === 'high' ? 'bg-amber-100 text-amber-400' : 'bg-zinc-100 text-zinc-500'}`}>{issue.priority}</span>
+                    <span className={`type-micro px-2 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/15 text-red-600' : issue.priority === 'high' ? 'bg-amber-100 text-amber-400' : 'bg-zinc-100 text-slate-500'}`}>{issue.priority}</span>
                   </div>
-                  <p className="type-caption text-zinc-500">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
-                  {issue.description && <p className="type-caption text-zinc-500 mt-1">{issue.description}</p>}
+                  <p className="type-caption text-slate-500">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
+                  {issue.description && <p className="type-caption text-slate-500 mt-1">{issue.description}</p>}
                 </div>
               ))}
             </div>
@@ -1415,12 +1415,12 @@ export default function CTapHub() {
             {leaderboard.filter(s => s.jobRole !== "owner").map((s, i) => (
               <div key={s.id} className={`flex items-center gap-3 p-4 rounded-xl transition-all ${s.id === staffUser?.id ? 'bg-amber-50 ring-1 ring-amber-500/15' : 'bg-white border border-zinc-200 rounded-xl'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold type-caption font-data ${
-                  i === 0 ? 'bg-amber-500 text-black' : i === 1 ? 'bg-zinc-400 text-black' : i === 2 ? 'bg-amber-700 text-zinc-900' : 'bg-zinc-100 text-zinc-500'
+                  i === 0 ? 'bg-amber-500 text-black' : i === 1 ? 'bg-zinc-400 text-black' : i === 2 ? 'bg-amber-700 text-zinc-900' : 'bg-zinc-100 text-slate-500'
                 }`}>{i + 1}</div>
                 <div className="flex-1">
                   <p className="text-zinc-900 type-body font-medium">{staffDisplayName(s)}</p>
                   <div className="flex items-center gap-2">
-                    <span className="type-caption text-zinc-500">{roleLabel(s.jobRole)}</span>
+                    <span className="type-caption text-slate-500">{roleLabel(s.jobRole)}</span>
                     {s.isKeyEmployee && <span className="type-micro text-amber-500">KEY</span>}
                     {s.currentStreak > 7 && <span className="text-amber-600 type-caption flex items-center gap-0.5"><Flame size={10} />{s.currentStreak}d</span>}
                   </div>
@@ -1431,7 +1431,7 @@ export default function CTapHub() {
                 </div>
               </div>
             ))}
-            {leaderboard.length === 0 && <p className="type-body text-zinc-500 text-center py-8">No leaderboard data yet</p>}
+            {leaderboard.length === 0 && <p className="type-body text-slate-500 text-center py-8">No leaderboard data yet</p>}
           </div>
         )}
       </div>
@@ -1465,7 +1465,7 @@ export default function CTapHub() {
               <div key={i} className="bg-white border border-zinc-200 rounded-xl p-4">
                 <p className="type-micro text-zinc-600">{kpi.label}</p>
                 <p className="text-zinc-900 text-lg font-semibold font-data mt-1">{kpi.value}</p>
-                <p className="type-caption text-zinc-500 mt-0.5">{kpi.sub}</p>
+                <p className="type-caption text-slate-500 mt-0.5">{kpi.sub}</p>
               </div>
             ))}
           </div>
@@ -1481,7 +1481,7 @@ export default function CTapHub() {
               <button key={item.s} onClick={() => navigateTo(item.s)}
                 className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98]">
                 <item.icon size={18} className="text-amber-500" />
-                <span className="type-micro text-zinc-500 normal-case">{item.label}</span>
+                <span className="type-micro text-slate-500 normal-case">{item.label}</span>
               </button>
             ))}
           </div>
@@ -1519,7 +1519,7 @@ export default function CTapHub() {
             <span className="text-amber-500 text-2xl font-bold">{staffUser?.firstName?.charAt(0)}</span>
           </div>
           <p className="type-heading text-zinc-900">{staffUser ? staffDisplayName(staffUser) : ""}</p>
-          <p className="type-caption text-zinc-500 mt-0.5">{staffUser ? roleLabel(staffUser.jobRole) : ""}</p>
+          <p className="type-caption text-slate-500 mt-0.5">{staffUser ? roleLabel(staffUser.jobRole) : ""}</p>
           {staffUser?.isKeyEmployee && (
             <span className="type-micro text-amber-500 px-2.5 py-1 rounded-full bg-amber-50 inline-block mt-2">KEY EMPLOYEE</span>
           )}
@@ -1543,18 +1543,18 @@ export default function CTapHub() {
 
         {/* Details */}
         <div className="bg-white border border-zinc-200 rounded-xl p-5">
-          <p className="type-micro text-zinc-500 mb-3">Details</p>
+          <p className="type-micro text-slate-500 mb-3">Details</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="type-caption text-zinc-500">Department</span>
+              <span className="type-caption text-slate-500">Department</span>
               <span className="type-caption text-zinc-900 capitalize">{staffUser?.department}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="type-caption text-zinc-500">Role</span>
+              <span className="type-caption text-slate-500">Role</span>
               <span className="type-caption text-zinc-900">{staffUser ? roleLabel(staffUser.jobRole) : ""}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="type-caption text-zinc-500">Employee #</span>
+              <span className="type-caption text-slate-500">Employee #</span>
               <span className="type-caption text-zinc-900 font-data">{staffUser?.employeeNumber || "—"}</span>
             </div>
           </div>
@@ -1563,15 +1563,15 @@ export default function CTapHub() {
         {/* Self-only activity */}
         {!isManager && (
           <div className="bg-white border border-zinc-200 rounded-xl p-5">
-            <p className="type-micro text-zinc-500 mb-3">Your Activity</p>
+            <p className="type-micro text-slate-500 mb-3">Your Activity</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-zinc-900 font-semibold type-body font-data">{myVoids.length}</p>
-                <p className="type-caption text-zinc-500">Voids</p>
+                <p className="type-caption text-slate-500">Voids</p>
               </div>
               <div>
                 <p className="text-zinc-900 font-semibold type-body font-data">{myPayouts.length}</p>
-                <p className="type-caption text-zinc-500">Pay Outs</p>
+                <p className="type-caption text-slate-500">Pay Outs</p>
               </div>
             </div>
           </div>
@@ -1593,7 +1593,7 @@ export default function CTapHub() {
           setPin("");
           setChecklistProgress({});
           toast.success("Signed out");
-        }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-zinc-500 type-caption font-semibold hover:bg-zinc-100 hover:text-zinc-700 transition-all">
+        }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-slate-500 type-caption font-semibold hover:bg-zinc-100 hover:text-zinc-700 transition-all">
           <LogOut size={14} />
           Sign Out
         </button>

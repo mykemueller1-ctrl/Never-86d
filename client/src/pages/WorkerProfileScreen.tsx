@@ -83,15 +83,15 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
   const OverviewTab = () => (
     <div className="space-y-3">
       {/* Identity Card */}
-      <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+      <div className="bg-white rounded-xl p-4 border border-slate-200">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-black text-xl">
             {targetStaff.firstName.charAt(0)}{targetStaff.lastName?.charAt(0) || ""}
           </div>
           <div className="flex-1">
-            <h3 className="text-white font-bold text-lg">{targetStaff.firstName} {targetStaff.lastName}</h3>
+            <h3 className="text-slate-900 font-bold text-lg">{targetStaff.firstName} {targetStaff.lastName}</h3>
             <p className="text-amber-500 text-xs font-medium">{targetStaff.jobRole.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</p>
-            <p className="text-zinc-500 text-[10px]">{targetStaff.department} · #{targetStaff.employeeNumber || "—"}</p>
+            <p className="text-slate-500 text-[10px]">{targetStaff.department} · #{targetStaff.employeeNumber || "—"}</p>
           </div>
         </div>
 
@@ -104,16 +104,16 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
 
       {/* Career Position */}
       {primaryTrack && (
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Career Position</p>
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Career Position</p>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-semibold text-sm">{TRACK_LABELS[primaryTrack.track] || primaryTrack.track}</p>
+              <p className="text-slate-900 font-semibold text-sm">{TRACK_LABELS[primaryTrack.track] || primaryTrack.track}</p>
               <p className="text-amber-500 text-xs">Level {primaryTrack.currentLevel}: {LEVEL_TITLES[primaryTrack.track]?.[primaryTrack.currentLevel] || "—"}</p>
             </div>
             <div className="text-right">
-              <p className="text-zinc-400 text-[10px]">Readiness</p>
-              <p className="text-white font-bold text-lg">{primaryTrack.advancementReadinessScore}%</p>
+              <p className="text-slate-500 text-[10px]">Readiness</p>
+              <p className="text-slate-900 font-bold text-lg">{primaryTrack.advancementReadinessScore}%</p>
             </div>
           </div>
           <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -124,8 +124,8 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
 
       {/* Skills Snapshot */}
       {skills.length > 0 && (
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Certified Skills ({skills.length})</p>
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Certified Skills ({skills.length})</p>
           <div className="flex flex-wrap gap-1.5">
             {skills.map(s => (
               <span key={s.id} className="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-medium">
@@ -138,11 +138,11 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
 
       {/* Latest Evaluation */}
       {latestEval && (
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Latest Evaluation</p>
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Latest Evaluation</p>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white text-sm font-semibold">Avg: {latestEval.averageScore}/5.00</p>
-            <p className="text-zinc-500 text-[10px]">{new Date(latestEval.evaluatedAt).toLocaleDateString()}</p>
+            <p className="text-slate-900 text-sm font-semibold">Avg: {latestEval.averageScore}/5.00</p>
+            <p className="text-slate-500 text-[10px]">{new Date(latestEval.evaluatedAt).toLocaleDateString()}</p>
           </div>
           <div className="grid grid-cols-3 gap-1">
             {[
@@ -157,7 +157,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
               { label: "Computer", val: latestEval.computerSkills },
             ].map(({ label, val }) => (
               <div key={label} className="text-center">
-                <p className="text-zinc-500 text-[8px]">{label}</p>
+                <p className="text-slate-500 text-[8px]">{label}</p>
                 <p className={`text-sm font-bold ${val >= 4 ? "text-green-400" : val >= 3 ? "text-amber-400" : "text-red-400"}`}>{val}</p>
               </div>
             ))}
@@ -177,7 +177,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
               <div key={wu.id} className="flex items-center justify-between py-1.5 border-b border-red-900/20 last:border-0">
                 <div>
                   <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
-                  <p className="text-zinc-400 text-[10px]">{wu.category} · {new Date(wu.issuedAt).toLocaleDateString()}</p>
+                  <p className="text-slate-500 text-[10px]">{wu.category} · {new Date(wu.issuedAt).toLocaleDateString()}</p>
                 </div>
                 {!wu.acknowledgedAt && (
                   <span className="text-[9px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">Unacknowledged</span>
@@ -203,9 +203,9 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
 
     return (
       <div className="space-y-3">
-        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+        <div className="bg-white rounded-xl p-3 border border-slate-200">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white font-semibold text-sm">Training Progress</p>
+            <p className="text-slate-900 font-semibold text-sm">Training Progress</p>
             <p className="text-amber-500 text-xs font-bold">{completedModuleIds.size}/{modules.length}</p>
           </div>
           <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
@@ -214,20 +214,20 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
         </div>
 
         {Object.entries(byCategory).map(([cat, mods]) => (
-          <div key={cat} className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">{cat.replace(/_/g, " ")}</p>
+          <div key={cat} className="bg-white rounded-xl p-3 border border-slate-200">
+            <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">{cat.replace(/_/g, " ")}</p>
             {mods.map(m => {
               const done = completedModuleIds.has(m.id);
               const completion = completions.find(c => c.moduleId === m.id && c.passed);
               return (
-                <div key={m.id} className="flex items-center gap-2 py-1.5 border-b border-zinc-800/50 last:border-0">
+                <div key={m.id} className="flex items-center gap-2 py-1.5 border-b border-slate-200/50 last:border-0">
                   {done ? (
                     <CheckCircle2 size={14} className="text-green-500 shrink-0" />
                   ) : (
                     <Circle size={14} className="text-zinc-600 shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-medium ${done ? "text-white" : "text-zinc-400"}`}>{m.name}</p>
+                    <p className={`text-xs font-medium ${done ? "text-slate-900" : "text-slate-500"}`}>{m.name}</p>
                     <p className="text-zinc-600 text-[9px]">
                       {m.assessmentType.replace(/_/g, " ")}
                       {m.passingScore ? ` · ${m.passingScore}% to pass` : ""}
@@ -263,20 +263,20 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
       {evaluations.length === 0 && (
         <div className="text-center py-8">
           <Star size={32} className="text-zinc-700 mx-auto mb-2" />
-          <p className="text-zinc-500 text-sm">No evaluations yet</p>
+          <p className="text-slate-500 text-sm">No evaluations yet</p>
         </div>
       )}
 
       {evaluations.map(ev => {
         const evaluator = allStaff.find(s => s.id === ev.evaluatorId);
         return (
-          <div key={ev.id} className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+          <div key={ev.id} className="bg-white rounded-xl p-4 border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-white font-semibold text-sm">Avg: {ev.averageScore}/5.00</p>
-                <p className="text-zinc-500 text-[10px]">By {evaluator ? `${evaluator.firstName} ${evaluator.lastName}` : "Unknown"}</p>
+                <p className="text-slate-900 font-semibold text-sm">Avg: {ev.averageScore}/5.00</p>
+                <p className="text-slate-500 text-[10px]">By {evaluator ? `${evaluator.firstName} ${evaluator.lastName}` : "Unknown"}</p>
               </div>
-              <p className="text-zinc-500 text-[10px]">{new Date(ev.evaluatedAt).toLocaleDateString()}</p>
+              <p className="text-slate-500 text-[10px]">{new Date(ev.evaluatedAt).toLocaleDateString()}</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -291,7 +291,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
                 { label: "Computer", val: ev.computerSkills },
               ].map(({ label, val }) => (
                 <div key={label} className="bg-zinc-800/50 rounded-lg p-1.5 text-center">
-                  <p className="text-zinc-500 text-[8px]">{label}</p>
+                  <p className="text-slate-500 text-[8px]">{label}</p>
                   <p className={`text-sm font-bold ${val >= 4 ? "text-green-400" : val >= 3 ? "text-amber-400" : "text-red-400"}`}>{val}</p>
                 </div>
               ))}
@@ -299,13 +299,13 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
             {ev.overallSuccession && (
               <div className="mt-2 p-2 bg-green-500/5 rounded-lg border border-green-500/10">
                 <p className="text-green-400 text-[9px] font-semibold mb-0.5">Strengths</p>
-                <p className="text-zinc-300 text-[10px]">{ev.overallSuccession}</p>
+                <p className="text-slate-600 text-[10px]">{ev.overallSuccession}</p>
               </div>
             )}
             {ev.needsImprovement && (
               <div className="mt-1.5 p-2 bg-amber-500/5 rounded-lg border border-amber-500/10">
                 <p className="text-amber-400 text-[9px] font-semibold mb-0.5">Needs Improvement</p>
-                <p className="text-zinc-300 text-[10px]">{ev.needsImprovement}</p>
+                <p className="text-slate-600 text-[10px]">{ev.needsImprovement}</p>
               </div>
             )}
           </div>
@@ -337,7 +337,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
           <div className="text-center py-8">
             <Shield size={32} className="text-green-700 mx-auto mb-2" />
             <p className="text-green-500 text-sm font-medium">Clean Record</p>
-            <p className="text-zinc-500 text-[10px]">No write-ups on file</p>
+            <p className="text-slate-500 text-[10px]">No write-ups on file</p>
           </div>
         )}
 
@@ -346,17 +346,17 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
           const issuer = allStaff.find(s => s.id === wu.issuedById);
           const isActive = !wu.resolvedAt && (!wu.expiresAt || new Date(wu.expiresAt) > new Date());
           return (
-            <div key={wu.id} className={`rounded-xl p-4 border ${isActive ? "bg-red-950/20 border-red-900/30" : "bg-zinc-900 border-zinc-800"}`}>
+            <div key={wu.id} className={`rounded-xl p-4 border ${isActive ? "bg-red-950/20 border-red-900/30" : "bg-white border-slate-200"}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
-                <p className="text-zinc-500 text-[10px]">{new Date(wu.issuedAt).toLocaleDateString()}</p>
+                <p className="text-slate-500 text-[10px]">{new Date(wu.issuedAt).toLocaleDateString()}</p>
               </div>
-              <p className="text-zinc-400 text-[10px] mb-1">Category: {wu.category} · By {issuer ? `${issuer.firstName} ${issuer.lastName}` : "Unknown"}</p>
-              <p className="text-white text-xs">{wu.description}</p>
+              <p className="text-slate-500 text-[10px] mb-1">Category: {wu.category} · By {issuer ? `${issuer.firstName} ${issuer.lastName}` : "Unknown"}</p>
+              <p className="text-slate-900 text-xs">{wu.description}</p>
               {wu.employeeResponse && (
                 <div className="mt-2 p-2 bg-zinc-800/50 rounded-lg">
-                  <p className="text-zinc-500 text-[9px] font-semibold mb-0.5">Employee Response</p>
-                  <p className="text-zinc-300 text-[10px]">{wu.employeeResponse}</p>
+                  <p className="text-slate-500 text-[9px] font-semibold mb-0.5">Employee Response</p>
+                  <p className="text-slate-600 text-[10px]">{wu.employeeResponse}</p>
                 </div>
               )}
               <div className="flex items-center justify-between mt-2">
@@ -387,7 +387,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
       {careerTracks.length === 0 && (
         <div className="text-center py-8">
           <TrendingUp size={32} className="text-zinc-700 mx-auto mb-2" />
-          <p className="text-zinc-500 text-sm">No career track assigned yet</p>
+          <p className="text-slate-500 text-sm">No career track assigned yet</p>
           {isManager && <p className="text-zinc-600 text-[10px]">Assign a track to start progression</p>}
         </div>
       )}
@@ -399,12 +399,12 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
         const reqs = ct.nextLevelRequirements as any;
 
         return (
-          <div key={ct.id} className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+          <div key={ct.id} className="bg-white rounded-xl p-4 border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-amber-500 text-[10px] uppercase font-semibold">{TRACK_LABELS[ct.track]}</p>
-                <p className="text-white font-bold text-lg">Level {ct.currentLevel}</p>
-                <p className="text-zinc-400 text-xs">{LEVEL_TITLES[ct.track]?.[ct.currentLevel] || "—"}</p>
+                <p className="text-slate-900 font-bold text-lg">Level {ct.currentLevel}</p>
+                <p className="text-slate-500 text-xs">{LEVEL_TITLES[ct.track]?.[ct.currentLevel] || "—"}</p>
               </div>
               <div className="w-16 h-16 rounded-full border-4 border-amber-500/30 flex items-center justify-center">
                 <span className="text-amber-500 font-black text-xl">{ct.advancementReadinessScore}%</span>
@@ -426,7 +426,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
               <div className="bg-zinc-800/50 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <ArrowUp size={12} className="text-amber-500" />
-                  <p className="text-white text-xs font-semibold">Next: {nextTitle}</p>
+                  <p className="text-slate-900 text-xs font-semibold">Next: {nextTitle}</p>
                 </div>
                 {reqs && Array.isArray(reqs) && reqs.map((req: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 py-0.5">
@@ -435,14 +435,14 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
                     ) : (
                       <Circle size={10} className="text-zinc-600 shrink-0" />
                     )}
-                    <span className={`text-[10px] ${req.met ? "text-green-400" : "text-zinc-400"}`}>{req.label}</span>
+                    <span className={`text-[10px] ${req.met ? "text-green-400" : "text-slate-500"}`}>{req.label}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {ct.promotedAt && (
-              <p className="text-zinc-500 text-[9px] mt-2">Last promoted: {new Date(ct.promotedAt).toLocaleDateString()}</p>
+              <p className="text-slate-500 text-[9px] mt-2">Last promoted: {new Date(ct.promotedAt).toLocaleDateString()}</p>
             )}
           </div>
         );
@@ -451,14 +451,14 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
   );
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-4 pb-2 flex items-center gap-3 shrink-0">
-        <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors">
+        <button onClick={onBack} className="text-slate-500 hover:text-slate-900 transition-colors">
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1">
-          <h2 className="text-white font-bold text-base" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" }}>
+          <h2 className="text-slate-900 font-bold text-base" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" }}>
             {viewingSelf ? "My Profile" : `${targetStaff.firstName}'s Profile`}
           </h2>
         </div>
@@ -471,7 +471,7 @@ export default function WorkerProfileScreen({ staffUser, targetStaffId, allStaff
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-all ${
-              tab === t.key ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-400 border border-zinc-800"
+              tab === t.key ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-white text-slate-500 border border-slate-200"
             }`}
           >
             <t.icon size={10} />
@@ -522,18 +522,18 @@ function EvaluationForm({ staffId, evaluatorId, onDone }: { staffId: number; eva
   ] as const;
 
   return (
-    <div className="bg-zinc-900 rounded-xl p-4 border border-amber-500/20 space-y-3">
+    <div className="bg-white rounded-xl p-4 border border-amber-500/20 space-y-3">
       <p className="text-amber-500 text-xs font-semibold">New Evaluation</p>
       {SCORE_FIELDS.map(({ key, label }) => (
         <div key={key} className="flex items-center justify-between">
-          <span className="text-zinc-400 text-xs">{label}</span>
+          <span className="text-slate-500 text-xs">{label}</span>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map(v => (
               <button
                 key={v}
                 onClick={() => setScores(s => ({ ...s, [key]: v }))}
                 className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                  scores[key] === v ? "bg-amber-500 text-black" : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  scores[key] === v ? "bg-amber-500 text-black" : "bg-zinc-800 text-slate-500 hover:bg-zinc-700"
                 }`}
               >
                 {v}
@@ -546,13 +546,13 @@ function EvaluationForm({ staffId, evaluatorId, onDone }: { staffId: number; eva
         placeholder="Strengths / succession notes..."
         value={notes.overallSuccession}
         onChange={e => setNotes(n => ({ ...n, overallSuccession: e.target.value }))}
-        className="w-full bg-zinc-800 rounded-lg p-2 text-white text-xs border border-zinc-700 focus:border-amber-500/50 outline-none resize-none h-16"
+        className="w-full bg-zinc-800 rounded-lg p-2 text-slate-900 text-xs border border-zinc-700 focus:border-amber-500/50 outline-none resize-none h-16"
       />
       <textarea
         placeholder="Needs improvement..."
         value={notes.needsImprovement}
         onChange={e => setNotes(n => ({ ...n, needsImprovement: e.target.value }))}
-        className="w-full bg-zinc-800 rounded-lg p-2 text-white text-xs border border-zinc-700 focus:border-amber-500/50 outline-none resize-none h-16"
+        className="w-full bg-zinc-800 rounded-lg p-2 text-slate-900 text-xs border border-zinc-700 focus:border-amber-500/50 outline-none resize-none h-16"
       />
       <button
         onClick={() => createEval.mutate({ staffId, evaluatorId, evaluatedAt: new Date(), ...scores, ...notes })}
@@ -577,10 +577,10 @@ function WriteUpForm({ staffId, issuedById, onDone }: { staffId: number; issuedB
   });
 
   return (
-    <div className="bg-zinc-900 rounded-xl p-4 border border-red-500/20 space-y-3">
+    <div className="bg-white rounded-xl p-4 border border-red-500/20 space-y-3">
       <p className="text-red-500 text-xs font-semibold">Issue Write-Up</p>
       <div>
-        <p className="text-zinc-400 text-[10px] mb-1">Severity</p>
+        <p className="text-slate-500 text-[10px] mb-1">Severity</p>
         <div className="flex gap-1">
           {(["verbal", "written", "final", "termination"] as const).map(s => {
             const cfg = SEVERITY_CONFIG[s];
@@ -589,7 +589,7 @@ function WriteUpForm({ staffId, issuedById, onDone }: { staffId: number; issuedB
                 key={s}
                 onClick={() => setSeverity(s)}
                 className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
-                  severity === s ? `${cfg.bg} ${cfg.color} border border-current` : "bg-zinc-800 text-zinc-500"
+                  severity === s ? `${cfg.bg} ${cfg.color} border border-current` : "bg-zinc-800 text-slate-500"
                 }`}
               >
                 {cfg.label.split(" ")[0]}
@@ -599,14 +599,14 @@ function WriteUpForm({ staffId, issuedById, onDone }: { staffId: number; issuedB
         </div>
       </div>
       <div>
-        <p className="text-zinc-400 text-[10px] mb-1">Category</p>
+        <p className="text-slate-500 text-[10px] mb-1">Category</p>
         <div className="flex gap-1 flex-wrap">
           {(["attendance", "performance", "conduct", "safety", "policy"] as const).map(c => (
             <button
               key={c}
               onClick={() => setCategory(c)}
               className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all ${
-                category === c ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-800 text-zinc-500"
+                category === c ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-800 text-slate-500"
               }`}
             >
               {c}
@@ -618,12 +618,12 @@ function WriteUpForm({ staffId, issuedById, onDone }: { staffId: number; issuedB
         placeholder="Describe the incident..."
         value={description}
         onChange={e => setDescription(e.target.value)}
-        className="w-full bg-zinc-800 rounded-lg p-2 text-white text-xs border border-zinc-700 focus:border-red-500/50 outline-none resize-none h-20"
+        className="w-full bg-zinc-800 rounded-lg p-2 text-slate-900 text-xs border border-zinc-700 focus:border-red-500/50 outline-none resize-none h-20"
       />
       <button
         onClick={() => description.trim() && createWriteUp.mutate({ staffId, issuedById, issuedAt: new Date(), severity, category, description })}
         disabled={!description.trim() || createWriteUp.isPending}
-        className="w-full py-2 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-400 transition-all disabled:opacity-50"
+        className="w-full py-2 rounded-xl bg-red-500 text-slate-900 font-bold text-sm hover:bg-red-400 transition-all disabled:opacity-50"
       >
         {createWriteUp.isPending ? "Issuing..." : "Issue Write-Up"}
       </button>
@@ -635,7 +635,7 @@ function WriteUpForm({ staffId, issuedById, onDone }: { staffId: number; issuedB
 function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-      <p className="text-zinc-500 text-[8px]">{label}</p>
+      <p className="text-slate-500 text-[8px]">{label}</p>
       <p className={`text-sm font-bold ${color}`}>{value}</p>
     </div>
   );

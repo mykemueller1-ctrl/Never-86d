@@ -68,7 +68,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
               <Loader2 size={18} className="text-amber-500 animate-spin" />
             </div>
             <div>
-              <p className="type-caption text-zinc-400">Checking clock status...</p>
+              <p className="type-caption text-slate-500">Checking clock status...</p>
               {hours?.totalHours && (
                 <p className="type-micro text-zinc-600 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
               )}
@@ -102,10 +102,10 @@ export default function ClockWidget({ staffId, staffName }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
-              <Clock size={18} className="text-zinc-500" />
+              <Clock size={18} className="text-slate-500" />
             </div>
             <div>
-              <p className="type-caption text-zinc-400">Not clocked in</p>
+              <p className="type-caption text-slate-500">Not clocked in</p>
               {hours?.totalHours && (
                 <p className="type-micro text-zinc-600 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
               )}
@@ -139,7 +139,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
             <p className={`type-caption font-medium ${isOnBreak ? "text-blue-400" : "text-green-400"}`}>
               {isOnBreak ? "On Break" : "Clocked In"}
             </p>
-            <p className="type-micro text-zinc-500 normal-case">
+            <p className="type-micro text-slate-500 normal-case">
               {entry.clockIn && formatElapsed(entry.clockIn)} elapsed
               {hours?.totalHours && <span className="ml-2">· {Number(hours.totalHours).toFixed(1)}h this week</span>}
             </p>
@@ -157,7 +157,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
           </button>
         ) : (
           <button onClick={() => startBreakMut.mutate()} disabled={isPending}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-zinc-800 text-zinc-300 type-caption font-medium hover:bg-zinc-700 transition-colors active:scale-[0.98] disabled:opacity-50">
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-zinc-800 text-slate-600 type-caption font-medium hover:bg-zinc-700 transition-colors active:scale-[0.98] disabled:opacity-50">
             {isPending ? <Loader2 size={13} className="animate-spin" /> : <Coffee size={13} />}
             Break
           </button>

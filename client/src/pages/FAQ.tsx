@@ -53,18 +53,18 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
+      <header className="border-b border-slate-200 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/">
             <span className="text-amber-500 font-bold text-lg tracking-wider cursor-pointer hover:text-amber-400 transition-colors">
               NEVER 86'd
             </span>
           </Link>
-          <nav className="flex gap-6 text-sm text-zinc-400">
+          <nav className="flex gap-6 text-sm text-slate-500">
             <Link href="/">
-              <span className="hover:text-white cursor-pointer transition-colors">App</span>
+              <span className="hover:text-slate-900 cursor-pointer transition-colors">App</span>
             </Link>
             <span className="text-amber-500">FAQ</span>
           </nav>
@@ -76,7 +76,7 @@ export default function FAQ() {
         <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
           Frequently Asked <span className="text-amber-500">Questions</span>
         </h1>
-        <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+        <p className="text-slate-500 text-lg max-w-2xl mx-auto">
           Everything you need to know about Never 86'd — the people-first restaurant workforce platform.
         </p>
       </section>
@@ -87,12 +87,12 @@ export default function FAQ() {
           {faqs.map((faq, i) => (
             <article
               key={i}
-              className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-6 hover:border-amber-500/30 transition-colors"
+              className="bg-white/60 border border-slate-200 rounded-xl p-6 hover:border-amber-500/30 transition-colors"
               itemScope
               itemType="https://schema.org/Question"
             >
               <h2
-                className="text-lg font-bold text-white mb-3"
+                className="text-lg font-bold text-slate-900 mb-3"
                 itemProp="name"
               >
                 {faq.q}
@@ -102,7 +102,7 @@ export default function FAQ() {
                 itemType="https://schema.org/Answer"
                 itemProp="acceptedAnswer"
               >
-                <p className="text-zinc-300 leading-relaxed" itemProp="text">
+                <p className="text-slate-600 leading-relaxed" itemProp="text">
                   {faq.a}
                 </p>
               </div>
@@ -115,7 +115,7 @@ export default function FAQ() {
       <section className="px-6 pb-16 text-center">
         <div className="max-w-2xl mx-auto bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-8">
           <h2 className="text-2xl font-bold mb-3">Ready to transform your restaurant operations?</h2>
-          <p className="text-zinc-400 mb-6">
+          <p className="text-slate-500 mb-6">
             Never 86'd is built by operators who've lived the chaos. We know what it takes because we've done it.
           </p>
           <Link href="/">
@@ -127,7 +127,7 @@ export default function FAQ() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 px-6 py-8 text-center text-zinc-500 text-sm">
+      <footer className="border-t border-slate-200 px-6 py-8 text-center text-slate-500 text-sm">
         <p>Never 86'd — People-First Restaurant Intelligence</p>
         <p className="mt-1">Built in Fort Dodge, Iowa</p>
       </footer>

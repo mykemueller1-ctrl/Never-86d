@@ -86,11 +86,11 @@ function trend(current: number, previous: number): { trend: Trend; delta: number
 
 function AccessDenied({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center px-8">
+    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center px-8">
       <Lock size={32} className="text-zinc-700 mb-4" />
-      <p className="text-zinc-300 text-sm font-bold">Manager Access Required</p>
+      <p className="text-slate-600 text-sm font-bold">Manager Access Required</p>
       <p className="text-zinc-600 text-xs text-center mt-2">Weekly COGS and prime-cost reporting is manager-only.</p>
-      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-zinc-900 text-zinc-300 text-xs font-semibold border border-zinc-800">Back</button>
+      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-white text-slate-600 text-xs font-semibold border border-slate-200">Back</button>
     </div>
   );
 }
@@ -163,31 +163,31 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
   const primeTrend = trend(summary.primeCost, summary.previousPrimeCost);
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24">
-      <div className="sticky top-0 z-10 bg-black/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
-        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800">
-          <ChevronLeft size={15} className="text-zinc-400" />
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-24">
+      <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
+        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-200">
+          <ChevronLeft size={15} className="text-slate-500" />
         </button>
         <div className="flex-1">
-          <h2 className="text-white font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>WEEKLY COGS</h2>
-          <p className="text-zinc-500 text-[10px]">Sunday open through Saturday close · prime cost tracker</p>
+          <h2 className="text-slate-900 font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>WEEKLY COGS</h2>
+          <p className="text-slate-500 text-[10px]">Sunday open through Saturday close · prime cost tracker</p>
         </div>
       </div>
 
       <div className="p-3 space-y-3">
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3 flex items-center justify-between">
-          <button onClick={() => setOffsetWeeks(offsetWeeks - 1)} className="px-3 py-2 rounded-lg bg-black border border-zinc-800 text-zinc-300 text-[10px] font-bold">Prev</button>
+        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center justify-between">
+          <button onClick={() => setOffsetWeeks(offsetWeeks - 1)} className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-bold">Prev</button>
           <div className="text-center">
-            <p className="text-white text-xs font-bold">{currentRange.label}</p>
-            <p className="text-zinc-500 text-[9px]">{summary.salesDays} sales days loaded</p>
+            <p className="text-slate-900 text-xs font-bold">{currentRange.label}</p>
+            <p className="text-slate-500 text-[9px]">{summary.salesDays} sales days loaded</p>
           </div>
-          <button onClick={() => setOffsetWeeks(Math.min(0, offsetWeeks + 1))} className="px-3 py-2 rounded-lg bg-black border border-zinc-800 text-zinc-300 text-[10px] font-bold disabled:opacity-40" disabled={offsetWeeks === 0}>Next</button>
+          <button onClick={() => setOffsetWeeks(Math.min(0, offsetWeeks + 1))} className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-bold disabled:opacity-40" disabled={offsetWeeks === 0}>Next</button>
         </div>
 
         {isLoading && (
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-5 flex items-center justify-center gap-2">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-center gap-2">
             <Loader2 size={16} className="text-amber-400 animate-spin" />
-            <span className="text-zinc-500 text-xs">Loading week totals...</span>
+            <span className="text-slate-500 text-xs">Loading week totals...</span>
           </div>
         )}
 
@@ -195,12 +195,12 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-amber-300 text-[10px] uppercase tracking-wide font-bold">Prime Cost</p>
-              <p className="text-white text-2xl font-black mt-1">{formatMoney(summary.primeCost)}</p>
-              <p className="text-zinc-400 text-[10px] mt-1">COGS + labor ÷ actual net sales</p>
+              <p className="text-slate-900 text-2xl font-black mt-1">{formatMoney(summary.primeCost)}</p>
+              <p className="text-slate-500 text-[10px] mt-1">COGS + labor ÷ actual net sales</p>
             </div>
             <div className="text-right">
               <p className="text-amber-300 text-xl font-black">{formatPercent(summary.primePercent)}</p>
-              <p className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${primeTrend.trend === "up" ? "text-red-400" : primeTrend.trend === "down" ? "text-green-400" : "text-zinc-500"}`}>
+              <p className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${primeTrend.trend === "up" ? "text-red-400" : primeTrend.trend === "down" ? "text-green-400" : "text-slate-500"}`}>
                 {primeTrend.trend === "up" ? <TrendingUp size={10} /> : primeTrend.trend === "down" ? <TrendingDown size={10} /> : null}
                 {primeTrend.delta === 0 ? "flat" : `${primeTrend.delta > 0 ? "+" : ""}${formatMoney(primeTrend.delta)} vs last week`}
               </p>
@@ -209,40 +209,40 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide flex items-center gap-1"><Receipt size={10} /> COGS</p>
-            <p className="text-white text-lg font-bold mt-1">{formatMoney(summary.cogs)}</p>
-            <p className="text-zinc-500 text-[9px]">{formatPercent(summary.cogsPercent)} of net sales</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide flex items-center gap-1"><Receipt size={10} /> COGS</p>
+            <p className="text-slate-900 text-lg font-bold mt-1">{formatMoney(summary.cogs)}</p>
+            <p className="text-slate-500 text-[9px]">{formatPercent(summary.cogsPercent)} of net sales</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide flex items-center gap-1"><WalletCards size={10} /> Labor</p>
-            <p className="text-white text-lg font-bold mt-1">{formatMoney(summary.labor)}</p>
-            <p className="text-zinc-500 text-[9px]">{formatPercent(summary.laborPercent)} of net sales</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide flex items-center gap-1"><WalletCards size={10} /> Labor</p>
+            <p className="text-slate-900 text-lg font-bold mt-1">{formatMoney(summary.labor)}</p>
+            <p className="text-slate-500 text-[9px]">{formatPercent(summary.laborPercent)} of net sales</p>
           </div>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-          <p className="text-white text-xs font-bold flex items-center gap-2"><DollarSign size={13} className="text-amber-400" /> Actual Net Sales</p>
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-slate-900 text-xs font-bold flex items-center gap-2"><DollarSign size={13} className="text-amber-400" /> Actual Net Sales</p>
           <p className="text-amber-400 text-xl font-black mt-1">{formatMoney(summary.netSales)}</p>
-          <p className="text-zinc-500 text-[10px] mt-1">Calculated from sales less voids and discounts when those fields are present. Cash-to-bank detail can be added once the bank deposit field is mapped.</p>
+          <p className="text-slate-500 text-[10px] mt-1">Calculated from sales less voids and discounts when those fields are present. Cash-to-bank detail can be added once the bank deposit field is mapped.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           {categoryCards.map(card => {
             const cardTrend = trend(card.value, card.previous);
             return (
-              <div key={card.key} className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-                <p className="text-zinc-500 text-[9px] uppercase tracking-wide">{card.label}</p>
-                <p className="text-white text-lg font-bold mt-1">{formatMoney(card.value)}</p>
-                <p className={`text-[9px] mt-1 ${cardTrend.trend === "up" ? "text-red-400" : cardTrend.trend === "down" ? "text-green-400" : "text-zinc-500"}`}>{cardTrend.delta > 0 ? "+" : ""}{formatMoney(cardTrend.delta)} vs last week</p>
+              <div key={card.key} className="bg-white rounded-xl border border-slate-200 p-3">
+                <p className="text-slate-500 text-[9px] uppercase tracking-wide">{card.label}</p>
+                <p className="text-slate-900 text-lg font-bold mt-1">{formatMoney(card.value)}</p>
+                <p className={`text-[9px] mt-1 ${cardTrend.trend === "up" ? "text-red-400" : cardTrend.trend === "down" ? "text-green-400" : "text-slate-500"}`}>{cardTrend.delta > 0 ? "+" : ""}{formatMoney(cardTrend.delta)} vs last week</p>
               </div>
             );
           })}
         </div>
 
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-          <p className="text-white text-xs font-bold flex items-center gap-2"><BarChart3 size={13} className="text-amber-400" /> Formula</p>
-          <p className="text-zinc-400 text-[10px] leading-relaxed mt-2">
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-slate-900 text-xs font-bold flex items-center gap-2"><BarChart3 size={13} className="text-amber-400" /> Formula</p>
+          <p className="text-slate-500 text-[10px] leading-relaxed mt-2">
             COGS combines invoices by category plus store-run payouts. Prime cost is COGS plus imported labor dollars divided by actual net sales. The week starts at Sunday open and ends at Saturday close.
           </p>
         </div>

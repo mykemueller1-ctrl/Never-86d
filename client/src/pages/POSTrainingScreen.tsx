@@ -493,11 +493,11 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
             <ChevronLeft className="w-4 h-4 mr-1" /> Back
           </Button>
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-amber-400" />
               POS Training Mode
             </h2>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-slate-500">
               {staffName ? `Training for ${staffName}` : "Interactive training modules"} — learn by doing
             </p>
           </div>
@@ -522,13 +522,13 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-white">{mod.title}</h3>
+                        <h3 className="font-semibold text-slate-900">{mod.title}</h3>
                         <Badge variant="outline" className={`text-xs ${difficultyColor} border-current`}>
                           {mod.difficulty}
                         </Badge>
                       </div>
-                      <p className="text-sm text-zinc-400 mb-2">{mod.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-zinc-500">
+                      <p className="text-sm text-slate-500 mb-2">{mod.description}</p>
+                      <div className="flex items-center gap-4 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <BookOpen className="w-3 h-3" /> {mod.steps.length} scenarios
                         </span>
@@ -538,7 +538,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                         <span>Required for: {mod.requiredFor.join(", ")}</span>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-zinc-500 mt-2" />
+                    <ChevronRight className="w-5 h-5 text-slate-500 mt-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -563,17 +563,17 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
             <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${passed ? "bg-green-500/20" : "bg-amber-500/20"}`}>
               {passed ? <Trophy className="w-8 h-8 text-green-400" /> : <RotateCcw className="w-8 h-8 text-amber-400" />}
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
               {passed ? "Module Complete!" : "Keep Practicing"}
             </h2>
-            <p className="text-zinc-400 mb-4">
+            <p className="text-slate-500 mb-4">
               {selectedModule.title} — Score: {score}%
             </p>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="text-3xl font-bold text-white">{correctCount}</span>
-              <span className="text-zinc-500">/</span>
-              <span className="text-3xl font-bold text-zinc-500">{totalSteps}</span>
-              <span className="text-sm text-zinc-500 ml-2">correct</span>
+              <span className="text-3xl font-bold text-slate-900">{correctCount}</span>
+              <span className="text-slate-500">/</span>
+              <span className="text-3xl font-bold text-slate-500">{totalSteps}</span>
+              <span className="text-sm text-slate-500 ml-2">correct</span>
             </div>
             {passed ? (
               <p className="text-green-400 text-sm mb-6">
@@ -611,13 +611,13 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
             <ChevronLeft className="w-4 h-4 mr-1" /> Exit
           </Button>
           <div>
-            <h3 className="font-semibold text-white">{selectedModule.title}</h3>
-            <p className="text-xs text-zinc-500">
+            <h3 className="font-semibold text-slate-900">{selectedModule.title}</h3>
+            <p className="text-xs text-slate-500">
               Step {currentStep + 1} of {selectedModule.steps.length}
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="text-zinc-400 border-zinc-600">
+        <Badge variant="outline" className="text-slate-500 border-zinc-600">
           {selectedModule.difficulty}
         </Badge>
       </div>
@@ -630,9 +630,9 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
         <CardHeader>
           <div className="flex items-center gap-2">
             <Monitor className="w-5 h-5 text-amber-400" />
-            <CardTitle className="text-lg text-white">{step.title}</CardTitle>
+            <CardTitle className="text-lg text-slate-900">{step.title}</CardTitle>
           </div>
-          <CardDescription className="text-zinc-300 text-base mt-2">
+          <CardDescription className="text-slate-600 text-base mt-2">
             {step.instruction}
           </CardDescription>
         </CardHeader>
@@ -654,7 +654,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                     variant="outline"
                     size="sm"
                     onClick={() => setShowHint(true)}
-                    className="border-zinc-600 text-zinc-400"
+                    className="border-zinc-600 text-slate-500"
                   >
                     Show Hint
                   </Button>
@@ -663,7 +663,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
 
               {/* Multiple Choice Answers */}
               <div className="pt-4 border-t border-zinc-700">
-                <p className="text-sm text-zinc-500 mb-3">Choose the best answer:</p>
+                <p className="text-sm text-slate-500 mb-3">Choose the best answer:</p>
                 <div className="space-y-2">
                   {step.choices ? step.choices.map((choice, ci) => (
                     <button
@@ -679,7 +679,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                             ? "bg-green-500/10 border-green-500/30 text-green-400"
                             : showFeedback
                               ? "border-zinc-700 text-zinc-600 opacity-50"
-                              : "border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-amber-500/5"
+                              : "border-zinc-700 text-slate-600 hover:border-amber-500/50 hover:bg-amber-500/5"
                       }`}
                     >
                       <span className="flex items-center gap-2">
@@ -688,7 +688,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                             ? choice.correct ? "border-green-500 text-green-400" : "border-red-500 text-red-400"
                             : showFeedback && choice.correct
                               ? "border-green-500 text-green-400"
-                              : "border-zinc-600 text-zinc-500"
+                              : "border-zinc-600 text-slate-500"
                         }`}>
                           {String.fromCharCode(65 + ci)}
                         </span>
@@ -742,7 +742,7 @@ export default function POSTrainingScreen({ staffId, staffName, onBack }: POSTra
                     {isCorrect ? "Correct!" : "Here's what you need to know:"}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-300">
+                <p className="text-sm text-slate-600">
                   {isCorrect ? step.correctFeedback : step.incorrectFeedback}
                 </p>
               </div>

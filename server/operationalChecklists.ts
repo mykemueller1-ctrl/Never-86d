@@ -1,146 +1,73 @@
-/**
- * Seed script — populates the staff table with all 27 real CTap employees.
- * Run: node seed-staff.mjs
- */
-import mysql from "mysql2/promise";
-import dotenv from "dotenv";
-dotenv.config();
+import type { checklists } from "../drizzle/schema";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) { console.error("DATABASE_URL not set"); process.exit(1); }
+type ChecklistSeed = Pick<typeof checklists.$inferInsert, "name" | "department" | "type" | "items">;
 
-const staff = [
-  // ── OWNERS ──
-  { firstName: "Mychael", lastName: "Mueller", department: "management", jobRole: "owner", isKey: true, canAuth: true, pin: "8686", empNum: "001" },
-  { firstName: "Sally", lastName: "Hart", department: "management", jobRole: "owner", isKey: true, canAuth: true, pin: "8687", empNum: "002" },
-
-  // ── MANAGERS ──
-  { firstName: "Gavin", lastName: "Thomas", department: "management", jobRole: "key_manager", isKey: true, canAuth: true, pin: "1234", empNum: "003" },
-  { firstName: "Moe", lastName: "Thomas", department: "kitchen", jobRole: "kitchen_manager", isKey: true, canAuth: true, pin: "1235", empNum: "004" },
-  { firstName: "Tom", lastName: "Dorthy", department: "kitchen", jobRole: "kitchen_manager", isKey: true, canAuth: true, pin: "1236", empNum: "005" },
-
-  // ── KITCHEN KEYS ──
-  { firstName: "Che", lastName: "", department: "kitchen", jobRole: "kitchen_key", isKey: true, canAuth: true, pin: "2001", empNum: "006" },
-  { firstName: "Steven", lastName: "Klein", department: "kitchen", jobRole: "kitchen_key", isKey: true, canAuth: true, pin: "2002", empNum: "007" },
-
-  // ── BAR STAFF ──
-  { firstName: "Jessica", lastName: "Gailey", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3001", empNum: "054" },
-  { firstName: "Karlee", lastName: "Sturtz", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3002", empNum: "009" },
-  { firstName: "Ashley", lastName: "Holding", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3003", empNum: "137" },
-  { firstName: "Kenzy", lastName: "Thompson", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3004", empNum: "011" },
-  { firstName: "Jeri", lastName: "Wilson", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3005", empNum: "012" },
-  { firstName: "Bryson", lastName: "Cook", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3006", empNum: "013" },
-  { firstName: "Kaillee", lastName: "Miller", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3007", empNum: "014" },
-  { firstName: "Samantha", lastName: "Swearingen", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3008", empNum: "015" },
-  { firstName: "Azaria", lastName: "Silvey", department: "bar", jobRole: "bartender", isKey: false, canAuth: false, pin: "3009", empNum: "016" },
-
-  // ── KITCHEN CREW ──
-  { firstName: "Ryan", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4001", empNum: "017" },
-  { firstName: "Aundrik", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4002", empNum: "018" },
-  { firstName: "Audrey", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4003", empNum: "019" },
-  { firstName: "Nash", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4004", empNum: "020" },
-  { firstName: "Brody", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4005", empNum: "021" },
-  { firstName: "Max", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4006", empNum: "022" },
-  { firstName: "Dustin", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4007", empNum: "023" },
-  { firstName: "Tyson", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4008", empNum: "024" },
-  { firstName: "Doc", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4009", empNum: "025" },
-  { firstName: "Ian", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4010", empNum: "026" },
-  { firstName: "Michael", lastName: "", department: "kitchen", jobRole: "line_cook", isKey: false, canAuth: false, pin: "4011", empNum: "027" },
-];
-
-async function seed() {
-  const conn = await mysql.createConnection(DATABASE_URL);
-  console.log("Connected to database.");
-
-  // Check if staff already seeded
-  const [rows] = await conn.execute("SELECT COUNT(*) as cnt FROM staff");
-  if (rows[0].cnt > 0) {
-    console.log(`Staff table already has ${rows[0].cnt} rows. Skipping seed.`);
-    await conn.end();
-    return;
-  }
-
-  for (const s of staff) {
-    await conn.execute(
-      `INSERT INTO staff (firstName, lastName, employeeNumber, department, jobRole, isKeyEmployee, canAuthPayouts, pin, status, totalPoints, currentStreak, weeklyVoids, schedulePriority)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, 50)`,
-      [
-        s.firstName, s.lastName, s.empNum, s.department, s.jobRole,
-        s.isKey ? 1 : 0, s.canAuth ? 1 : 0, s.pin,
-        Math.floor(Math.random() * 500) + 100, // random starting points
-        Math.floor(Math.random() * 10), // random streak
-      ]
-    );
-    console.log(`  ✓ ${s.firstName} ${s.lastName} (${s.jobRole})`);
-  }
-
-  // Seed sample checklists
-  const checklists = [
+export const operationalChecklists: ChecklistSeed[] = [
   {
     name: "Opening Checklist — All Stations",
     department: "all",
     type: "opening",
-    items: JSON.stringify([
-      { task: "Unlock front/back entrances, disarm alarm, turn on dining room, bar, kitchen, pizza-side, hallway, and patio/deck lights.", required: true, order: 1 },
-      { task: "Complete first walk-through: dining room, restrooms, bar, kitchen line, pizza side, dish pit, walk-in, and patio/deck; report any safety, equipment, or overnight issues.", required: true, order: 2 },
+    items: [
+      { task: "Unlock front/back entrances, disarm alarm, and turn on dining room, bar, kitchen, pizza-side, hallway, and patio/deck lights.", required: true, order: 1 },
+      { task: "Complete a first walk-through of dining room, restrooms, bar, kitchen line, pizza side, dish pit, walk-in, and patio/deck; report safety, equipment, or overnight issues.", required: true, order: 2 },
       { task: "Check walk-in, prep cooler, pizza rail, beer cooler, and line cooler temperatures; log and escalate any unit outside safe range.", required: true, order: 3 },
       { task: "Start ovens, fryers, hood vents, dish machine, POS terminals, kitchen printers, phones, music/TVs, and online ordering tablets.", required: true, order: 4 },
       { task: "Review 86'd items, specials, large parties, catering/orders, staff call-outs, and priority prep for the day.", required: true, order: 5 },
-      { task: "Count/register starting drawers, verify change bank, and confirm payout/receipt envelopes are ready.", required: true, order: 6 },
+      { task: "Count starting drawers, verify change bank, and confirm payout/receipt envelopes are ready.", required: true, order: 6 },
       { task: "Stock dining room, bar, expo, pizza side, and restrooms with napkins, menus, sauces, paper goods, sanitizer buckets, towels, and gloves.", required: true, order: 7 },
-      { task: "Hold five-minute shift huddle: assignments, specials, service standards, safety reminders, and upsell focus.", required: false, order: 8 }
-    ])
+      { task: "Hold a five-minute shift huddle covering assignments, specials, service standards, safety reminders, and upsell focus.", required: false, order: 8 }
+    ]
   },
   {
     name: "Pizza Side Opening & Prep",
     department: "pizza_side",
     type: "opening",
-    items: JSON.stringify([
+    items: [
       { task: "Turn pizza ovens on and verify target bake temperature before service.", required: true, order: 1 },
       { task: "Set up dough station: pull/temper dough as directed, dust flour, verify screens, cutters, peels, and pans are clean and stocked.", required: true, order: 2 },
       { task: "Stock pizza rail with cheese, pepperoni, sausage, beef, vegetables, sauces, and backup pans; label/date all backup product.", required: true, order: 3 },
       { task: "Fill sauce bottles: ranch, BBQ, WOW, 1000 Island, buffalo, and sweet chili; wipe nozzles and label if needed.", required: true, order: 4 },
       { task: "Clean and sanitize pizza table, cold-table lids/doors, cut station, phone counter, screens, and computer/POS surfaces.", required: true, order: 5 },
       { task: "Verify phones are charged, online orders print correctly, and pizza boxes are stocked by size.", required: true, order: 6 },
-      { task: "Confirm pizza-side 86'd items and low par items with manager before rush.", required: false, order: 7 }
-    ])
+      { task: "Confirm pizza-side 86'd items and low-par items with manager before the rush.", required: false, order: 7 }
+    ]
   },
   {
     name: "Pizza Side Closing Checklist",
     department: "pizza_side",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Put dough away, cover all dough correctly, and return cheese/sauce backups to refrigeration.", required: true, order: 1 },
       { task: "Clean dough roller, pizza table, prep table, cut station, cold-table interior, lids, doors, and gaskets.", required: true, order: 2 },
-      { task: "Turn pizza ovens off after final bake and confirm hoods are shut down per closing procedure.", required: true, order: 3 },
+      { task: "Turn pizza ovens off after the final bake and confirm hoods are shut down per closing procedure.", required: true, order: 3 },
       { task: "Stainless-polish dough wall, prep table, shelves, Pepsi coolers, and exposed equipment surfaces.", required: true, order: 4 },
       { task: "Restock pizza rail and backup cooler: cheese, beef, sausage, pepperoni, vegetables, and sauce bottles for opening crew.", required: true, order: 5 },
       { task: "Take all utensils, pans, screens, bottles, and smallwares to dish; return clean items to proper homes.", required: true, order: 6 },
       { task: "Pull pizza line out enough to sweep/mop behind and underneath; sweep and mop pizza side and store room.", required: true, order: 7 },
       { task: "Bleach/scrub trash can sides, empty trash, replace liners, and remove cardboard.", required: true, order: 8 },
       { task: "Put phones back on chargers and wipe computer screens, counters, and ticket rail.", required: true, order: 9 },
-      { task: "Manager/key verifies pizza side is fully stocked, clean, ovens off, and initials close.", required: true, order: 10 }
-    ])
+      { task: "Manager/key verifies pizza side is fully stocked and clean and that ovens are off before final initials.", required: true, order: 10 }
+    ]
   },
   {
     name: "Kitchen Line Opening & Prep",
     department: "kitchen_line",
     type: "opening",
-    items: JSON.stringify([
+    items: [
       { task: "Turn on hood, fryers, grill/charbroiler, steam table, warmers, and prep equipment; verify all equipment reaches safe operating range.", required: true, order: 1 },
       { task: "Set sanitizer buckets and clean towels at fry, grill, prep, expo, and dish areas.", required: true, order: 2 },
       { task: "Check line cooler, steak fridge, BBQ fridge, fry freezer, dry storage, and walk-in temperatures; log any issue.", required: true, order: 3 },
       { task: "Stock fry station, grill station, salad/prep, expo, gloves, portion cups, paper boats, and backup pans to par.", required: true, order: 4 },
       { task: "Complete priority prep: wings, sauces, sliced vegetables, burger/fry backups, proteins, and station-specific par list.", required: true, order: 5 },
-      { task: "Verify daily deep-clean rotation task and assign owner before lunch/dinner rush.", required: false, order: 6 },
-      { task: "Confirm kitchen 86'd and low-stock items with manager and bar/FOH before service.", required: true, order: 7 }
-    ])
+      { task: "Assign the daily deep-clean rotation task before the lunch/dinner rush.", required: false, order: 6 },
+      { task: "Confirm kitchen 86'd and low-stock items with manager and FOH before service.", required: true, order: 7 }
+    ]
   },
   {
     name: "Kitchen Line Closing Checklist",
     department: "kitchen_line",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Wrap, label/date, and properly store all proteins, sauces, vegetables, and prepared items.", required: true, order: 1 },
       { task: "Break down fry, grill, steam table, prep, and expo stations; run removable parts through dish.", required: true, order: 2 },
       { task: "Filter/cover fryers per manager direction; clean fryer fronts, sides, baskets, and surrounding floor.", required: true, order: 3 },
@@ -149,99 +76,85 @@ async function seed() {
       { task: "Complete assigned weekly deep-clean rotation item and record initials.", required: false, order: 6 },
       { task: "Sweep and mop kitchen line, under equipment edges, dry storage path, and floor drains.", required: true, order: 7 },
       { task: "Restock gloves, towels, wrap, portion cups, paper goods, sauces, and opening par backups.", required: true, order: 8 },
-      { task: "Manager/key verifies refrigeration, gas/equipment shutdown, hoods, doors, and final food safety check.", required: true, order: 9 }
-    ])
+      { task: "Manager/key verifies refrigeration, equipment shutdown, hoods, doors, and final food-safety close.", required: true, order: 9 }
+    ]
   },
   {
     name: "Bar Opening & Setup",
     department: "bar",
     type: "opening",
-    items: JSON.stringify([
+    items: [
       { task: "Count bar drawer, verify change bank, start POS, test receipt printer, and review tabs/house accounts from prior shift.", required: true, order: 1 },
-      { task: "Ice wells, stock glassware, napkins, straws, coasters, fruit, garnishes, mixers, NA beverages, and backup liquor.", required: true, order: 2 },
+      { task: "Ice wells and stock glassware, napkins, straws, coasters, fruit, garnishes, mixers, NA beverages, and backup liquor.", required: true, order: 2 },
       { task: "Check draft system: taps clean, kegs connected, CO2 normal, drip trays clean, and featured beer/specials updated.", required: true, order: 3 },
       { task: "Stock beer coolers, seltzers, wine, liquor shelves, canned cocktails, and backup cases to par.", required: true, order: 4 },
-      { task: "Set sanitizer, wipe bar top, rails, service well, touch screens, menus, and customer-facing surfaces.", required: true, order: 5 },
+      { task: "Set sanitizer and wipe bar top, rails, service well, touch screens, menus, and customer-facing surfaces.", required: true, order: 5 },
       { task: "Confirm 86'd beer/liquor, low kegs, and featured pours with manager before service.", required: true, order: 6 }
-    ])
+    ]
   },
   {
     name: "Bar Closing Checklist",
     department: "bar",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Close/settle all tabs, count drawer, secure cash, attach payout/void receipts, and note discrepancies.", required: true, order: 1 },
       { task: "Clean bar top, service well, speed rails, bottle wells, soda guns, nozzles, beer taps, drip trays, mats, and sinks.", required: true, order: 2 },
       { task: "Restock beer coolers, liquor shelves, mixers, garnishes, napkins, straws, and glassware for opening.", required: true, order: 3 },
       { task: "Pull mats, sweep/mop behind bar, clean floor drains, and empty bar trash/recycling/cardboard.", required: true, order: 4 },
       { task: "Wash/polish glassware, run final dish cycle, dump ice as required, and secure fruit/garnishes.", required: true, order: 5 },
-      { task: "Update 86'd list for kicked kegs, low liquor, missing NA products, and any broken bar equipment.", required: true, order: 6 },
+      { task: "Update 86'd list for kicked kegs, low liquor, missing NA products, and broken bar equipment.", required: true, order: 6 },
       { task: "Manager/key verifies doors, coolers, drawers, tabs, lights, and closing notes.", required: true, order: 7 }
-    ])
+    ]
   },
   {
     name: "Dining Room Closing Checklist",
     department: "dining_room",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Bus and reset all tables, booths, high-tops, patio/deck tables, and server stations.", required: true, order: 1 },
       { task: "Wipe menus, condiment caddies, chairs, booster seats, host stand, POS terminals, and customer touchpoints.", required: true, order: 2 },
       { task: "Sweep/vacuum/mop dining room, entry, hallway, restrooms, and patio/deck traffic areas.", required: true, order: 3 },
       { task: "Restock napkins, silverware, sauces, paper goods, to-go supplies, restroom paper/soap, and sanitizer.", required: true, order: 4 },
       { task: "Take out FOH trash, check parking lot/deck cigarette butts, shake rugs, and secure outdoor items.", required: true, order: 5 },
-      { task: "Report guest issues, maintenance needs, large party notes, and tomorrow setup needs in shift handoff.", required: false, order: 6 }
-    ])
+      { task: "Report guest issues, maintenance needs, large-party notes, and tomorrow setup needs in shift handoff.", required: false, order: 6 }
+    ]
   },
   {
     name: "Dish Pit & Driver Closing Checklist",
     department: "dishwasher",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Clean shelves in dish area and put away all clean dishes, pans, screens, utensils, and smallwares.", required: true, order: 1 },
       { task: "Clean dish machine area, filter, trap, sprayer, counters, and chemical/sanitizer setup.", required: true, order: 2 },
       { task: "Clean hallway window/table, shake rug outside, and return driver bags to proper storage.", required: true, order: 3 },
       { task: "Sweep parking lot by deck and front doors for cigarette butts/trash.", required: true, order: 4 },
-      { task: "Sweep and mop hallway, dish area to doorway, and any wet/greasy traffic areas.", required: true, order: 5 },
+      { task: "Sweep and mop hallway, dish area to doorway, and wet/greasy traffic areas.", required: true, order: 5 },
       { task: "Take out garbage/cardboard, replace liners, and leave dish area ready for opening crew.", required: true, order: 6 }
-    ])
+    ]
   },
   {
     name: "Manager Closing Verification",
     department: "management",
     type: "closing",
-    items: JSON.stringify([
+    items: [
       { task: "Verify bar, kitchen line, pizza side, dining room, dish pit, restrooms, patio/deck, and storage areas are closed to standard.", required: true, order: 1 },
       { task: "Review drawers, payouts, invoices/receipts, voids/comps, driver cash, and deposit documentation.", required: true, order: 2 },
       { task: "Update 86'd items, low inventory, vendor needs, repair issues, and tomorrow's prep priorities.", required: true, order: 3 },
       { task: "Confirm refrigeration temperatures, equipment shutdown, hoods, ovens/fryers, gas, doors, alarm, and lights.", required: true, order: 4 },
       { task: "Post shift handoff: sales notes, staffing issues, guest incidents, maintenance, and follow-up owner tasks.", required: true, order: 5 }
-    ])
+    ]
   }
 ];
 
-  for (const cl of checklists) {
-    await conn.execute(
-      "INSERT INTO checklists (name, department, type, items) VALUES (?, ?, ?, ?)",
-      [cl.name, cl.department, cl.type, cl.items]
-    );
-    console.log(`  ✓ Checklist: ${cl.name}`);
+export function normalizeChecklistItems(items: unknown) {
+  if (Array.isArray(items)) return items;
+  if (typeof items === "string") {
+    try {
+      const parsed = JSON.parse(items);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
-
-  // Seed a sample daily briefing
-  await conn.execute(
-    `INSERT INTO daily_briefings (date, salesYesterday, ordersYesterday, eightySixedItems, specials, openIssues, shoutouts)
-     VALUES (NOW(), '5318.00', 172, ?, ?, ?, ?)`,
-    [
-      JSON.stringify(["Brisket"]),
-      JSON.stringify([{ name: "Friday Special", description: "Crab Rangoon Pizza" }]),
-      JSON.stringify([{ description: "Fryer thermostat — maintenance coming Tuesday", priority: "high" }]),
-      JSON.stringify([{ staffName: "Karlee Sturtz", reason: "Zero voids all week" }]),
-    ]
-  );
-  console.log("  ✓ Daily briefing seeded");
-
-  console.log("\n✅ Seed complete — 27 staff, 3 checklists, 1 briefing.");
-  await conn.end();
+  return [];
 }
-
-seed().catch(e => { console.error(e); process.exit(1); });

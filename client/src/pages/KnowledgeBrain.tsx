@@ -141,23 +141,23 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
   // Station picker
   if (!station) {
     return (
-      <div className="h-screen bg-black flex flex-col">
+      <div className="h-screen bg-slate-50 flex flex-col">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-900">
-          <button onClick={onBack} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-            <ChevronLeft size={14} className="text-zinc-400" />
+          <button onClick={onBack} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+            <ChevronLeft size={14} className="text-slate-500" />
           </button>
           <div>
-            <h1 className="text-lg font-black text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>KNOWLEDGE BRAIN</h1>
-            <p className="text-zinc-500 text-[10px]">Pick your station</p>
+            <h1 className="text-lg font-black text-slate-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>KNOWLEDGE BRAIN</h1>
+            <p className="text-slate-500 text-[10px]">Pick your station</p>
           </div>
         </div>
         <div className="p-4 grid grid-cols-2 gap-3">
           {(Object.entries(STATION_CONFIG) as [Station, typeof STATION_CONFIG[Station]][]).map(([key, cfg]) => (
-            <button key={key} onClick={() => setStation(key)} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-amber-500/30 transition-all">
+            <button key={key} onClick={() => setStation(key)} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-slate-200 hover:border-amber-500/30 transition-all">
               <div className={`w-10 h-10 rounded-lg ${cfg.bg} flex items-center justify-center`}>
                 <cfg.icon size={18} className={cfg.color} />
               </div>
-              <span className="text-white text-xs font-medium">{cfg.label}</span>
+              <span className="text-slate-900 text-xs font-medium">{cfg.label}</span>
             </button>
           ))}
         </div>
@@ -168,20 +168,20 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
   const stationCfg = STATION_CONFIG[station];
 
   return (
-    <div className="h-screen bg-black flex flex-col">
+    <div className="h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <div className="p-4 pb-2 flex items-center gap-3 border-b border-zinc-900">
-        <button onClick={onBack} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
-          <ChevronLeft size={14} className="text-zinc-400" />
+        <button onClick={onBack} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0">
+          <ChevronLeft size={14} className="text-slate-500" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-black text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>KNOWLEDGE BRAIN</h1>
+          <h1 className="text-lg font-black text-slate-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>KNOWLEDGE BRAIN</h1>
           <div className="flex items-center gap-2 text-[10px]">
             <button onClick={() => setStation(null)} className="flex items-center gap-1 text-amber-500 hover:text-amber-400">
               <MapPin size={8} />{stationCfg.label} ▾
             </button>
             <span className="text-zinc-600">·</span>
-            <span className="text-zinc-500 flex items-center gap-1"><Clock size={8} />{timeContext}</span>
+            <span className="text-slate-500 flex items-center gap-1"><Clock size={8} />{timeContext}</span>
           </div>
         </div>
         <div className={`w-8 h-8 rounded-lg ${stationCfg.bg} flex items-center justify-center shrink-0`}>
@@ -196,12 +196,12 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
             <div className={`w-14 h-14 rounded-2xl ${stationCfg.bg} flex items-center justify-center mb-3`}>
               <Sparkles size={24} className="text-amber-500" />
             </div>
-            <p className="text-white font-semibold text-sm mb-1">Ask me anything</p>
-            <p className="text-zinc-500 text-[10px] text-center mb-4">Recipes, POS, storage, prep — I know this restaurant</p>
+            <p className="text-slate-900 font-semibold text-sm mb-1">Ask me anything</p>
+            <p className="text-slate-500 text-[10px] text-center mb-4">Recipes, POS, storage, prep — I know this restaurant</p>
             <div className="grid grid-cols-1 gap-2 w-full">
               {stationCfg.prompts.map((prompt, i) => (
-                <button key={i} onClick={() => handleSend(prompt)} className="text-left p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-amber-500/30 transition-all">
-                  <span className="text-zinc-300 text-xs">{prompt}</span>
+                <button key={i} onClick={() => handleSend(prompt)} className="text-left p-2.5 rounded-lg bg-white border border-slate-200 hover:border-amber-500/30 transition-all">
+                  <span className="text-slate-600 text-xs">{prompt}</span>
                 </button>
               ))}
             </div>
@@ -210,12 +210,12 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-xl p-3 ${msg.role === "user" ? "bg-amber-500 text-black" : "bg-zinc-900 border border-zinc-800 text-white"}`}>
+            <div className={`max-w-[85%] rounded-xl p-3 ${msg.role === "user" ? "bg-amber-500 text-black" : "bg-white border border-slate-200 text-slate-900"}`}>
               <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               {msg.role === "assistant" && (
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-800">
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200">
                   {msg.sourcesUsed !== undefined && msg.sourcesUsed > 0 && (
-                    <span className="text-zinc-500 text-[9px]">{msg.sourcesUsed} sources</span>
+                    <span className="text-slate-500 text-[9px]">{msg.sourcesUsed} sources</span>
                   )}
                   <div className="flex-1" />
                   <button onClick={() => toast.success("Thanks! 👍")} className="text-zinc-600 hover:text-green-500 transition-colors">
@@ -227,12 +227,12 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
                 </div>
               )}
               {showCorrection === i && (
-                <div className="mt-2 pt-2 border-t border-zinc-800">
+                <div className="mt-2 pt-2 border-t border-slate-200">
                   <p className="text-amber-500 text-[9px] mb-1 font-semibold">What's the correct answer? (+10 pts)</p>
                   <textarea
                     value={correctionText}
                     onChange={e => setCorrectionText(e.target.value)}
-                    className="w-full bg-zinc-800 rounded-lg p-2 text-xs text-white resize-none border border-zinc-700 focus:border-amber-500 outline-none"
+                    className="w-full bg-zinc-800 rounded-lg p-2 text-xs text-slate-900 resize-none border border-zinc-700 focus:border-amber-500 outline-none"
                     rows={2}
                     placeholder="Type the correct answer..."
                   />
@@ -247,9 +247,9 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
 
         {isAsking && (
           <div className="flex justify-start">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-2">
               <Loader2 size={12} className="text-amber-500 animate-spin" />
-              <span className="text-zinc-400 text-xs">Thinking...</span>
+              <span className="text-slate-500 text-xs">Thinking...</span>
             </div>
           </div>
         )}
@@ -263,7 +263,7 @@ export default function KnowledgeBrain({ staffUser, onBack }: { staffUser: SafeS
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={`Ask about ${stationCfg.label.toLowerCase()}...`}
-            className="flex-1 bg-zinc-900 rounded-xl px-4 py-3 text-sm text-white border border-zinc-800 focus:border-amber-500 outline-none placeholder:text-zinc-600"
+            className="flex-1 bg-white rounded-xl px-4 py-3 text-sm text-slate-900 border border-slate-200 focus:border-amber-500 outline-none placeholder:text-slate-400"
           />
           <button
             onClick={() => handleSend()}

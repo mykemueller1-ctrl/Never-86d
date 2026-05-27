@@ -56,12 +56,12 @@ export default function PinChangeScreen({ staffUser, onBack }: Props) {
 
   if (success) {
     return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center px-6 screen-enter">
+      <div className="h-screen bg-slate-50 flex flex-col items-center justify-center px-6 screen-enter">
         <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
           <CheckCircle2 size={32} className="text-emerald-400" />
         </div>
-        <h2 className="text-white text-lg font-semibold mb-2">PIN Changed</h2>
-        <p className="text-zinc-400 text-sm text-center mb-6">Your new PIN is active. Use it next time you log in.</p>
+        <h2 className="text-slate-900 text-lg font-semibold mb-2">PIN Changed</h2>
+        <p className="text-slate-500 text-sm text-center mb-6">Your new PIN is active. Use it next time you log in.</p>
         <button
           onClick={onBack}
           className="px-6 py-3 bg-amber-500 text-black font-semibold rounded-xl text-sm"
@@ -73,16 +73,16 @@ export default function PinChangeScreen({ staffUser, onBack }: Props) {
   }
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-24 screen-enter">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm border-b border-white/5">
+      <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200">
         <div className="flex items-center gap-3 px-5 py-4">
-          <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors">
+          <button onClick={onBack} className="text-slate-500 hover:text-slate-900 transition-colors">
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-white font-semibold text-base tracking-tight">Change PIN</h1>
-            <p className="text-zinc-500 text-xs">Update your login PIN</p>
+            <h1 className="text-slate-900 font-semibold text-base tracking-tight">Change PIN</h1>
+            <p className="text-slate-500 text-xs">Update your login PIN</p>
           </div>
         </div>
       </div>
@@ -102,19 +102,19 @@ export default function PinChangeScreen({ staffUser, onBack }: Props) {
 
         {/* Current PIN */}
         <div className="space-y-2">
-          <label className="text-zinc-400 text-xs uppercase tracking-wider">Current PIN</label>
+          <label className="text-slate-500 text-xs uppercase tracking-wider">Current PIN</label>
           <div className="relative">
             <input
               type={showCurrent ? "text" : "password"}
               value={currentPin}
               onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
               placeholder="Enter current PIN"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
               inputMode="numeric"
             />
             <button
               onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
             >
               {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -122,23 +122,23 @@ export default function PinChangeScreen({ staffUser, onBack }: Props) {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-white/5" />
+        <div className="border-t border-slate-200" />
 
         {/* New PIN */}
         <div className="space-y-2">
-          <label className="text-zinc-400 text-xs uppercase tracking-wider">New PIN</label>
+          <label className="text-slate-500 text-xs uppercase tracking-wider">New PIN</label>
           <div className="relative">
             <input
               type={showNew ? "text" : "password"}
               value={newPin}
               onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
               placeholder="Enter new PIN (4-8 digits)"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
               inputMode="numeric"
             />
             <button
               onClick={() => setShowNew(!showNew)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
             >
               {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -150,13 +150,13 @@ export default function PinChangeScreen({ staffUser, onBack }: Props) {
 
         {/* Confirm New PIN */}
         <div className="space-y-2">
-          <label className="text-zinc-400 text-xs uppercase tracking-wider">Confirm New PIN</label>
+          <label className="text-slate-500 text-xs uppercase tracking-wider">Confirm New PIN</label>
           <input
             type="password"
             value={confirmPin}
             onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
             placeholder="Re-enter new PIN"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3.5 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
+            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-amber-500/50 font-mono tracking-widest"
             inputMode="numeric"
           />
           {confirmPin.length > 0 && confirmPin !== newPin && (

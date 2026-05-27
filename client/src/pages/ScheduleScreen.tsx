@@ -115,14 +115,14 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   }, [shifts, weekDates]);
 
   return (
-    <div className="min-h-[100dvh] bg-black flex flex-col screen-enter overscroll-contain">
+    <div className="min-h-[100dvh] bg-slate-50 flex flex-col screen-enter overscroll-contain">
       {/* Header */}
       <div className="px-6 pt-10 pb-2">
         <button onClick={onBack} className="text-amber-500 type-caption mb-3 flex items-center gap-1 hover:text-amber-400 transition-colors">
           <ChevronLeft size={16} /> Back
         </button>
         <div className="flex items-center justify-between">
-          <h2 className="type-display text-white">{isManager ? "Schedule" : "My Schedule"}</h2>
+          <h2 className="type-display text-slate-900">{isManager ? "Schedule" : "My Schedule"}</h2>
           {isManager && (
             <button onClick={() => { setSelectedDay(weekDates[0]); setShowAddShift(true); }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-black type-caption font-semibold hover:bg-amber-400 transition-colors active:scale-95">
@@ -137,7 +137,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
         {(["schedule", "availability", "requests", ...(isManager ? ["hours"] : [])] as const).map(t => (
           <button key={t} onClick={() => setTab(t as any)}
             className={`px-4 py-2 rounded-lg type-caption font-medium transition-colors whitespace-nowrap ${
-              tab === t ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "text-zinc-500 hover:text-zinc-300"
+              tab === t ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "text-slate-500 hover:text-slate-600"
             }`}>
             {t === "schedule" ? "Schedule" : t === "availability" ? "Availability" : t === "requests" ? "Requests" : "Hours"}
           </button>
@@ -147,16 +147,16 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
       {/* Week Navigation */}
       {tab === "schedule" && (
         <div className="px-6 pb-3 flex items-center justify-between">
-          <button onClick={() => setWeekOffset(o => o - 1)} className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+          <button onClick={() => setWeekOffset(o => o - 1)} className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-zinc-800 transition-colors">
             <ChevronLeft size={18} />
           </button>
           <div className="text-center">
-            <p className="type-caption text-zinc-300 font-medium">{formatWeekLabel(weekDates)}</p>
+            <p className="type-caption text-slate-600 font-medium">{formatWeekLabel(weekDates)}</p>
             {weekOffset !== 0 && (
               <button onClick={() => setWeekOffset(0)} className="type-micro text-amber-500 mt-0.5">Today</button>
             )}
           </div>
-          <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+          <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-zinc-800 transition-colors">
             <ChevronRight size={18} />
           </button>
         </div>
@@ -260,7 +260,7 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <AlertTriangle size={40} className="text-amber-500 mb-4" />
-        <p className="type-heading text-zinc-400 mb-2">Schedule unavailable</p>
+        <p className="type-heading text-slate-500 mb-2">Schedule unavailable</p>
         <p className="type-body text-zinc-600 text-center">We could not load schedule data right now. Try again in a moment.</p>
       </div>
     );
@@ -270,7 +270,7 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Calendar size={40} className="text-zinc-700 mb-4" />
-        <p className="type-heading text-zinc-400 mb-2">{isManager ? "No schedules created yet" : "No shifts scheduled"}</p>
+        <p className="type-heading text-slate-500 mb-2">{isManager ? "No schedules created yet" : "No shifts scheduled"}</p>
         <p className="type-body text-zinc-600 text-center">
           {isManager ? "Use Add Shift to build this week’s schedule." : "Your schedule for this week hasn't been posted yet. Check back later or ask your manager."}
         </p>
@@ -294,10 +294,10 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
           } ${isPast ? "opacity-60" : ""}`}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className={`type-caption font-semibold ${isToday ? "text-amber-500" : "text-zinc-300"}`}>
+                <span className={`type-caption font-semibold ${isToday ? "text-amber-500" : "text-slate-600"}`}>
                   {dayLabel}
                 </span>
-                <span className="type-caption text-zinc-500">{dateLabel}</span>
+                <span className="type-caption text-slate-500">{dateLabel}</span>
                 {isToday && <span className="type-micro text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Today</span>}
               </div>
               <span className="type-micro text-zinc-600">{dayShifts.length} shift{dayShifts.length !== 1 ? "s" : ""}</span>
@@ -312,20 +312,20 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
                   const isMe = shift.staffId === staffUser.id;
                   return (
                     <div key={shift.id} className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                      isMe ? "bg-amber-500/8 border border-amber-500/10" : "bg-zinc-900/50"
+                      isMe ? "bg-amber-500/8 border border-amber-500/10" : "bg-white/50"
                     }`}>
                       <div className="flex items-center gap-3">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center type-micro font-semibold ${
-                          isMe ? "bg-amber-500 text-black" : "bg-zinc-800 text-zinc-400"
+                          isMe ? "bg-amber-500 text-black" : "bg-zinc-800 text-slate-500"
                         }`}>
                           {staff?.firstName?.charAt(0) || "?"}
                         </div>
                         <div>
-                          <p className={`type-caption font-medium ${isMe ? "text-amber-500" : "text-zinc-200"}`}>
+                          <p className={`type-caption font-medium ${isMe ? "text-amber-500" : "text-slate-700"}`}>
                             {staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}
                             {isMe && <span className="text-amber-600 ml-1">(You)</span>}
                           </p>
-                          <p className="type-micro text-zinc-500 normal-case">
+                          <p className="type-micro text-slate-500 normal-case">
                             {shift.startTime} – {shift.endTime}
                             {shift.position && <span className="ml-2 text-zinc-600">· {shift.position}</span>}
                           </p>
@@ -374,7 +374,7 @@ function AvailabilityView({ availability, onSet }: {
 
   return (
     <div className="space-y-2">
-      <p className="type-caption text-zinc-500 mb-4">Set your weekly availability so managers know when you can work.</p>
+      <p className="type-caption text-slate-500 mb-4">Set your weekly availability so managers know when you can work.</p>
       {FULL_DAYS.map((day, dow) => {
         const avail = getAvailForDay(dow);
         const isEditing = editing === dow;
@@ -383,13 +383,13 @@ function AvailabilityView({ availability, onSet }: {
           <div key={dow} className="surface-base p-4 rounded-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="type-caption font-medium text-zinc-200">{day}</p>
+                <p className="type-caption font-medium text-slate-700">{day}</p>
                 {avail ? (
-                  <p className="type-micro text-zinc-500 normal-case">
+                  <p className="type-micro text-slate-500 normal-case">
                     {avail.startTime} – {avail.endTime}
                     <span className={`ml-2 ${
                       avail.preference === "preferred" ? "text-green-400" :
-                      avail.preference === "unavailable" ? "text-red-400" : "text-zinc-400"
+                      avail.preference === "unavailable" ? "text-red-400" : "text-slate-500"
                     }`}>({avail.preference})</span>
                   </p>
                 ) : (
@@ -405,17 +405,17 @@ function AvailabilityView({ availability, onSet }: {
             </div>
 
             {isEditing && (
-              <div className="mt-3 pt-3 border-t border-zinc-800 space-y-3">
+              <div className="mt-3 pt-3 border-t border-slate-200 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="type-micro text-zinc-500 mb-1 block">Start</label>
+                    <label className="type-micro text-slate-500 mb-1 block">Start</label>
                     <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white type-caption" />
+                      className="w-full bg-white border border-zinc-700 rounded-lg px-3 py-2 text-slate-900 type-caption" />
                   </div>
                   <div>
-                    <label className="type-micro text-zinc-500 mb-1 block">End</label>
+                    <label className="type-micro text-slate-500 mb-1 block">End</label>
                     <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white type-caption" />
+                      className="w-full bg-white border border-zinc-700 rounded-lg px-3 py-2 text-slate-900 type-caption" />
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -426,7 +426,7 @@ function AvailabilityView({ availability, onSet }: {
                           ? p === "preferred" ? "bg-green-500/15 text-green-400 border border-green-500/30"
                             : p === "unavailable" ? "bg-red-500/15 text-red-400 border border-red-500/30"
                             : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                          : "bg-zinc-800 text-zinc-500"
+                          : "bg-zinc-800 text-slate-500"
                       }`}>
                       {p}
                     </button>
@@ -479,7 +479,7 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
       {/* My Requests */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="type-caption font-medium text-zinc-300">My Time Off Requests</p>
+          <p className="type-caption font-medium text-slate-600">My Time Off Requests</p>
           <button onClick={() => setShowForm(!showForm)}
             className="flex items-center gap-1 text-amber-500 type-caption hover:text-amber-400 transition-colors">
             <Plus size={14} /> Request
@@ -490,20 +490,20 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
           <div className="surface-base p-4 rounded-xl mb-3 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="type-micro text-zinc-500 mb-1 block">Start Date</label>
+                <label className="type-micro text-slate-500 mb-1 block">Start Date</label>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white type-caption" />
+                  className="w-full bg-white border border-zinc-700 rounded-lg px-3 py-2 text-slate-900 type-caption" />
               </div>
               <div>
-                <label className="type-micro text-zinc-500 mb-1 block">End Date</label>
+                <label className="type-micro text-slate-500 mb-1 block">End Date</label>
                 <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white type-caption" />
+                  className="w-full bg-white border border-zinc-700 rounded-lg px-3 py-2 text-slate-900 type-caption" />
               </div>
             </div>
             <div>
-              <label className="type-micro text-zinc-500 mb-1 block">Reason (optional)</label>
+              <label className="type-micro text-slate-500 mb-1 block">Reason (optional)</label>
               <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Family event, appointment, etc."
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white type-caption placeholder:text-zinc-600" />
+                className="w-full bg-white border border-zinc-700 rounded-lg px-3 py-2 text-slate-900 type-caption placeholder:text-slate-400" />
             </div>
             <button onClick={handleSubmit}
               className="w-full py-2.5 rounded-lg bg-amber-500 text-black type-caption font-semibold hover:bg-amber-400 transition-colors active:scale-[0.98]">
@@ -521,10 +521,10 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
             {myTimeOff.map((req: any) => (
               <div key={req.id} className="surface-base p-4 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="type-caption text-zinc-200">
+                  <p className="type-caption text-slate-700">
                     {new Date(req.startDate).toLocaleDateString()} – {new Date(req.endDate).toLocaleDateString()}
                   </p>
-                  {req.reason && <p className="type-micro text-zinc-500 normal-case">{req.reason}</p>}
+                  {req.reason && <p className="type-micro text-slate-500 normal-case">{req.reason}</p>}
                 </div>
                 <span className={`type-micro px-2 py-1 rounded-full ${
                   req.status === "approved" ? "bg-green-500/15 text-green-400" :
@@ -540,17 +540,17 @@ function RequestsView({ staffUser, isManager, myTimeOff, pendingTimeOff, pending
       {/* Manager: Pending Approvals */}
       {isManager && pendingTimeOff.length > 0 && (
         <div>
-          <p className="type-caption font-medium text-zinc-300 mb-3">Pending Approvals ({pendingTimeOff.length})</p>
+          <p className="type-caption font-medium text-slate-600 mb-3">Pending Approvals ({pendingTimeOff.length})</p>
           <div className="space-y-2">
             {pendingTimeOff.map((req: any) => (
               <div key={req.id} className="surface-base p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="type-caption text-zinc-200 font-medium">Staff #{req.staffId}</p>
-                  <p className="type-micro text-zinc-500 normal-case">
+                  <p className="type-caption text-slate-700 font-medium">Staff #{req.staffId}</p>
+                  <p className="type-micro text-slate-500 normal-case">
                     {new Date(req.startDate).toLocaleDateString()} – {new Date(req.endDate).toLocaleDateString()}
                   </p>
                 </div>
-                {req.reason && <p className="type-caption text-zinc-500 mb-3">{req.reason}</p>}
+                {req.reason && <p className="type-caption text-slate-500 mb-3">{req.reason}</p>}
                 <div className="flex gap-2">
                   <button onClick={() => onApproveTimeOff(req.id)}
                     className="flex-1 py-2 rounded-lg bg-green-500/15 text-green-400 type-caption font-medium hover:bg-green-500/25 transition-colors">
@@ -601,17 +601,17 @@ function AddShiftModal({ allStaff, selectedDay, weekDates, createdBy, onClose, o
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-zinc-900 rounded-t-2xl p-6 space-y-4 screen-enter" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-t-2xl p-6 space-y-4 screen-enter" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="type-heading text-white">Add Shift</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors"><X size={20} /></button>
+          <h3 className="type-heading text-slate-900">Add Shift</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors"><X size={20} /></button>
         </div>
 
         <div>
-          <label className="type-micro text-zinc-500 mb-1 block">Staff Member</label>
+          <label className="type-micro text-slate-500 mb-1 block">Staff Member</label>
           <select value={staffId} onChange={e => setStaffId(Number(e.target.value))}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption">
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption">
             {allStaff.filter(s => s.status === "active").map(s => (
               <option key={s.id} value={s.id}>{s.firstName} {s.lastName || ""} — {s.department}</option>
             ))}
@@ -619,9 +619,9 @@ function AddShiftModal({ allStaff, selectedDay, weekDates, createdBy, onClose, o
         </div>
 
         <div>
-          <label className="type-micro text-zinc-500 mb-1 block">Date</label>
+          <label className="type-micro text-slate-500 mb-1 block">Date</label>
           <select value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption">
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption">
             {weekDates.map(d => (
               <option key={d.toISOString()} value={d.toISOString().split("T")[0]}>
                 {d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -632,27 +632,27 @@ function AddShiftModal({ allStaff, selectedDay, weekDates, createdBy, onClose, o
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">Start Time</label>
+            <label className="type-micro text-slate-500 mb-1 block">Start Time</label>
             <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption" />
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption" />
           </div>
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">End Time</label>
+            <label className="type-micro text-slate-500 mb-1 block">End Time</label>
             <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption" />
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption" />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">Position (optional)</label>
+            <label className="type-micro text-slate-500 mb-1 block">Position (optional)</label>
             <input value={position} onChange={e => setPosition(e.target.value)} placeholder="Bar, Grill, Register..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption placeholder:text-zinc-600" />
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption placeholder:text-slate-400" />
           </div>
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">Department</label>
+            <label className="type-micro text-slate-500 mb-1 block">Department</label>
             <select value={department} onChange={e => setDepartment(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption">
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption">
               <option value="">Auto</option>
               {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -696,41 +696,41 @@ function EditShiftModal({ shift, allStaff, onClose, onSubmit, isPending }: {
   const staff = allStaff.find(s => s.id === shift.staffId);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-zinc-900 rounded-t-2xl p-6 space-y-4 screen-enter" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-t-2xl p-6 space-y-4 screen-enter" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="type-heading text-white">Edit Shift</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors"><X size={20} /></button>
+          <h3 className="type-heading text-slate-900">Edit Shift</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors"><X size={20} /></button>
         </div>
 
         <div className="surface-base p-3 rounded-lg">
-          <p className="type-caption text-zinc-300 font-medium">{staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}</p>
-          <p className="type-micro text-zinc-500 normal-case">{new Date(shift.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</p>
+          <p className="type-caption text-slate-600 font-medium">{staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}</p>
+          <p className="type-micro text-slate-500 normal-case">{new Date(shift.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">Start Time</label>
+            <label className="type-micro text-slate-500 mb-1 block">Start Time</label>
             <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption" />
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption" />
           </div>
           <div>
-            <label className="type-micro text-zinc-500 mb-1 block">End Time</label>
+            <label className="type-micro text-slate-500 mb-1 block">End Time</label>
             <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption" />
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption" />
           </div>
         </div>
 
         <div>
-          <label className="type-micro text-zinc-500 mb-1 block">Position</label>
+          <label className="type-micro text-slate-500 mb-1 block">Position</label>
           <input value={position} onChange={e => setPosition(e.target.value)} placeholder="Bar, Grill, Register..."
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption placeholder:text-zinc-600" />
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption placeholder:text-slate-400" />
         </div>
 
         <div>
-          <label className="type-micro text-zinc-500 mb-1 block">Status</label>
+          <label className="type-micro text-slate-500 mb-1 block">Status</label>
           <select value={status} onChange={e => setStatus(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white type-caption">
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-slate-900 type-caption">
             <option value="scheduled">Scheduled</option>
             <option value="confirmed">Confirmed</option>
             <option value="completed">Completed</option>
@@ -781,7 +781,7 @@ function WeeklyHoursReport({ allStaff }: { allStaff: SafeStaff[] }) {
     return (
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="h-16 rounded-xl bg-zinc-900 animate-pulse" />
+          <div key={i} className="h-16 rounded-xl bg-white animate-pulse" />
         ))}
       </div>
     );
@@ -792,15 +792,15 @@ function WeeklyHoursReport({ allStaff }: { allStaff: SafeStaff[] }) {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
         <div className="surface-base rounded-xl p-3 text-center">
-          <p className="type-micro text-zinc-500">Total Hours</p>
-          <p className="type-heading text-white">{totalLabor.toFixed(1)}</p>
+          <p className="type-micro text-slate-500">Total Hours</p>
+          <p className="type-heading text-slate-900">{totalLabor.toFixed(1)}</p>
         </div>
         <div className={`surface-base rounded-xl p-3 text-center ${totalOvertime > 0 ? "border border-red-500/30" : ""}`}>
-          <p className="type-micro text-zinc-500">Overtime</p>
-          <p className={`type-heading ${totalOvertime > 0 ? "text-red-400" : "text-white"}`}>{totalOvertime.toFixed(1)}</p>
+          <p className="type-micro text-slate-500">Overtime</p>
+          <p className={`type-heading ${totalOvertime > 0 ? "text-red-400" : "text-slate-900"}`}>{totalOvertime.toFixed(1)}</p>
         </div>
         <div className="surface-base rounded-xl p-3 text-center">
-          <p className="type-micro text-zinc-500">Clocked In</p>
+          <p className="type-micro text-slate-500">Clocked In</p>
           <p className="type-heading text-green-400">{activeClockedIn}</p>
         </div>
       </div>
@@ -817,17 +817,17 @@ function WeeklyHoursReport({ allStaff }: { allStaff: SafeStaff[] }) {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center type-micro font-bold ${
-                    s.isActive ? "bg-green-500/20 text-green-400" : "bg-zinc-800 text-zinc-400"
+                    s.isActive ? "bg-green-500/20 text-green-400" : "bg-zinc-800 text-slate-500"
                   }`}>
                     {s.firstName[0]}
                   </div>
                   <div>
-                    <p className="type-caption text-white font-medium">{s.firstName} {s.lastName}</p>
-                    <p className="type-micro text-zinc-500">{s.shifts} shifts • {s.department}</p>
+                    <p className="type-caption text-slate-900 font-medium">{s.firstName} {s.lastName}</p>
+                    <p className="type-micro text-slate-500">{s.shifts} shifts • {s.department}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`type-body font-semibold ${isOvertime ? "text-red-400" : isApproaching ? "text-amber-400" : "text-white"}`}>
+                  <p className={`type-body font-semibold ${isOvertime ? "text-red-400" : isApproaching ? "text-amber-400" : "text-slate-900"}`}>
                     {s.totalHours.toFixed(1)}h
                   </p>
                   {isOvertime && (
@@ -856,7 +856,7 @@ function WeeklyHoursReport({ allStaff }: { allStaff: SafeStaff[] }) {
         {staffHours.length === 0 && (
           <div className="text-center py-12">
             <Clock className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
-            <p className="type-caption text-zinc-500">No hours logged this week</p>
+            <p className="type-caption text-slate-500">No hours logged this week</p>
           </div>
         )}
       </div>

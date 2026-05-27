@@ -104,8 +104,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
     if (amount >= 8000) return { label: "Legendary", color: "text-amber-400" };
     if (amount >= 5000) return { label: "Great", color: "text-green-400" };
     if (amount >= 3500) return { label: "Solid", color: "text-blue-400" };
-    if (amount >= 2000) return { label: "Steady", color: "text-zinc-400" };
-    return { label: "Quiet", color: "text-zinc-500" };
+    if (amount >= 2000) return { label: "Steady", color: "text-slate-500" };
+    return { label: "Quiet", color: "text-slate-500" };
   }
 
   // ─── Tab definitions ───
@@ -133,7 +133,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       {[7, 14, 30, 90].map(d => (
         <button key={d} onClick={() => setDaysBack(d)}
           className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
-            daysBack === d ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+            daysBack === d ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-white text-slate-500 border border-slate-200"
           }`}>{d}d</button>
       ))}
     </div>
@@ -144,9 +144,9 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       return (
         <div className="space-y-3">
           <PeriodButtons />
-          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 text-center">
+          <div className="bg-white rounded-xl p-6 border border-slate-200 text-center">
             <Clock size={22} className="text-amber-500 mx-auto mb-2 animate-pulse" />
-            <p className="text-zinc-400 text-[11px]">Loading canonical daily sales history...</p>
+            <p className="text-slate-500 text-[11px]">Loading canonical daily sales history...</p>
           </div>
         </div>
       );
@@ -156,10 +156,10 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       return (
         <div className="space-y-3">
           <PeriodButtons />
-          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 text-center">
+          <div className="bg-white rounded-xl p-6 border border-slate-200 text-center">
             <Calendar size={24} className="text-zinc-700 mx-auto mb-2" />
-            <p className="text-white text-xs font-semibold">No daily sales records found</p>
-            <p className="text-zinc-500 text-[10px] mt-1">
+            <p className="text-slate-900 text-xs font-semibold">No daily sales records found</p>
+            <p className="text-slate-500 text-[10px] mt-1">
               Uploaded PDQ/Z-report history will appear here after it is imported. Supporting intelligence tabs may still show historical data from their own canonical tables.
             </p>
           </div>
@@ -171,22 +171,22 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       <div className="space-y-3">
         {stats && (
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-              <p className="text-zinc-500 text-[10px] uppercase">Avg / Day</p>
-              <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.avg) : salesVibe(stats.avg).label}</p>
+            <div className="bg-white rounded-xl p-3 border border-slate-200">
+              <p className="text-slate-500 text-[10px] uppercase">Avg / Day</p>
+              <p className="text-slate-900 font-bold text-lg">{isManager ? formatMoney(stats.avg) : salesVibe(stats.avg).label}</p>
             </div>
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-              <p className="text-zinc-500 text-[10px] uppercase">Period Total</p>
-              <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.total) : `${dailySales.length} days`}</p>
+            <div className="bg-white rounded-xl p-3 border border-slate-200">
+              <p className="text-slate-500 text-[10px] uppercase">Period Total</p>
+              <p className="text-slate-900 font-bold text-lg">{isManager ? formatMoney(stats.total) : `${dailySales.length} days`}</p>
             </div>
             {isManager && (
               <>
-                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-                  <p className="text-zinc-500 text-[10px] uppercase">Best Day</p>
+                <div className="bg-white rounded-xl p-3 border border-slate-200">
+                  <p className="text-slate-500 text-[10px] uppercase">Best Day</p>
                   <p className="text-green-400 font-bold text-lg">{formatMoney(stats.max)}</p>
                 </div>
-                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-                  <p className="text-zinc-500 text-[10px] uppercase">Slowest Day</p>
+                <div className="bg-white rounded-xl p-3 border border-slate-200">
+                  <p className="text-slate-500 text-[10px] uppercase">Slowest Day</p>
                   <p className="text-red-400 font-bold text-lg">{formatMoney(stats.min)}</p>
                 </div>
               </>
@@ -194,8 +194,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
           </div>
         )}
         <PeriodButtons />
-        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Daily Revenue</p>
+        <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Daily Revenue</p>
           <div className="space-y-1">
             {recentDays.map(d => {
               const maxVal = stats?.max || 1;
@@ -203,13 +203,13 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
               const dayName = new Date(d.businessDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
               return (
                 <div key={d.businessDate} className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-[9px] w-16 shrink-0">{dayName}</span>
+                  <span className="text-slate-500 text-[9px] w-16 shrink-0">{dayName}</span>
                   <div className="flex-1 h-4 bg-zinc-800 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${d.current >= (stats?.avg || 0) ? "bg-green-500/60" : "bg-amber-500/40"}`} style={{ width: `${pct}%` }} />
                   </div>
                   {isManager ? (
                     <div className="flex items-center gap-1 w-20 justify-end">
-                      <span className="text-white text-[10px] font-medium">{formatMoney(d.current)}</span>
+                      <span className="text-slate-900 text-[10px] font-medium">{formatMoney(d.current)}</span>
                       <span className={`text-[8px] ${d.change.up ? "text-green-400" : "text-red-400"}`}>{d.change.pct}</span>
                     </div>
                   ) : (
@@ -224,8 +224,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
         {/* Channel & Category breakdown */}
         {stats && isManager && (
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-              <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Channels</p>
+            <div className="bg-white rounded-xl p-3 border border-slate-200">
+              <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Channels</p>
               {[
                 { label: "Pickup", val: stats.pickup, color: "bg-blue-500" },
                 { label: "Delivery", val: stats.delivery, color: "bg-green-500" },
@@ -237,8 +237,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                 return (
                   <div key={ch.label} className="mb-1.5">
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-zinc-400">{ch.label}</span>
-                      <span className="text-zinc-500">{share}%</span>
+                      <span className="text-slate-500">{ch.label}</span>
+                      <span className="text-slate-500">{share}%</span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <div className={`h-full ${ch.color} rounded-full`} style={{ width: `${(ch.val / maxChannel) * 100}%` }} />
@@ -247,8 +247,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                 );
               })}
             </div>
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-              <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Categories</p>
+            <div className="bg-white rounded-xl p-3 border border-slate-200">
+              <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Categories</p>
               {[
                 { label: "Food", val: stats.food, color: "bg-amber-500" },
                 { label: "Beer", val: stats.beer, color: "bg-yellow-500" },
@@ -258,8 +258,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                 return (
                   <div key={cat.label} className="mb-1.5">
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-zinc-400">{cat.label}</span>
-                      <span className="text-zinc-500">{formatMoney(cat.val)}</span>
+                      <span className="text-slate-500">{cat.label}</span>
+                      <span className="text-slate-500">{formatMoney(cat.val)}</span>
                     </div>
                     <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${(cat.val / maxCategory) * 100}%` }} />
@@ -288,7 +288,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
             return (
               <button key={c} onClick={() => setMixCategory(c)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
-                  mixCategory === c ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+                  mixCategory === c ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-white text-slate-500 border border-slate-200"
                 }`}>
                 <Icon size={10} />
                 {c === "all" ? "All" : c.charAt(0).toUpperCase() + c.slice(1)}
@@ -297,8 +297,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
           })}
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">
+        <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">
             Top Products {mixCategory !== "all" ? `· ${mixCategory}` : ""} ({productMix.length})
           </p>
           <div className="space-y-1.5">
@@ -307,9 +307,9 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                 <span className="text-zinc-600 text-[9px] w-4 text-right">{i + 1}</span>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-white text-[10px] font-medium truncate max-w-[140px]">{p.name}</span>
+                    <span className="text-slate-900 text-[10px] font-medium truncate max-w-[140px]">{p.name}</span>
                     <div className="flex items-center gap-2">
-                      {isManager && <span className="text-zinc-400 text-[9px]">{formatMoney(p.totalAmount)}</span>}
+                      {isManager && <span className="text-slate-500 text-[9px]">{formatMoney(p.totalAmount)}</span>}
                       <span className="text-zinc-600 text-[9px]">{p.totalQty} sold</span>
                     </div>
                   </div>
@@ -331,20 +331,20 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
     return (
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-500 text-[10px] uppercase">Total Voids</p>
+          <div className="bg-white rounded-xl p-3 border border-slate-200">
+            <p className="text-slate-500 text-[10px] uppercase">Total Voids</p>
             <p className="text-red-400 font-bold text-lg">{canonicalVoidTotals.totalVoids}</p>
             <p className="text-zinc-600 text-[9px]">{formatMoney(canonicalVoidTotals.totalVoidAmount)} total</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-500 text-[10px] uppercase">Employees</p>
-            <p className="text-white font-bold text-lg">{voidSummary.length}</p>
+          <div className="bg-white rounded-xl p-3 border border-slate-200">
+            <p className="text-slate-500 text-[10px] uppercase">Employees</p>
+            <p className="text-slate-900 font-bold text-lg">{voidSummary.length}</p>
             <p className="text-zinc-600 text-[9px]">with void activity</p>
           </div>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Void/Comp by Employee</p>
+        <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Void/Comp by Employee</p>
           <div className="space-y-2">
             {voidSummary.slice(0, 15).map((e: any, i: number) => {
               const isHigh = e.avgPerDay > 4;
@@ -353,16 +353,16 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-zinc-600 text-[9px] w-4">{i + 1}</span>
-                      <span className={`text-[11px] font-medium ${isHigh ? "text-red-400" : "text-white"}`}>{e.name}</span>
+                      <span className={`text-[11px] font-medium ${isHigh ? "text-red-400" : "text-slate-900"}`}>{e.name}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-zinc-400 text-[10px]">{e.totalVoids} voids</span>
-                      <span className="text-zinc-500 text-[10px]">{formatMoney(e.totalAmount)}</span>
+                      <span className="text-slate-500 text-[10px]">{e.totalVoids} voids</span>
+                      <span className="text-slate-500 text-[10px]">{formatMoney(e.totalAmount)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 mt-1">
                     <span className="text-zinc-600 text-[9px]">{e.daysWorked} days</span>
-                    <span className={`text-[9px] font-medium ${isHigh ? "text-red-400" : "text-zinc-500"}`}>
+                    <span className={`text-[9px] font-medium ${isHigh ? "text-red-400" : "text-slate-500"}`}>
                       {e.avgPerDay}/day avg
                     </span>
                     {isHigh && <span className="text-red-400 text-[8px] bg-red-500/10 px-1.5 py-0.5 rounded">HIGH</span>}
@@ -382,25 +382,25 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
     const wc = weatherCorrelation;
     return (
       <div className="space-y-3">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-3 font-semibold">Weather Impact on Revenue</p>
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-3 font-semibold">Weather Impact on Revenue</p>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-2 bg-zinc-800/50 rounded-lg">
               <Sun size={18} className="text-amber-400 shrink-0" />
               <div className="flex-1">
-                <p className="text-white text-xs font-medium">Dry Days</p>
-                <p className="text-zinc-500 text-[9px]">{wc.dryDays.count} days</p>
+                <p className="text-slate-900 text-xs font-medium">Dry Days</p>
+                <p className="text-slate-500 text-[9px]">{wc.dryDays.count} days</p>
               </div>
-              <p className="text-white font-bold text-sm">{formatMoney(wc.dryDays.avg)}</p>
+              <p className="text-slate-900 font-bold text-sm">{formatMoney(wc.dryDays.avg)}</p>
             </div>
             <div className="flex items-center gap-3 p-2 bg-blue-500/5 rounded-lg border border-blue-500/10">
               <CloudRain size={18} className="text-blue-400 shrink-0" />
               <div className="flex-1">
-                <p className="text-white text-xs font-medium">Rainy Days</p>
-                <p className="text-zinc-500 text-[9px]">{wc.rainyDays.count} days</p>
+                <p className="text-slate-900 text-xs font-medium">Rainy Days</p>
+                <p className="text-slate-500 text-[9px]">{wc.rainyDays.count} days</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold text-sm">{formatMoney(wc.rainyDays.avg)}</p>
+                <p className="text-slate-900 font-bold text-sm">{formatMoney(wc.rainyDays.avg)}</p>
                 {wc.dryDays.avg > 0 && (
                   <p className={`text-[9px] ${wc.rainyDays.avg < wc.dryDays.avg ? "text-red-400" : "text-green-400"}`}>
                     {((wc.rainyDays.avg - wc.dryDays.avg) / wc.dryDays.avg * 100).toFixed(1)}% vs dry
@@ -411,11 +411,11 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
             <div className="flex items-center gap-3 p-2 bg-cyan-500/5 rounded-lg border border-cyan-500/10">
               <Snowflake size={18} className="text-cyan-400 shrink-0" />
               <div className="flex-1">
-                <p className="text-white text-xs font-medium">Snow Days</p>
-                <p className="text-zinc-500 text-[9px]">{wc.snowDays.count} days</p>
+                <p className="text-slate-900 text-xs font-medium">Snow Days</p>
+                <p className="text-slate-500 text-[9px]">{wc.snowDays.count} days</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold text-sm">{formatMoney(wc.snowDays.avg)}</p>
+                <p className="text-slate-900 font-bold text-sm">{formatMoney(wc.snowDays.avg)}</p>
                 {wc.dryDays.avg > 0 && (
                   <p className={`text-[9px] ${wc.snowDays.avg < wc.dryDays.avg ? "text-red-400" : "text-green-400"}`}>
                     {((wc.snowDays.avg - wc.dryDays.avg) / wc.dryDays.avg * 100).toFixed(1)}% vs dry
@@ -426,40 +426,40 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
           </div>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-3 font-semibold">Delivery vs Weather</p>
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-3 font-semibold">Delivery vs Weather</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
               <Sun size={16} className="text-amber-400 mx-auto mb-1" />
-              <p className="text-white font-bold text-sm">{wc.deliveryImpact.goodWeather}%</p>
-              <p className="text-zinc-500 text-[9px]">Delivery share (dry)</p>
+              <p className="text-slate-900 font-bold text-sm">{wc.deliveryImpact.goodWeather}%</p>
+              <p className="text-slate-500 text-[9px]">Delivery share (dry)</p>
             </div>
             <div className="bg-blue-500/5 rounded-lg p-3 text-center border border-blue-500/10">
               <CloudRain size={16} className="text-blue-400 mx-auto mb-1" />
-              <p className="text-white font-bold text-sm">{wc.deliveryImpact.badWeather}%</p>
-              <p className="text-zinc-500 text-[9px]">Delivery share (rain/snow)</p>
+              <p className="text-slate-900 font-bold text-sm">{wc.deliveryImpact.badWeather}%</p>
+              <p className="text-slate-500 text-[9px]">Delivery share (rain/snow)</p>
             </div>
           </div>
-          <p className="text-zinc-500 text-[9px] mt-2 text-center">
+          <p className="text-slate-500 text-[9px] mt-2 text-center">
             Delivery share increases {(wc.deliveryImpact.badWeather - wc.deliveryImpact.goodWeather).toFixed(1)}% in bad weather — staff drivers accordingly
           </p>
         </div>
 
         {/* Upcoming Events */}
         {events.length > 0 && (
-          <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-            <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">
+          <div className="bg-white rounded-xl p-4 border border-slate-200">
+            <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">
               <MapPin size={10} className="inline mr-1" />Upcoming Events (30mi)
             </p>
             {events.slice(0, 5).map((e: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 py-1.5 border-b border-zinc-800/50 last:border-0">
+              <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-200/50 last:border-0">
                 <span className="text-amber-400 text-[10px] font-medium w-16">{e.eventDate}</span>
-                <span className="text-white text-[10px] flex-1 truncate">{e.eventName}</span>
+                <span className="text-slate-900 text-[10px] flex-1 truncate">{e.eventName}</span>
                 {e.estimatedImpact && (
                   <span className={`text-[8px] px-1.5 py-0.5 rounded ${
                     e.estimatedImpact === "high" ? "bg-green-500/10 text-green-400" :
                     e.estimatedImpact === "medium" ? "bg-amber-500/10 text-amber-400" :
-                    "bg-zinc-800 text-zinc-500"
+                    "bg-zinc-800 text-slate-500"
                   }`}>{e.estimatedImpact}</span>
                 )}
               </div>
@@ -482,7 +482,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       if (pct >= 0.4) return "bg-amber-500";
       if (pct >= 0.2) return "bg-amber-500/40";
       if (pct > 0) return "bg-zinc-700";
-      return "bg-zinc-900";
+      return "bg-white";
     }
 
     function getVal(dow: number, hour: number): number {
@@ -492,14 +492,14 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
 
     return (
       <div className="space-y-3">
-        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Avg Revenue by Hour & Day</p>
+        <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <p className="text-slate-500 text-[10px] uppercase mb-2 font-semibold">Avg Revenue by Hour & Day</p>
           <div className="overflow-x-auto">
             <table className="w-full text-[8px]">
               <thead>
                 <tr>
                   <th className="text-zinc-600 text-left p-0.5 w-8"></th>
-                  {DOW_NAMES.map(d => <th key={d} className="text-zinc-500 text-center p-0.5 font-medium">{d}</th>)}
+                  {DOW_NAMES.map(d => <th key={d} className="text-slate-500 text-center p-0.5 font-medium">{d}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -512,7 +512,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
                         <td key={dow} className="p-0.5">
                           <div className={`w-full h-5 rounded-sm ${getColor(val)} flex items-center justify-center`}
                                title={`${DOW_NAMES[dow]} ${h}:00 - ${formatMoney(val)}`}>
-                            {isManager && val > 0 && <span className="text-white/80 text-[7px]">{Math.round(val)}</span>}
+                            {isManager && val > 0 && <span className="text-slate-700 text-[7px]">{Math.round(val)}</span>}
                           </div>
                         </td>
                       );
@@ -535,7 +535,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
 
         <div className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/10">
           <p className="text-amber-500 text-[10px] font-semibold flex items-center gap-1"><Zap size={10} /> Peak Hours</p>
-          <p className="text-zinc-400 text-[10px] mt-1">
+          <p className="text-slate-500 text-[10px] mt-1">
             Fri & Sat 5-7pm are your highest revenue hours. Monday is dead after 8pm — consider reduced staffing.
             Sunday lunch (11am-1pm) is surprisingly strong.
           </p>
@@ -555,40 +555,40 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-red-500/5 rounded-xl p-2 border border-red-500/10 text-center">
             <p className="text-red-400 font-bold text-lg">{highCount}</p>
-            <p className="text-zinc-500 text-[9px]">High</p>
+            <p className="text-slate-500 text-[9px]">High</p>
           </div>
           <div className="bg-amber-500/5 rounded-xl p-2 border border-amber-500/10 text-center">
             <p className="text-amber-400 font-bold text-lg">{medCount}</p>
-            <p className="text-zinc-500 text-[9px]">Medium</p>
+            <p className="text-slate-500 text-[9px]">Medium</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl p-2 border border-zinc-800 text-center">
-            <p className="text-zinc-400 font-bold text-lg">{anomalies.length - highCount - medCount}</p>
-            <p className="text-zinc-500 text-[9px]">Low</p>
+          <div className="bg-white rounded-xl p-2 border border-slate-200 text-center">
+            <p className="text-slate-500 font-bold text-lg">{anomalies.length - highCount - medCount}</p>
+            <p className="text-slate-500 text-[9px]">Low</p>
           </div>
         </div>
 
         <div className="space-y-2">
           {anomalies.map((a: any) => {
             const isExpanded = expandedAnomaly === a.id;
-            const severityColor = a.severity === "high" ? "border-red-500/20 bg-red-500/5" : a.severity === "medium" ? "border-amber-500/20 bg-amber-500/5" : "border-zinc-800 bg-zinc-900";
-            const severityText = a.severity === "high" ? "text-red-400" : a.severity === "medium" ? "text-amber-400" : "text-zinc-500";
+            const severityColor = a.severity === "high" ? "border-red-500/20 bg-red-500/5" : a.severity === "medium" ? "border-amber-500/20 bg-amber-500/5" : "border-slate-200 bg-white";
+            const severityText = a.severity === "high" ? "text-red-400" : a.severity === "medium" ? "text-amber-400" : "text-slate-500";
             return (
               <div key={a.id} className={`rounded-xl p-3 border ${severityColor}`}>
                 <button onClick={() => setExpandedAnomaly(isExpanded ? null : a.id)} className="w-full text-left">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <AlertTriangle size={12} className={severityText} />
-                      <span className="text-white text-[11px] font-medium">{a.employeeName || "System"}</span>
-                      <span className={`text-[8px] px-1.5 py-0.5 rounded ${severityText} bg-black/20`}>{a.severity}</span>
+                      <span className="text-slate-900 text-[11px] font-medium">{a.employeeName || "System"}</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded ${severityText} bg-slate-50/20`}>{a.severity}</span>
                     </div>
-                    {isExpanded ? <ChevronUp size={12} className="text-zinc-500" /> : <ChevronDown size={12} className="text-zinc-500" />}
+                    {isExpanded ? <ChevronUp size={12} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
                   </div>
-                  <p className="text-zinc-400 text-[10px] mt-1">{a.anomalyType?.replace(/_/g, " ")}</p>
+                  <p className="text-slate-500 text-[10px] mt-1">{a.anomalyType?.replace(/_/g, " ")}</p>
                 </button>
                 {isExpanded && (
-                  <div className="mt-2 pt-2 border-t border-zinc-800/50">
-                    <p className="text-zinc-300 text-[10px]">{a.detail}</p>
-                    {a.theory && <p className="text-zinc-500 text-[10px] mt-1 italic">Theory: {a.theory}</p>}
+                  <div className="mt-2 pt-2 border-t border-slate-200/50">
+                    <p className="text-slate-600 text-[10px]">{a.detail}</p>
+                    {a.theory && <p className="text-slate-500 text-[10px] mt-1 italic">Theory: {a.theory}</p>}
                     {!a.acknowledged && (
                       <button
                         onClick={() => ackMutation.mutate({ id: a.id, acknowledgedBy: `${staffUser.firstName} ${staffUser.lastName}` })}
@@ -623,10 +623,10 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
 
     return (
       <div className="space-y-3">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+        <div className="bg-white rounded-xl p-4 border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-zinc-400 text-[10px] uppercase font-semibold">
+              <p className="text-slate-500 text-[10px] uppercase font-semibold">
                 <Sparkles size={10} className="inline mr-1 text-amber-400" />AI Schedule Intelligence
               </p>
               <p className="text-zinc-600 text-[9px]">Week of {weekStart}</p>
@@ -645,17 +645,17 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
               {((scheduleIntel?.recommendations as any)?.days || []).map((day: any) => {
                 const levelColor = day.staffingLevel === "heavy" ? "bg-red-500/10 border-red-500/20 text-red-400" :
                   day.staffingLevel === "normal" ? "bg-green-500/10 border-green-500/20 text-green-400" :
-                  "bg-zinc-800 border-zinc-700 text-zinc-400";
+                  "bg-zinc-800 border-zinc-700 text-slate-500";
                 return (
                   <div key={day.date} className={`p-2.5 rounded-lg border ${levelColor}`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white text-[11px] font-medium">{day.dayOfWeek}</span>
+                      <span className="text-slate-900 text-[11px] font-medium">{day.dayOfWeek}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px]">{formatMoney(day.expectedRevenue?.low)}-{formatMoney(day.expectedRevenue?.high)}</span>
                         <span className="text-[8px] uppercase font-bold">{day.staffingLevel}</span>
                       </div>
                     </div>
-                    <p className="text-zinc-400 text-[9px] mt-1">{day.reasoning}</p>
+                    <p className="text-slate-500 text-[9px] mt-1">{day.reasoning}</p>
                     {day.alerts?.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {day.alerts.map((alert: string, i: number) => (
@@ -670,7 +670,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
           ) : (
             <div className="text-center py-6">
               <Sparkles size={24} className="text-zinc-700 mx-auto mb-2" />
-              <p className="text-zinc-500 text-[10px]">Click "Generate" to create AI-powered staffing recommendations</p>
+              <p className="text-slate-500 text-[10px]">Click "Generate" to create AI-powered staffing recommendations</p>
               <p className="text-zinc-600 text-[9px] mt-1">Uses historical sales, weather, events, and void patterns</p>
             </div>
           )}
@@ -679,7 +679,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
         {genScheduleMutation.data?.days && (
           <div className="bg-green-500/5 rounded-xl p-3 border border-green-500/10">
             <p className="text-green-400 text-[10px] font-semibold">New recommendations generated</p>
-            <p className="text-zinc-400 text-[9px]">Refresh to see updated schedule intelligence</p>
+            <p className="text-slate-500 text-[9px]">Refresh to see updated schedule intelligence</p>
           </div>
         )}
       </div>
@@ -687,17 +687,17 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-black flex flex-col overflow-hidden overscroll-contain">
+    <div className="min-h-[100dvh] bg-slate-50 flex flex-col overflow-hidden overscroll-contain">
       {/* Header */}
       <div className="p-4 pb-2 flex items-center gap-3 shrink-0">
-        <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors">
+        <button onClick={onBack} className="text-slate-500 hover:text-slate-900 transition-colors">
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1">
-          <h2 className="text-white font-bold text-base" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" }}>
+          <h2 className="text-slate-900 font-bold text-base" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" }}>
             Intelligence
           </h2>
-          <p className="text-zinc-500 text-[10px]">PDQ POS · {dailySales.length} days · {anomalies.length} alerts</p>
+          <p className="text-slate-500 text-[10px]">PDQ POS · {dailySales.length} days · {anomalies.length} alerts</p>
         </div>
       </div>
 
@@ -706,7 +706,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-medium transition-all whitespace-nowrap ${
-              tab === t.key ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-400 border border-zinc-800"
+              tab === t.key ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-white text-slate-500 border border-slate-200"
             }`}>
             <t.icon size={10} />
             {t.label}

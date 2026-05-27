@@ -38,7 +38,7 @@ const HANDOFF_CATEGORIES: HandoffCategory[] = [
   { key: "equipment", label: "Equipment", icon: Wrench, color: "text-blue-400", bg: "bg-blue-500/10" },
   { key: "customers", label: "Customer Notes", icon: MessageSquare, color: "text-purple-400", bg: "bg-purple-500/10" },
   { key: "staffing", label: "Staffing", icon: Users, color: "text-green-400", bg: "bg-green-500/10" },
-  { key: "other", label: "Other", icon: FileText, color: "text-zinc-400", bg: "bg-zinc-500/10" },
+  { key: "other", label: "Other", icon: FileText, color: "text-slate-500", bg: "bg-zinc-500/10" },
 ];
 
 type HandoffData = Record<string, string[]>;
@@ -154,16 +154,16 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
   // ─── Choose Mode ──────────────────────────────────────
   if (mode === "choose") {
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
+      <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-20">
         <div className="p-3 border-b border-zinc-900 flex items-center gap-2">
-          <button onClick={onBack} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-            <ChevronLeft size={14} className="text-zinc-400" />
+          <button onClick={onBack} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+            <ChevronLeft size={14} className="text-slate-500" />
           </button>
           <div>
-            <h2 className="text-white font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.04em" }}>
+            <h2 className="text-slate-900 font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.04em" }}>
               SHIFT HANDOFF
             </h2>
-            <p className="text-zinc-500 text-[9px]">Pass the torch to the next crew</p>
+            <p className="text-slate-500 text-[9px]">Pass the torch to the next crew</p>
           </div>
         </div>
 
@@ -179,8 +179,8 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
             <div className="flex items-center gap-3">
               <Send size={20} className="text-amber-500 shrink-0" />
               <div>
-                <h3 className="text-white font-bold text-sm">End My Shift</h3>
-                <p className="text-zinc-400 text-[10px] mt-0.5">Write handoff notes for the next crew</p>
+                <h3 className="text-slate-900 font-bold text-sm">End My Shift</h3>
+                <p className="text-slate-500 text-[10px] mt-0.5">Write handoff notes for the next crew</p>
               </div>
               <ArrowRight size={14} className="text-amber-500 ml-auto" />
             </div>
@@ -188,15 +188,15 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
 
           <button
             onClick={() => setMode("read")}
-            className="w-full max-w-xs bg-zinc-900 rounded-xl p-5 border border-zinc-800 hover:border-amber-500/30 transition-all text-left"
+            className="w-full max-w-xs bg-white rounded-xl p-5 border border-slate-200 hover:border-amber-500/30 transition-all text-left"
           >
             <div className="flex items-center gap-3">
               <FileText size={20} className="text-blue-400 shrink-0" />
               <div>
-                <h3 className="text-white font-bold text-sm">Read Handoff</h3>
-                <p className="text-zinc-400 text-[10px] mt-0.5">See what the last shift left for you</p>
+                <h3 className="text-slate-900 font-bold text-sm">Read Handoff</h3>
+                <p className="text-slate-500 text-[10px] mt-0.5">See what the last shift left for you</p>
               </div>
-              <ArrowRight size={14} className="text-zinc-500 ml-auto" />
+              <ArrowRight size={14} className="text-slate-500 ml-auto" />
             </div>
           </button>
         </div>
@@ -208,34 +208,34 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
   if (mode === "write") {
     if (submitted && structuredData) {
       return (
-        <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
+        <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-20">
           <div className="p-3 border-b border-zinc-900 flex items-center gap-2">
-            <button onClick={onBack} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-              <ChevronLeft size={14} className="text-zinc-400" />
+            <button onClick={onBack} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+              <ChevronLeft size={14} className="text-slate-500" />
             </button>
             <div>
-              <h2 className="text-white font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>HANDOFF SAVED</h2>
-              <p className="text-zinc-500 text-[9px]">Next shift will see this</p>
+              <h2 className="text-slate-900 font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>HANDOFF SAVED</h2>
+              <p className="text-slate-500 text-[9px]">Next shift will see this</p>
             </div>
           </div>
           <div className="p-4 space-y-3">
             <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/20 text-center">
               <CheckCircle2 size={32} className="text-green-500 mx-auto mb-2" />
               <p className="text-green-400 font-bold text-sm">Handoff Complete</p>
-              <p className="text-zinc-400 text-xs mt-1">Your notes have been structured and saved</p>
+              <p className="text-slate-500 text-xs mt-1">Your notes have been structured and saved</p>
             </div>
             {HANDOFF_CATEGORIES.map(cat => {
               const items = structuredData[cat.key] || [];
               if (items.length === 0) return null;
               return (
-                <div key={cat.key} className={`${cat.bg} rounded-xl p-3 border border-zinc-800`}>
+                <div key={cat.key} className={`${cat.bg} rounded-xl p-3 border border-slate-200`}>
                   <div className="flex items-center gap-2 mb-2">
                     <cat.icon size={14} className={cat.color} />
                     <span className={`${cat.color} text-xs font-bold`}>{cat.label}</span>
-                    <span className="text-zinc-500 text-[9px]">({items.length})</span>
+                    <span className="text-slate-500 text-[9px]">({items.length})</span>
                   </div>
                   {items.map((item, i) => (
-                    <p key={i} className="text-white text-xs ml-5 mb-1">• {item}</p>
+                    <p key={i} className="text-slate-900 text-xs ml-5 mb-1">• {item}</p>
                   ))}
                 </div>
               );
@@ -249,14 +249,14 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
     }
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
+      <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-20">
         <div className="p-3 border-b border-zinc-900 flex items-center gap-2">
-          <button onClick={() => setMode("choose")} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-            <ChevronLeft size={14} className="text-zinc-400" />
+          <button onClick={() => setMode("choose")} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+            <ChevronLeft size={14} className="text-slate-500" />
           </button>
           <div>
-            <h2 className="text-white font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>END OF SHIFT NOTES</h2>
-            <p className="text-zinc-500 text-[9px]">What does the next crew need to know?</p>
+            <h2 className="text-slate-900 font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>END OF SHIFT NOTES</h2>
+            <p className="text-slate-500 text-[9px]">What does the next crew need to know?</p>
           </div>
         </div>
 
@@ -267,7 +267,7 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
               <button
                 key={i}
                 onClick={() => setNotes(prev => prev + (prev && !prev.endsWith("\n") ? "\n" : "") + qn)}
-                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 text-[9px] hover:border-amber-500/30 hover:text-amber-400 transition-all"
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 text-[9px] hover:border-amber-500/30 hover:text-amber-400 transition-all"
               >
                 {qn.replace(": ", "")}
               </button>
@@ -279,10 +279,10 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="Write your shift notes here...\n\nExamples:\n• 86'd: pepperoni, ranch\n• Low on pizza dough — need to make more\n• Oven 2 running hot, set 25° lower\n• VIP table 12 — regular, comp their appetizer\n• Jake called off tomorrow, need cover"
-            className="w-full h-64 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white text-sm placeholder:text-zinc-600 resize-none focus:outline-none focus:border-amber-500/50"
+            className="w-full h-64 bg-white border border-slate-200 rounded-xl p-4 text-slate-900 text-sm placeholder:text-slate-400 resize-none focus:outline-none focus:border-amber-500/50"
           />
 
-          <div className="flex items-center gap-2 text-zinc-500 text-[9px]">
+          <div className="flex items-center gap-2 text-slate-500 text-[9px]">
             <Sparkles size={10} className="text-amber-500" />
             <span>Notes will be auto-categorized for the next shift</span>
           </div>
@@ -311,14 +311,14 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
 
   // ─── Read Mode ──────────────────────────────────────
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-20">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-20">
       <div className="p-3 border-b border-zinc-900 flex items-center gap-2">
-        <button onClick={() => setMode("choose")} className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-          <ChevronLeft size={14} className="text-zinc-400" />
+        <button onClick={() => setMode("choose")} className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+          <ChevronLeft size={14} className="text-slate-500" />
         </button>
         <div>
-          <h2 className="text-white font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SHIFT HANDOFF</h2>
-          <p className="text-zinc-500 text-[9px]">Notes from the last crew</p>
+          <h2 className="text-slate-900 font-black text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SHIFT HANDOFF</h2>
+          <p className="text-slate-500 text-[9px]">Notes from the last crew</p>
         </div>
       </div>
 
@@ -330,7 +330,7 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
         ) : !latestHandoff || Object.values(latestHandoff).every(v => v.length === 0) ? (
           <div className="text-center py-12">
             <FileText size={32} className="text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-500 text-sm">No handoff notes</p>
+            <p className="text-slate-500 text-sm">No handoff notes</p>
             <p className="text-zinc-600 text-xs mt-1">The previous shift didn't leave any notes</p>
           </div>
         ) : (
@@ -349,28 +349,28 @@ export default function ShiftHandoffScreen({ staffUser, onBack }: Props) {
                 if (items.length === 0) return null;
                 const cat = factTypeToCategory[factType] || HANDOFF_CATEGORIES[5];
                 return (
-                  <div key={factType} className={`${cat.bg} rounded-xl p-3 border border-zinc-800`}>
+                  <div key={factType} className={`${cat.bg} rounded-xl p-3 border border-slate-200`}>
                     <div className="flex items-center gap-2 mb-2">
                       <cat.icon size={14} className={cat.color} />
                       <span className={`${cat.color} text-xs font-bold`}>{cat.label}</span>
-                      <span className="text-zinc-500 text-[9px]">({items.length})</span>
+                      <span className="text-slate-500 text-[9px]">({items.length})</span>
                     </div>
                     {items.map((item, i) => (
-                      <p key={i} className="text-white text-xs ml-5 mb-1">• {item}</p>
+                      <p key={i} className="text-slate-900 text-xs ml-5 mb-1">• {item}</p>
                     ))}
                   </div>
                 );
               });
             })()}
 
-            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 flex items-center gap-2">
-              <Clock size={12} className="text-zinc-500" />
-              <span className="text-zinc-500 text-[9px]">Notes expire after 24 hours</span>
+            <div className="bg-white rounded-xl p-3 border border-slate-200 flex items-center gap-2">
+              <Clock size={12} className="text-slate-500" />
+              <span className="text-slate-500 text-[9px]">Notes expire after 24 hours</span>
             </div>
           </>
         )}
 
-        <button onClick={onBack} className="w-full py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold text-sm">
+        <button onClick={onBack} className="w-full py-3 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold text-sm">
           Back to Home
         </button>
       </div>

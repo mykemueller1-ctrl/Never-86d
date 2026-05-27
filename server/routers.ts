@@ -393,12 +393,12 @@ export const appRouter = router({
       totalAmount: z.string(),
       category: z.enum(["meat", "bread", "produce", "liquor", "beer", "supplies", "misc"]),
       items: z.array(z.object({
-        product: z.string().optional(),
-        unitPrice: z.string().optional(),
-        unit: z.string().optional(),
-        quantity: z.number().optional(),
-        total: z.string().optional(),
-        note: z.string().optional(),
+        product: z.string().nullish(),
+        unitPrice: z.string().nullish(),
+        unit: z.string().nullish(),
+        quantity: z.number().nullish(),
+        total: z.string().nullish(),
+        note: z.string().nullish(),
       })).optional(),
       receiptPhotoUrl: z.string().optional(),
       orderedById: z.number().optional(),
@@ -424,7 +424,7 @@ export const appRouter = router({
                 input.vendorName,
                 item.product,
                 String(item.unitPrice),
-                item.unit,
+                item.unit ?? undefined,
                 input.category
               );
             } catch {

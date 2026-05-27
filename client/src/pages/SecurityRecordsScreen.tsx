@@ -14,19 +14,19 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: any; color: strin
   login_success: { label: "Login", icon: CheckCircle2, color: "text-emerald-400" },
   login_failed: { label: "Failed Login", icon: XCircle, color: "text-red-400" },
   lockout_triggered: { label: "Lockout", icon: Lock, color: "text-red-500" },
-  lockout_expired: { label: "Lockout Expired", icon: Lock, color: "text-zinc-400" },
+  lockout_expired: { label: "Lockout Expired", icon: Lock, color: "text-slate-500" },
   pin_changed: { label: "PIN Changed", icon: Shield, color: "text-amber-400" },
   pin_change_failed: { label: "PIN Change Failed", icon: Shield, color: "text-red-400" },
   clock_in: { label: "Clock In", icon: Clock, color: "text-emerald-400" },
-  clock_out: { label: "Clock Out", icon: Clock, color: "text-zinc-400" },
+  clock_out: { label: "Clock Out", icon: Clock, color: "text-slate-500" },
   unauthorized_access: { label: "Unauthorized", icon: AlertTriangle, color: "text-red-500" },
   prompt_injection_blocked: { label: "Injection Blocked", icon: Shield, color: "text-red-500" },
   staff_created: { label: "Staff Created", icon: User, color: "text-blue-400" },
-  staff_deactivated: { label: "Staff Deactivated", icon: User, color: "text-zinc-500" },
+  staff_deactivated: { label: "Staff Deactivated", icon: User, color: "text-slate-500" },
 };
 
 const SEVERITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  info: { label: "Info", bg: "bg-zinc-800", text: "text-zinc-300" },
+  info: { label: "Info", bg: "bg-zinc-800", text: "text-slate-600" },
   warning: { label: "Warning", bg: "bg-amber-900/30", text: "text-amber-400" },
   critical: { label: "Critical", bg: "bg-red-900/30", text: "text-red-400" },
 };
@@ -69,22 +69,22 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-24 screen-enter">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm border-b border-white/5">
+      <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200">
         <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors">
+            <button onClick={onBack} className="text-slate-500 hover:text-slate-900 transition-colors">
               <ChevronLeft size={20} />
             </button>
             <div>
-              <h1 className="text-white font-semibold text-base tracking-tight">Security Records</h1>
-              <p className="text-zinc-500 text-xs">Audit log & event history</p>
+              <h1 className="text-slate-900 font-semibold text-base tracking-tight">Security Records</h1>
+              <p className="text-slate-500 text-xs">Audit log & event history</p>
             </div>
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 rounded-lg transition-colors ${showFilters ? "bg-amber-500/20 text-amber-400" : "text-zinc-400 hover:text-white"}`}
+            className={`p-2 rounded-lg transition-colors ${showFilters ? "bg-amber-500/20 text-amber-400" : "text-slate-500 hover:text-slate-900"}`}
           >
             <Filter size={16} />
           </button>
@@ -96,20 +96,20 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
         {stats && (
           <div className="grid grid-cols-2 gap-2.5">
             <div className="surface-base p-3.5">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Events (24h)</p>
-              <p className="text-white text-lg font-semibold font-data mt-1">{stats.totalEvents24h}</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider">Events (24h)</p>
+              <p className="text-slate-900 text-lg font-semibold font-data mt-1">{stats.totalEvents24h}</p>
             </div>
             <div className={`surface-base p-3.5 ${stats.lockouts24h > 0 ? "border border-red-500/30" : ""}`}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Lockouts (24h)</p>
-              <p className={`text-lg font-semibold font-data mt-1 ${stats.lockouts24h > 0 ? "text-red-400" : "text-white"}`}>{stats.lockouts24h}</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider">Lockouts (24h)</p>
+              <p className={`text-lg font-semibold font-data mt-1 ${stats.lockouts24h > 0 ? "text-red-400" : "text-slate-900"}`}>{stats.lockouts24h}</p>
             </div>
             <div className={`surface-base p-3.5 ${stats.failedLogins24h > 3 ? "border border-amber-500/30" : ""}`}>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider">Failed Logins</p>
-              <p className={`text-lg font-semibold font-data mt-1 ${stats.failedLogins24h > 3 ? "text-amber-400" : "text-white"}`}>{stats.failedLogins24h}</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider">Failed Logins</p>
+              <p className={`text-lg font-semibold font-data mt-1 ${stats.failedLogins24h > 3 ? "text-amber-400" : "text-slate-900"}`}>{stats.failedLogins24h}</p>
             </div>
             <div className="surface-base p-3.5">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider">PIN Changes</p>
-              <p className="text-white text-lg font-semibold font-data mt-1">{stats.pinChanges24h}</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider">PIN Changes</p>
+              <p className="text-slate-900 text-lg font-semibold font-data mt-1">{stats.pinChanges24h}</p>
             </div>
           </div>
         )}
@@ -128,18 +128,18 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
         {/* Recent Lockouts */}
         {recentLockouts.length > 0 && (
           <div className="surface-base overflow-hidden">
-            <div className="p-3.5 border-b border-white/5 flex items-center gap-2">
+            <div className="p-3.5 border-b border-slate-200 flex items-center gap-2">
               <Lock size={14} className="text-red-400" />
-              <span className="text-white text-sm font-semibold">Recent Lockouts</span>
+              <span className="text-slate-900 text-sm font-semibold">Recent Lockouts</span>
               <span className="ml-auto text-red-400 text-xs font-data">{recentLockouts.length}</span>
             </div>
             {recentLockouts.slice(0, 5).map((event: any, i: number) => (
-              <div key={i} className="p-3.5 border-b border-white/5 last:border-0">
+              <div key={i} className="p-3.5 border-b border-slate-200 last:border-0">
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-300 text-xs font-mono">{event.ipAddress}</span>
-                  <span className="text-zinc-500 text-[10px]">{formatTime(event.createdAt)}</span>
+                  <span className="text-slate-600 text-xs font-mono">{event.ipAddress}</span>
+                  <span className="text-slate-500 text-[10px]">{formatTime(event.createdAt)}</span>
                 </div>
-                {event.staffName && <p className="text-zinc-400 text-[10px] mt-1">{event.staffName}</p>}
+                {event.staffName && <p className="text-slate-500 text-[10px] mt-1">{event.staffName}</p>}
               </div>
             ))}
           </div>
@@ -149,33 +149,33 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
         {showFilters && (
           <div className="surface-base p-4 space-y-3">
             <div>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Event Type</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider mb-2">Event Type</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setFilter("all")}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${filter === "all" ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-400"}`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${filter === "all" ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-slate-500"}`}
                 >All</button>
                 {Object.entries(EVENT_TYPE_CONFIG).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => setFilter(key)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${filter === key ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-400"}`}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${filter === key ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-slate-500"}`}
                   >{cfg.label}</button>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-2">Severity</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider mb-2">Severity</p>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => setSeverityFilter("all")}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${severityFilter === "all" ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-400"}`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${severityFilter === "all" ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-slate-500"}`}
                 >All</button>
                 {Object.entries(SEVERITY_CONFIG).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => setSeverityFilter(key)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${severityFilter === key ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-400"}`}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${severityFilter === key ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-slate-500"}`}
                   >{cfg.label}</button>
                 ))}
               </div>
@@ -185,9 +185,9 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
 
         {/* Event List */}
         <div className="surface-base overflow-hidden">
-          <div className="p-3.5 border-b border-white/5 flex items-center justify-between">
-            <span className="text-white text-sm font-semibold">Event Log</span>
-            <span className="text-zinc-500 text-xs font-data">{events.length} events</span>
+          <div className="p-3.5 border-b border-slate-200 flex items-center justify-between">
+            <span className="text-slate-900 text-sm font-semibold">Event Log</span>
+            <span className="text-slate-500 text-xs font-data">{events.length} events</span>
           </div>
           {isLoading ? (
             <div className="p-8 flex items-center justify-center">
@@ -196,23 +196,23 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
           ) : events.length === 0 ? (
             <div className="p-8 text-center">
               <Shield size={24} className="text-zinc-600 mx-auto mb-2" />
-              <p className="text-zinc-500 text-sm">No security events found</p>
+              <p className="text-slate-500 text-sm">No security events found</p>
             </div>
           ) : (
             events.map((event: any, i: number) => {
-              const config = EVENT_TYPE_CONFIG[event.eventType] || { label: event.eventType, icon: Shield, color: "text-zinc-400" };
+              const config = EVENT_TYPE_CONFIG[event.eventType] || { label: event.eventType, icon: Shield, color: "text-slate-500" };
               const severity = SEVERITY_CONFIG[event.severity] || SEVERITY_CONFIG.info;
               const details = parseDetails(event.details);
               const Icon = config.icon;
               return (
-                <div key={i} className={`p-3.5 border-b border-white/5 last:border-0 ${event.severity === "critical" ? "bg-red-900/10" : ""}`}>
+                <div key={i} className={`p-3.5 border-b border-slate-200 last:border-0 ${event.severity === "critical" ? "bg-red-900/10" : ""}`}>
                   <div className="flex items-start gap-3">
                     <div className={`mt-0.5 ${config.color}`}>
                       <Icon size={14} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-white text-xs font-medium">{config.label}</span>
+                        <span className="text-slate-900 text-xs font-medium">{config.label}</span>
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${severity.bg} ${severity.text}`}>
                           {severity.label}
                         </span>
@@ -221,14 +221,14 @@ export default function SecurityRecordsScreen({ onBack }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        {event.staffName && <span className="text-zinc-300 text-[10px]">{event.staffName}</span>}
+                        {event.staffName && <span className="text-slate-600 text-[10px]">{event.staffName}</span>}
                         <span className="text-zinc-600 text-[10px]">{event.ipAddress}</span>
                       </div>
                       {/* Details */}
                       {details && Object.keys(details).length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {Object.entries(details).map(([key, val]) => (
-                            <span key={key} className="text-[9px] bg-zinc-800/80 text-zinc-400 px-1.5 py-0.5 rounded font-mono">
+                            <span key={key} className="text-[9px] bg-zinc-800/80 text-slate-500 px-1.5 py-0.5 rounded font-mono">
                               {key}: {String(val)}
                             </span>
                           ))}

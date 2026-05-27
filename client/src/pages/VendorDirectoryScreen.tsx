@@ -135,11 +135,11 @@ const METHOD_COPY: Record<InvoiceMethod, { label: string; className: string }> =
 
 function AccessDenied({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center px-8">
+    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center px-8">
       <Lock size={32} className="text-zinc-700 mb-4" />
-      <p className="text-zinc-300 text-sm font-bold">Manager Access Required</p>
+      <p className="text-slate-600 text-sm font-bold">Manager Access Required</p>
       <p className="text-zinc-600 text-xs text-center mt-2">Vendor contacts and payment workflow details are manager-only.</p>
-      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-zinc-900 text-zinc-300 text-xs font-semibold border border-zinc-800">
+      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-white text-slate-600 text-xs font-semibold border border-slate-200">
         Back
       </button>
     </div>
@@ -165,26 +165,26 @@ export default function VendorDirectoryScreen({ staffUser, onBack }: Props) {
   if (!isManagerOrOwner(staffUser)) return <AccessDenied onBack={onBack} />;
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24">
-      <div className="sticky top-0 z-10 bg-black/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
-        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center border border-zinc-800">
-          <ChevronLeft size={15} className="text-zinc-400" />
+    <div className="h-screen bg-slate-50 flex flex-col overflow-y-auto pb-24">
+      <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-zinc-900 p-3 flex items-center gap-2">
+        <button onClick={onBack} className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-200">
+          <ChevronLeft size={15} className="text-slate-500" />
         </button>
         <div className="flex-1">
-          <h2 className="text-white font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VENDOR DIRECTORY</h2>
-          <p className="text-zinc-500 text-[10px]">8 vendors · contacts · invoice rules · payment terms</p>
+          <h2 className="text-slate-900 font-black text-sm tracking-[0.08em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VENDOR DIRECTORY</h2>
+          <p className="text-slate-500 text-[10px]">8 vendors · contacts · invoice rules · payment terms</p>
         </div>
       </div>
 
       <div className="p-3 space-y-3">
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={searchQuery}
               onChange={event => setSearchQuery(event.target.value)}
               placeholder="Search vendors, contacts, emails..."
-              className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-9 pr-3 text-white text-xs placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-9 pr-3 text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:border-amber-500/50"
             />
           </div>
           <div className="grid grid-cols-5 gap-1 mt-3">
@@ -192,7 +192,7 @@ export default function VendorDirectoryScreen({ staffUser, onBack }: Props) {
               <button
                 key={type}
                 onClick={() => setActiveType(type)}
-                className={`rounded-lg px-2 py-2 text-[9px] font-bold border transition-all ${activeType === type ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-zinc-950 text-zinc-500 border-zinc-800"}`}
+                className={`rounded-lg px-2 py-2 text-[9px] font-bold border transition-all ${activeType === type ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-slate-50 text-slate-500 border-slate-200"}`}
               >
                 {TYPE_LABELS[type]}
               </button>
@@ -201,12 +201,12 @@ export default function VendorDirectoryScreen({ staffUser, onBack }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide">Email invoices</p>
-            <p className="text-white text-lg font-bold">{VENDORS.filter(vendor => vendor.invoiceMethod !== "camera").length}</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide">Email invoices</p>
+            <p className="text-slate-900 text-lg font-bold">{VENDORS.filter(vendor => vendor.invoiceMethod !== "camera").length}</p>
           </div>
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-3">
-            <p className="text-zinc-500 text-[9px] uppercase tracking-wide">Camera required</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-3">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide">Camera required</p>
             <p className="text-amber-400 text-lg font-bold">{VENDORS.filter(vendor => vendor.invoiceMethod !== "email").length}</p>
           </div>
         </div>
@@ -215,31 +215,31 @@ export default function VendorDirectoryScreen({ staffUser, onBack }: Props) {
           {filteredVendors.map(vendor => {
             const method = METHOD_COPY[vendor.invoiceMethod];
             return (
-              <div key={vendor.name} className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-                <div className="p-3 border-b border-zinc-800/80">
+              <div key={vendor.name} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="p-3 border-b border-slate-200/80">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-white text-sm font-bold leading-tight">{vendor.name}</p>
-                      <p className="text-zinc-500 text-[10px] mt-0.5 capitalize">{TYPE_LABELS[vendor.type]}</p>
+                      <p className="text-slate-900 text-sm font-bold leading-tight">{vendor.name}</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5 capitalize">{TYPE_LABELS[vendor.type]}</p>
                     </div>
                     <span className={`shrink-0 px-2 py-1 rounded-full border text-[9px] font-bold ${method.className}`}>{method.label}</span>
                   </div>
                 </div>
                 <div className="p-3 space-y-2.5">
                   <div className="grid grid-cols-1 gap-2 text-[11px]">
-                    <div className="flex items-center gap-2 text-zinc-300"><Phone size={12} className="text-amber-400" /><span>{vendor.contact}{vendor.phone !== "—" ? ` · ${vendor.phone}` : ""}</span></div>
-                    <div className="flex items-center gap-2 text-zinc-300"><Truck size={12} className="text-amber-400" /><span>{vendor.deliveryDays}</span></div>
-                    <div className="flex items-center gap-2 text-zinc-300"><CreditCard size={12} className="text-amber-400" /><span>{vendor.paymentTerms}</span></div>
+                    <div className="flex items-center gap-2 text-slate-600"><Phone size={12} className="text-amber-400" /><span>{vendor.contact}{vendor.phone !== "—" ? ` · ${vendor.phone}` : ""}</span></div>
+                    <div className="flex items-center gap-2 text-slate-600"><Truck size={12} className="text-amber-400" /><span>{vendor.deliveryDays}</span></div>
+                    <div className="flex items-center gap-2 text-slate-600"><CreditCard size={12} className="text-amber-400" /><span>{vendor.paymentTerms}</span></div>
                     {vendor.emails.length > 0 ? (
-                      <div className="flex items-start gap-2 text-zinc-300">
+                      <div className="flex items-start gap-2 text-slate-600">
                         <Mail size={12} className="text-amber-400 mt-0.5" />
                         <div className="space-y-0.5">{vendor.emails.map(email => <p key={email}>{email}</p>)}</div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-zinc-500"><Camera size={12} className="text-amber-400" /><span>No email invoice path — camera capture only</span></div>
+                      <div className="flex items-center gap-2 text-slate-500"><Camera size={12} className="text-amber-400" /><span>No email invoice path — camera capture only</span></div>
                     )}
                   </div>
-                  <p className="text-zinc-500 text-[10px] leading-relaxed pt-2 border-t border-zinc-800/60">{vendor.notes}</p>
+                  <p className="text-slate-500 text-[10px] leading-relaxed pt-2 border-t border-slate-200/60">{vendor.notes}</p>
                 </div>
               </div>
             );
