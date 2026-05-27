@@ -61,16 +61,16 @@ export default function ClockWidget({ staffId, staffName }: Props) {
 
   if (activeEntry.isLoading || activeEntry.isFetching) {
     return (
-      <div className="surface-base p-5 rounded-xl">
+      <div className="surface-base p-5 rounded-2xl shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/25 flex items-center justify-center">
               <Loader2 size={18} className="text-amber-500 animate-spin" />
             </div>
             <div>
-              <p className="type-caption text-slate-500">Checking clock status...</p>
+              <p className="type-caption text-slate-300">Checking clock status...</p>
               {hours?.totalHours && (
-                <p className="type-micro text-zinc-600 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
+                <p className="type-micro text-slate-400 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
               )}
             </div>
           </div>
@@ -81,14 +81,14 @@ export default function ClockWidget({ staffId, staffName }: Props) {
 
   if (activeEntry.isError) {
     return (
-      <div className="surface-base p-5 rounded-xl border border-red-500/15">
+      <div className="surface-base p-5 rounded-2xl border border-red-400/20 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
             <Clock size={18} className="text-red-400" />
           </div>
           <div>
             <p className="type-caption text-red-300">Clock status unavailable</p>
-            <p className="type-micro text-zinc-600 normal-case">Refresh or ask a manager before starting work.</p>
+            <p className="type-micro text-slate-400 normal-case">Refresh or ask a manager before starting work.</p>
           </div>
         </div>
       </div>
@@ -98,21 +98,21 @@ export default function ClockWidget({ staffId, staffName }: Props) {
   // Not clocked in
   if (!isClockedIn) {
     return (
-      <div className="surface-base p-5 rounded-xl">
+      <div className="surface-base p-5 rounded-2xl shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
-              <Clock size={18} className="text-slate-500" />
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/25 flex items-center justify-center">
+              <Clock size={18} className="text-amber-300" />
             </div>
             <div>
-              <p className="type-caption text-slate-500">Not clocked in</p>
+              <p className="type-caption text-slate-300">Not clocked in</p>
               {hours?.totalHours && (
-                <p className="type-micro text-zinc-600 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
+                <p className="type-micro text-slate-400 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
               )}
             </div>
           </div>
           <button onClick={() => clockInMut.mutate()} disabled={isPending}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-amber-500 text-black type-caption font-semibold hover:bg-amber-400 transition-colors active:scale-95 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-300 to-amber-500 text-[#07111f] type-caption font-semibold hover:from-amber-200 hover:to-amber-400 transition-colors active:scale-95 disabled:opacity-50 shadow-[0_12px_28px_rgba(245,158,11,0.22)]">
             {isPending ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             Clock In
           </button>
@@ -123,15 +123,15 @@ export default function ClockWidget({ staffId, staffName }: Props) {
 
   // Clocked in (active or on break)
   return (
-    <div className={`p-5 rounded-xl border transition-colors ${
+    <div className={`p-5 rounded-2xl border transition-colors shadow-[0_18px_55px_rgba(0,0,0,0.22)] ${
       isOnBreak
-        ? "bg-blue-500/5 border-blue-500/15"
-        : "bg-green-500/5 border-green-500/15"
+        ? "bg-blue-400/10 border-blue-300/20"
+        : "bg-green-400/10 border-green-300/20"
     }`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            isOnBreak ? "bg-blue-500/15" : "bg-green-500/15"
+            isOnBreak ? "bg-blue-400/15" : "bg-green-400/15"
           }`}>
             {isOnBreak ? <Coffee size={18} className="text-blue-400" /> : <Clock size={18} className="text-green-400" />}
           </div>
@@ -139,7 +139,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
             <p className={`type-caption font-medium ${isOnBreak ? "text-blue-400" : "text-green-400"}`}>
               {isOnBreak ? "On Break" : "Clocked In"}
             </p>
-            <p className="type-micro text-slate-500 normal-case">
+            <p className="type-micro text-slate-400 normal-case">
               {entry.clockIn && formatElapsed(entry.clockIn)} elapsed
               {hours?.totalHours && <span className="ml-2">· {Number(hours.totalHours).toFixed(1)}h this week</span>}
             </p>
@@ -151,19 +151,19 @@ export default function ClockWidget({ staffId, staffName }: Props) {
       <div className="flex gap-2">
         {isOnBreak ? (
           <button onClick={() => endBreakMut.mutate()} disabled={isPending}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-blue-500/15 text-blue-400 type-caption font-medium hover:bg-blue-500/25 transition-colors active:scale-[0.98] disabled:opacity-50">
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-400/15 text-blue-300 type-caption font-medium hover:bg-blue-400/25 transition-colors active:scale-[0.98] disabled:opacity-50">
             {isPending ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
             End Break
           </button>
         ) : (
           <button onClick={() => startBreakMut.mutate()} disabled={isPending}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-zinc-800 text-slate-600 type-caption font-medium hover:bg-zinc-700 transition-colors active:scale-[0.98] disabled:opacity-50">
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#13233a] text-slate-300 type-caption font-medium hover:bg-[#182b45] transition-colors active:scale-[0.98] disabled:opacity-50">
             {isPending ? <Loader2 size={13} className="animate-spin" /> : <Coffee size={13} />}
             Break
           </button>
         )}
         <button onClick={() => clockOutMut.mutate()} disabled={isPending}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-red-500/10 text-red-400 type-caption font-medium hover:bg-red-500/20 transition-colors active:scale-[0.98] disabled:opacity-50">
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500/10 text-red-300 type-caption font-medium hover:bg-red-500/20 transition-colors active:scale-[0.98] disabled:opacity-50">
           {isPending ? <Loader2 size={13} className="animate-spin" /> : <LogOut size={13} />}
           Clock Out
         </button>

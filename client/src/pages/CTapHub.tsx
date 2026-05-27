@@ -2,10 +2,10 @@
  * CTAP People Platform — "Night Shift" Design System
  * Community Tap & Pizza · Fort Dodge, Iowa · Powered by Never 86'd
  *
- * Design Philosophy: Steve Jobs discipline.
- * One accent color. Generous whitespace. Every pixel earns its place.
+ * Design Philosophy: polished dark/navy enterprise operations cockpit.
+ * Same OLD-site feel: deep navy shell, amber CT accent, premium cards.
  * Typography hierarchy: Display → Heading → Body → Caption → Micro.
- * Surfaces over borders. Motion with purpose.
+ * Layered glass surfaces, confident spacing, mobile-first bottom navigation.
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
@@ -96,11 +96,11 @@ function isManagerOrOwner(s: SafeStaff | null): boolean {
 }
 
 function salesVibe(amount: number | null | undefined): { label: string; color: string } {
-  if (!amount || amount === 0) return { label: "No data yet", color: "text-slate-500" };
-  if (amount >= 5000) return { label: "Legendary Night", color: "text-amber-400" };
-  if (amount >= 3500) return { label: "Great Night", color: "text-amber-400" };
-  if (amount >= 2000) return { label: "Solid Night", color: "text-zinc-700" };
-  return { label: "Steady Night", color: "text-slate-500" };
+  if (!amount || amount === 0) return { label: "No data yet", color: "text-slate-400" };
+  if (amount >= 5000) return { label: "Legendary Night", color: "text-amber-300" };
+  if (amount >= 3500) return { label: "Great Night", color: "text-amber-300" };
+  if (amount >= 2000) return { label: "Solid Night", color: "text-slate-200" };
+  return { label: "Steady Night", color: "text-slate-400" };
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────
@@ -364,23 +364,23 @@ export default function CTapHub() {
   // ─── SPLASH — The first thing anyone sees. Make it count. ──────
   // ════════════════════════════════════════════════════════════════
   const SplashScreen = () => (
-    <div className="h-screen bg-white flex flex-col items-center justify-center screen-enter">
+    <div className="h-screen bg-[#07111f] flex flex-col items-center justify-center screen-enter">
       <div className="text-center">
         {/* Logo mark — simple, confident */}
-        <div className="w-16 h-16 rounded-2xl bg-amber-500 flex items-center justify-center mx-auto mb-8 shadow-lg shadow-amber-500/20"
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mx-auto mb-8 shadow-[0_18px_50px_rgba(245,158,11,0.28)]"
           style={{ animation: "screenFadeIn 800ms ease-out" }}>
-          <span className="text-2xl font-black text-zinc-900 tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>CT</span>
+          <span className="text-2xl font-black text-[#07111f] tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>CT</span>
         </div>
 
-        <h1 className="type-display text-zinc-900 mb-1">
+        <h1 className="type-display text-slate-50 mb-1">
           COMMUNITY TAP
         </h1>
-        <p className="type-display text-amber-600 text-xl">& PIZZA</p>
+        <p className="type-display text-amber-300 text-xl">& PIZZA</p>
 
-        <div className="w-8 h-px bg-zinc-200 mx-auto mt-6 mb-6" />
+        <div className="w-10 h-px bg-amber-400/35 mx-auto mt-6 mb-6" />
 
-        <p className="type-micro text-slate-500">Fort Dodge, Iowa</p>
-        <p className="text-slate-500 text-[10px] mt-6 tracking-wider">Powered by Never 86'd</p>
+        <p className="type-micro text-slate-400">Fort Dodge, Iowa</p>
+        <p className="text-slate-400 text-[10px] mt-6 tracking-wider">Powered by Never 86'd</p>
       </div>
     </div>
   );
@@ -389,28 +389,28 @@ export default function CTapHub() {
   // ─── LOGIN — PIN Only, Clean Enterprise ────────────────────────
   // ════════════════════════════════════════════════════════════════
   const LoginScreen = () => (
-    <div className="min-h-[100dvh] bg-white flex flex-col items-center justify-center screen-enter">
+    <div className="min-h-[100dvh] bg-[#07111f] flex flex-col items-center justify-center screen-enter">
       <div className="w-full max-w-sm px-6">
         {/* CT Logo */}
-        <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/20">
-          <span className="text-xl font-black text-zinc-900 tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>CT</span>
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mx-auto mb-7 shadow-[0_18px_50px_rgba(245,158,11,0.26)]">
+          <span className="text-xl font-black text-[#07111f] tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>CT</span>
         </div>
 
-        <h2 className="type-display text-zinc-900 text-center mb-1">START YOUR SHIFT</h2>
-        <p className="type-body text-slate-500 text-center mb-10">Enter your 4-digit PIN</p>
+        <h2 className="type-display text-slate-50 text-center mb-1">START YOUR SHIFT</h2>
+        <p className="type-body text-slate-400 text-center mb-10">Enter your 4-digit PIN</p>
 
         {/* PIN Dots */}
         <div className="flex items-center gap-3 mb-6 justify-center">
           <div className="flex gap-3">
             {[0,1,2,3].map(i => (
               <div key={i} className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-semibold transition-all duration-200 ${
-                pin.length > i ? 'bg-amber-50 text-amber-600 ring-2 ring-amber-400 shadow-sm' : 'bg-zinc-100 text-slate-500 border border-zinc-200'
+                pin.length > i ? 'bg-amber-400/15 text-amber-200 ring-2 ring-amber-400/70 shadow-[0_0_25px_rgba(251,191,36,0.16)]' : 'bg-[#0d1b2d] text-slate-400 border border-slate-700/80'
               }`}>
                 {pin.length > i ? (showPin ? pin[i] : "\u2022") : ""}
               </div>
             ))}
           </div>
-          <button onClick={() => setShowPin(!showPin)} className="text-slate-500 p-2 hover:text-zinc-600 transition-colors">
+          <button onClick={() => setShowPin(!showPin)} className="text-slate-400 p-2 hover:text-amber-300 transition-colors">
             {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
@@ -433,7 +433,7 @@ export default function CTapHub() {
                 if (newPin.length === 4) handlePinLogin(newPin);
               }
             }} className={`h-14 rounded-xl font-semibold text-lg transition-all duration-150 ${
-              n === null ? 'invisible' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200 active:bg-amber-500 active:text-zinc-900 active:scale-95 border border-zinc-200'
+              n === null ? 'invisible' : 'bg-[#0d1b2d] text-slate-100 hover:bg-[#13233a] active:bg-amber-400 active:text-[#07111f] active:scale-95 border border-slate-700/80 shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
             }`}>
               {n}
             </button>
@@ -442,12 +442,12 @@ export default function CTapHub() {
 
         {loginByPin.isPending && (
           <div className="flex items-center justify-center mt-6">
-            <Loader2 size={18} className="text-amber-500 animate-spin" />
-            <span className="text-slate-500 type-caption ml-2">Verifying...</span>
+            <Loader2 size={18} className="text-amber-300 animate-spin" />
+            <span className="text-slate-400 type-caption ml-2">Verifying...</span>
           </div>
         )}
 
-        <p className="text-center type-micro text-slate-500 mt-8">Community Tap & Pizza · Fort Dodge, Iowa</p>
+        <p className="text-center type-micro text-slate-400 mt-8">Community Tap & Pizza · Fort Dodge, Iowa</p>
       </div>
     </div>
   );
@@ -458,43 +458,43 @@ export default function CTapHub() {
   const WelcomeScreen = () => {
     const rank = leaderboard.findIndex(s => s.id === staffUser?.id) + 1;
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center px-8 screen-enter">
+      <div className="h-screen bg-[#07111f] flex flex-col items-center justify-center px-8 screen-enter">
         <div className="text-center max-w-xs">
-          <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-8">
-            <span className="text-amber-600 text-2xl font-bold">{staffUser?.firstName?.charAt(0)}</span>
+          <div className="w-16 h-16 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center mx-auto mb-8 shadow-[0_16px_40px_rgba(245,158,11,0.12)]">
+            <span className="text-amber-200 text-2xl font-bold">{staffUser?.firstName?.charAt(0)}</span>
           </div>
 
-          <h1 className="type-display text-zinc-900 mb-3">
+          <h1 className="type-display text-slate-50 mb-3">
             HEY {staffUser?.firstName?.toUpperCase()}
           </h1>
-          <p className="type-body text-slate-500 mb-2">
+          <p className="type-body text-slate-400 mb-2">
             Let's have a great shift.
           </p>
 
           {/* Stats — clean, horizontal */}
           <div className="flex items-center justify-center gap-6 mt-8 mb-10">
             <div className="text-center">
-              <p className="text-amber-600 font-semibold text-lg font-data">{staffUser?.totalPoints?.toLocaleString()}</p>
-              <p className="type-micro text-slate-500 mt-0.5">Score</p>
+              <p className="text-amber-300 font-semibold text-lg font-data">{staffUser?.totalPoints?.toLocaleString()}</p>
+              <p className="type-micro text-slate-400 mt-0.5">Score</p>
             </div>
-            <div className="w-px h-8 bg-zinc-200" />
+            <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
-              <p className="text-zinc-900 font-semibold text-lg font-data">{staffUser?.currentStreak}<span className="text-slate-500 text-sm">d</span></p>
-              <p className="type-micro text-slate-500 mt-0.5">Streak</p>
+              <p className="text-slate-50 font-semibold text-lg font-data">{staffUser?.currentStreak}<span className="text-slate-400 text-sm">d</span></p>
+              <p className="type-micro text-slate-400 mt-0.5">Streak</p>
             </div>
             {rank > 0 && (
               <>
-                <div className="w-px h-8 bg-zinc-200" />
+                <div className="w-px h-8 bg-slate-700" />
                 <div className="text-center">
-                  <p className="text-zinc-900 font-semibold text-lg font-data">#{rank}</p>
-                  <p className="type-micro text-slate-500 mt-0.5">Rank</p>
+                  <p className="text-slate-50 font-semibold text-lg font-data">#{rank}</p>
+                  <p className="type-micro text-slate-400 mt-0.5">Rank</p>
                 </div>
               </>
             )}
           </div>
 
           <button onClick={() => setScreen("briefing")}
-            className="w-full py-3.5 rounded-xl bg-amber-500 text-zinc-900 font-semibold type-body shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600 active:scale-[0.98]">
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-300 to-amber-500 text-[#07111f] font-semibold type-body shadow-[0_16px_35px_rgba(245,158,11,0.24)] transition-all hover:from-amber-200 hover:to-amber-400 active:scale-[0.98]">
             See Today's Briefing <ArrowRight size={15} className="inline ml-1.5 -mt-0.5" />
           </button>
         </div>
@@ -514,37 +514,37 @@ export default function CTapHub() {
     const vibe = salesVibe(briefing?.salesYesterday ? Number(briefing.salesYesterday) : null);
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <div className="px-6 pt-12">
-          <p className="type-micro text-slate-500 mb-2">{today}</p>
-          <h2 className="type-display text-zinc-900 mb-8">TODAY'S BRIEFING</h2>
+          <p className="type-micro text-slate-400 mb-2">{today}</p>
+          <h2 className="type-display text-slate-50 mb-8">TODAY'S BRIEFING</h2>
 
           {briefingQuery.isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 size={20} className="text-amber-500 animate-spin" />
+              <Loader2 size={20} className="text-amber-300 animate-spin" />
             </div>
           ) : briefing ? (
             <div className="space-y-4">
               {/* Yesterday recap */}
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                <p className="type-micro text-slate-500 mb-3">Yesterday</p>
+                <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+                <p className="type-micro text-slate-400 mb-3">Yesterday</p>
                 {isManager ? (
                   <div className="flex gap-8">
                     <div>
-                      <p className="text-2xl font-semibold text-zinc-900 font-data">${briefing.salesYesterday || "—"}</p>
-                      <p className="type-caption text-slate-500 mt-0.5">sales</p>
+                      <p className="text-2xl font-semibold text-slate-50 font-data">${briefing.salesYesterday || "—"}</p>
+                      <p className="type-caption text-slate-400 mt-0.5">sales</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-zinc-900 font-data">{briefing.ordersYesterday || "—"}</p>
-                      <p className="type-caption text-slate-500 mt-0.5">orders</p>
+                      <p className="text-2xl font-semibold text-slate-50 font-data">{briefing.ordersYesterday || "—"}</p>
+                      <p className="type-caption text-slate-400 mt-0.5">orders</p>
                     </div>
                   </div>
                 ) : (
                   <p className={`type-heading ${vibe.color}`}>{vibe.label}</p>
                 )}
                 {shoutouts.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-zinc-200">
-                    <p className="type-caption text-amber-500 flex items-center gap-1.5">
+                  <div className="mt-4 pt-4 border-t border-slate-700/80">
+                    <p className="type-caption text-amber-300 flex items-center gap-1.5">
                       <Trophy size={13} />{shoutouts[0].staffName} — {shoutouts[0].reason}
                     </p>
                   </div>
@@ -553,47 +553,47 @@ export default function CTapHub() {
 
               {/* 86'd */}
               {eightySixed.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+                <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.16)]">
                   <p className="type-micro text-red-600 mb-3 flex items-center gap-1.5">
                     <AlertTriangle size={12} />86'd TODAY
                   </p>
                   {eightySixed.map((item, i) => (
-                    <p key={i} className="text-zinc-900 type-body">{item}</p>
+                    <p key={i} className="text-slate-50 type-body">{item}</p>
                   ))}
                 </div>
               )}
 
               {/* Specials */}
               {specials.length > 0 && (
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                  <p className="type-micro text-slate-500 mb-3">Specials</p>
+                <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+                  <p className="type-micro text-slate-400 mb-3">Specials</p>
                   {specials.map((s, i) => (
-                    <p key={i} className="type-body text-zinc-600"><span className="text-zinc-900 font-medium">{s.name}</span> — {s.description}</p>
+                    <p key={i} className="type-body text-slate-400"><span className="text-slate-50 font-medium">{s.name}</span> — {s.description}</p>
                   ))}
                 </div>
               )}
 
               {/* Open Issues */}
               {openIssuesBriefing.length > 0 && (
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
-                  <p className="type-micro text-slate-500 mb-3">Open Issues</p>
+                <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+                  <p className="type-micro text-slate-400 mb-3">Open Issues</p>
                   {openIssuesBriefing.map((issue, i) => (
                     <div key={i} className="flex items-start gap-3 mb-2 last:mb-0">
-                      <div className="w-1.5 h-1.5 rounded-full mt-2 bg-amber-500 shrink-0" />
-                      <p className="type-body text-zinc-700">{issue.description}</p>
+                      <div className="w-1.5 h-1.5 rounded-full mt-2 bg-amber-400/100 shrink-0" />
+                      <p className="type-body text-slate-200">{issue.description}</p>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           ) : (
-            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-8 text-center">
-              <p className="type-body text-slate-500">No briefing posted yet today.</p>
+            <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-8 text-center shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+              <p className="type-body text-slate-400">No briefing posted yet today.</p>
             </div>
           )}
 
           <button onClick={() => setScreen("home")}
-            className="w-full py-3.5 rounded-xl bg-amber-500 text-zinc-900 font-semibold type-body mt-8 shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600 active:scale-[0.98]">
+            className="w-full py-3.5 rounded-xl bg-amber-400/100 text-slate-50 font-semibold type-body mt-8 shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-400 active:scale-[0.98]">
             Let's Go <ArrowRight size={15} className="inline ml-1.5 -mt-0.5" />
           </button>
         </div>
@@ -619,23 +619,23 @@ export default function CTapHub() {
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
     return (
-      <div className="min-h-[100dvh] bg-zinc-50 flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         {/* Header — minimal, confident */}
         <div className="px-6 pt-8 pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="type-caption text-slate-500">{greeting}</p>
-              <h1 className="type-display text-zinc-900">{staffUser.firstName}</h1>
+              <p className="type-caption text-slate-400">{greeting}</p>
+              <h1 className="type-display text-slate-50">{staffUser.firstName}</h1>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
-                <Trophy size={12} className="text-amber-600" />
-                <span className="text-amber-600 type-caption font-semibold font-data">{staffUser.totalPoints?.toLocaleString()}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/25">
+                <Trophy size={12} className="text-amber-300" />
+                <span className="text-amber-200 type-caption font-semibold font-data">{staffUser.totalPoints?.toLocaleString()}</span>
               </div>
               {staffUser.currentStreak > 0 && (
-                <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200">
-                  <Flame size={11} className="text-amber-600" />
-                  <span className="text-amber-600 type-caption font-semibold font-data">{staffUser.currentStreak}d</span>
+                <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/25">
+                  <Flame size={11} className="text-amber-300" />
+                  <span className="text-amber-200 type-caption font-semibold font-data">{staffUser.currentStreak}d</span>
                 </div>
               )}
             </div>
@@ -648,28 +648,28 @@ export default function CTapHub() {
 
           {/* 86'd Alert */}
           {briefing && (briefing.eightySixedItems as string[])?.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-4 shadow-[0_14px_35px_rgba(0,0,0,0.18)]">
               <p className="type-micro text-red-600 mb-2 flex items-center gap-1.5"><AlertTriangle size={11} />86'd RIGHT NOW</p>
-              <p className="text-zinc-900 type-body font-medium">{(briefing.eightySixedItems as string[]).join(" · ")}</p>
+              <p className="text-slate-50 type-body font-medium">{(briefing.eightySixedItems as string[]).join(" · ")}</p>
             </div>
           )}
 
           {/* Checklists — primary action */}
           {myChecklists.length > 0 && (
             <button onClick={() => navigateTo("checklist")}
-              className="w-full bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98] p-5 text-left">
+              className="w-full bg-[#0d1b2d] border border-slate-700/80 rounded-2xl hover:border-amber-400/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.24)] transition-all active:scale-[0.98] p-5 text-left">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <ClipboardCheck size={18} className="text-amber-500" />
-                  <span className="text-zinc-900 font-semibold type-body">Your Checklists</span>
+                  <ClipboardCheck size={18} className="text-amber-300" />
+                  <span className="text-slate-50 font-semibold type-body">Your Checklists</span>
                 </div>
-                <ChevronRight size={16} className="text-zinc-600" />
+                <ChevronRight size={16} className="text-slate-400" />
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${totalTasks > 0 ? (doneTasks / totalTasks) * 100 : 0}%` }} />
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400/100 rounded-full transition-all duration-500" style={{ width: `${totalTasks > 0 ? (doneTasks / totalTasks) * 100 : 0}%` }} />
                 </div>
-                <span className="text-slate-500 type-caption font-data">{doneTasks}/{totalTasks}</span>
+                <span className="text-slate-400 type-caption font-data">{doneTasks}/{totalTasks}</span>
               </div>
             </button>
           )}
@@ -677,16 +677,16 @@ export default function CTapHub() {
           {/* Driver EOD */}
           {isDriver && (
             <button onClick={() => navigateTo("driver-eod")}
-              className="w-full bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98] p-5 text-left">
+              className="w-full bg-[#0d1b2d] border border-slate-700/80 rounded-2xl hover:border-amber-400/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.24)] transition-all active:scale-[0.98] p-5 text-left">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Truck size={18} className="text-amber-500" />
+                  <Truck size={18} className="text-amber-300" />
                   <div>
-                    <span className="text-zinc-900 font-semibold type-body">End of Day Report</span>
-                    <p className="type-caption text-slate-500">Required before clocking out</p>
+                    <span className="text-slate-50 font-semibold type-body">End of Day Report</span>
+                    <p className="type-caption text-slate-400">Required before clocking out</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-zinc-600" />
+                <ChevronRight size={16} className="text-slate-400" />
               </div>
             </button>
           )}
@@ -694,23 +694,23 @@ export default function CTapHub() {
           {/* Command Center — managers only */}
           {isManager && (
             <button onClick={() => navigateTo("command")}
-              className="w-full bg-amber-50 rounded-xl p-5 border border-amber-200 hover:border-amber-300 transition-all text-left active:scale-[0.98]">
+              className="w-full bg-gradient-to-br from-amber-400/18 to-[#0d1b2d] rounded-2xl p-5 border border-amber-400/30 hover:border-amber-300/60 transition-all text-left active:scale-[0.98] shadow-[0_18px_55px_rgba(0,0,0,0.24)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <BarChart3 size={18} className="text-amber-500" />
+                  <BarChart3 size={18} className="text-amber-300" />
                   <div>
-                    <span className="text-zinc-900 font-semibold type-body">Command Center</span>
-                    <p className="type-caption text-slate-500">Operations & intelligence</p>
+                    <span className="text-slate-50 font-semibold type-body">Command Center</span>
+                    <p className="type-caption text-slate-400">Operations & intelligence</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-amber-500" />
+                <ChevronRight size={16} className="text-amber-300" />
               </div>
             </button>
           )}
 
           {/* Quick Actions — clean 2-column grid, amber-only accents */}
           <div>
-            <p className="type-micro text-zinc-600 mb-3">Quick Actions</p>
+            <p className="type-micro text-slate-400 mb-3">Quick Actions</p>
             <div className="grid grid-cols-2 gap-2.5">
               {isManager && (
                 <>
@@ -742,7 +742,7 @@ export default function CTapHub() {
 
           {/* Intelligence Row — unified amber accent */}
           <div>
-            <p className="type-micro text-zinc-600 mb-3">Intelligence</p>
+            <p className="type-micro text-slate-400 mb-3">Intelligence</p>
             <div className="grid grid-cols-4 gap-2.5">
               {[
                 { icon: Brain, label: "Ask Brain", s: "ask-brain" as Screen },
@@ -751,9 +751,9 @@ export default function CTapHub() {
                 { icon: Gift, label: "Rewards", s: "rewards-shop" as Screen },
               ].map(item => (
                 <button key={item.s} onClick={() => navigateTo(item.s)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98]">
-                  <item.icon size={20} className="text-amber-500" />
-                  <span className="type-micro text-slate-500 normal-case">{item.label}</span>
+                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0d1b2d] border border-slate-700/80 hover:border-amber-400/45 hover:shadow-[0_16px_38px_rgba(0,0,0,0.22)] transition-all active:scale-[0.98]">
+                  <item.icon size={20} className="text-amber-300" />
+                  <span className="type-micro text-slate-400 normal-case">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -762,39 +762,39 @@ export default function CTapHub() {
           {/* Leaderboard Preview */}
           {leaderboard.length > 0 && (
             <button onClick={() => navigateTo("leaderboard")}
-              className="w-full bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98] p-5 text-left">
+              className="w-full bg-[#0d1b2d] border border-slate-700/80 rounded-2xl hover:border-amber-400/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.24)] transition-all active:scale-[0.98] p-5 text-left">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <Trophy size={16} className="text-amber-500" />
-                  <span className="text-zinc-900 font-semibold type-body">Leaderboard</span>
+                  <Trophy size={16} className="text-amber-300" />
+                  <span className="text-slate-50 font-semibold type-body">Leaderboard</span>
                 </div>
-                <span className="type-caption text-slate-500 font-data">#{rank || "—"} of {leaderboard.length}</span>
+                <span className="type-caption text-slate-400 font-data">#{rank || "—"} of {leaderboard.length}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {leaderboard.slice(0, 5).map((s) => (
                   <div key={s.id} className={`w-8 h-8 rounded-full flex items-center justify-center type-caption font-semibold transition-all ${
-                    s.id === staffUser.id ? 'bg-amber-500 text-zinc-900' : 'bg-zinc-200 text-zinc-600'
+                    s.id === staffUser.id ? 'bg-amber-400 text-[#07111f]' : 'bg-slate-800 text-slate-300'
                   }`}>
                     {s.firstName.charAt(0)}
                   </div>
                 ))}
-                {leaderboard.length > 5 && <span className="type-caption text-zinc-600 ml-1">+{leaderboard.length - 5}</span>}
+                {leaderboard.length > 5 && <span className="type-caption text-slate-400 ml-1">+{leaderboard.length - 5}</span>}
               </div>
             </button>
           )}
 
           {/* Open Issues */}
           {openIssues.length > 0 && (
-            <div className="bg-white border border-zinc-200 rounded-xl p-5">
-              <p className="type-micro text-slate-500 mb-3">{openIssues.length} Open Issue{openIssues.length > 1 ? "s" : ""}</p>
+            <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+              <p className="type-micro text-slate-400 mb-3">{openIssues.length} Open Issue{openIssues.length > 1 ? "s" : ""}</p>
               {openIssues.slice(0, 2).map(issue => (
                 <div key={issue.id} className="flex items-center gap-3 mb-2 last:mb-0">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${issue.priority === 'critical' ? 'bg-red-500' : issue.priority === 'high' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
-                  <span className="text-zinc-700 type-caption">{issue.title}</span>
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${issue.priority === 'critical' ? 'bg-red-500' : issue.priority === 'high' ? 'bg-amber-400/100' : 'bg-zinc-400'}`} />
+                  <span className="text-slate-300 type-caption">{issue.title}</span>
                 </div>
               ))}
               {openIssues.length > 2 && (
-                <button onClick={() => navigateTo("issues")} className="text-amber-500 type-caption mt-2 hover:text-amber-400 transition-colors">View all</button>
+                <button onClick={() => navigateTo("issues")} className="text-amber-300 type-caption mt-2 hover:text-amber-300 transition-colors">View all</button>
               )}
             </div>
           )}
@@ -806,13 +806,13 @@ export default function CTapHub() {
   // Quick Action — unified, amber-only
   function QuickAction({ icon: Icon, label, onClick, subtitle }: { icon: any; label: string; onClick: () => void; subtitle?: string }) {
     return (
-      <button onClick={onClick} className="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98]">
-        <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-          <Icon size={16} className="text-amber-600" />
+      <button onClick={onClick} className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0d1b2d] border border-slate-700/80 hover:border-amber-400/45 hover:shadow-[0_16px_38px_rgba(0,0,0,0.22)] transition-all active:scale-[0.98]">
+        <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/25 flex items-center justify-center shrink-0">
+          <Icon size={16} className="text-amber-300" />
         </div>
         <div className="text-left">
-          <span className="text-zinc-800 type-caption font-medium">{label}</span>
-          {subtitle && <p className="text-amber-600 text-[10px]">{subtitle}</p>}
+          <span className="text-slate-100 type-caption font-medium">{label}</span>
+          {subtitle && <p className="text-amber-300 text-[10px]">{subtitle}</p>}
         </div>
       </button>
     );
@@ -825,12 +825,12 @@ export default function CTapHub() {
     return (
       <div className="px-6 pt-10 pb-4">
         {onBack && (
-          <button onClick={onBack} className="text-amber-500 type-caption mb-3 flex items-center gap-1 hover:text-amber-400 transition-colors">
+          <button onClick={onBack} className="text-amber-300 type-caption mb-3 flex items-center gap-1 hover:text-amber-300 transition-colors">
             <ChevronLeft size={16} /> Back
           </button>
         )}
-        <h2 className="type-display text-zinc-900">{title}</h2>
-        {subtitle && <p className="type-caption text-slate-500 mt-1">{subtitle}</p>}
+        <h2 className="type-display text-slate-50">{title}</h2>
+        {subtitle && <p className="type-caption text-slate-400 mt-1">{subtitle}</p>}
       </div>
     );
   }
@@ -839,11 +839,11 @@ export default function CTapHub() {
   // ─── ACCESS DENIED ─────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const AccessDenied = () => (
-    <div className="h-screen bg-white flex flex-col items-center justify-center px-8 screen-enter">
-      <Lock size={32} className="text-zinc-700 mb-4" />
-      <p className="type-heading text-zinc-700 mb-2">Manager Access Required</p>
-      <p className="type-body text-slate-500 mb-6">This section requires manager or owner permissions.</p>
-      <button onClick={() => setScreen("home")} className="px-6 py-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-700 type-caption font-semibold hover:bg-zinc-200 transition-colors">
+    <div className="h-screen bg-[#07111f] flex flex-col items-center justify-center px-8 screen-enter">
+      <Lock size={32} className="text-slate-200 mb-4" />
+      <p className="type-heading text-slate-200 mb-2">Manager Access Required</p>
+      <p className="type-body text-slate-400 mb-6">This section requires manager or owner permissions.</p>
+      <button onClick={() => setScreen("home")} className="px-6 py-2.5 rounded-xl bg-slate-800 border border-slate-700/80 text-slate-200 type-caption font-semibold hover:bg-slate-800 transition-colors">
         Back to Home
       </button>
     </div>
@@ -853,26 +853,26 @@ export default function CTapHub() {
   // ─── CHECKLIST ─────────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const ChecklistScreen = () => (
-    <div className="min-h-[100dvh] bg-zinc-50 flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+    <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="CHECKLISTS" subtitle={`${staffUser?.department || "your"} department`} />
       <div className="px-6 space-y-4">
         {checklistsQuery.isLoading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+          <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
         ) : myChecklists.length === 0 ? (
-          <p className="text-slate-500 type-body text-center py-12">No checklists for your department yet</p>
+          <p className="text-slate-400 type-body text-center py-12">No checklists for your department yet</p>
         ) : (
           myChecklists.map(cl => {
             const items = (cl.items as any[]) || [];
             const doneCount = items.filter((_, i) => checklistProgress[`${cl.id}-${i}`]).length;
             return (
-              <div key={cl.id} className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+              <div key={cl.id} className="bg-white border border-slate-700/80 rounded-xl overflow-hidden">
                 <div className="p-5 border-b border-zinc-100">
                   <div className="flex items-center justify-between">
-                    <p className="text-zinc-900 font-semibold type-body">{cl.name}</p>
-                    <span className="type-caption text-slate-500 font-data">{doneCount}/{items.length}</span>
+                    <p className="text-slate-50 font-semibold type-body">{cl.name}</p>
+                    <span className="type-caption text-slate-400 font-data">{doneCount}/{items.length}</span>
                   </div>
-                  <div className="h-1 bg-zinc-200 rounded-full mt-3 overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${items.length > 0 ? (doneCount / items.length) * 100 : 0}%` }} />
+                  <div className="h-1 bg-slate-800 rounded-full mt-3 overflow-hidden">
+                    <div className="h-full bg-amber-400/100 rounded-full transition-all duration-500" style={{ width: `${items.length > 0 ? (doneCount / items.length) * 100 : 0}%` }} />
                   </div>
                 </div>
                 <div className="p-3 space-y-0.5">
@@ -881,12 +881,12 @@ export default function CTapHub() {
                     const done = checklistProgress[key];
                     return (
                       <button key={ii} onClick={() => setChecklistProgress(p => ({ ...p, [key]: !p[key] }))}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${done ? 'bg-amber-50' : 'hover:bg-zinc-50'}`}>
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${done ? 'bg-amber-400/10' : 'hover:bg-[#0d1b2d]'}`}>
                         {done
-                          ? <CheckCircle2 size={16} className="text-amber-500 shrink-0" />
-                          : <Circle size={16} className="text-zinc-700 shrink-0" />
+                          ? <CheckCircle2 size={16} className="text-amber-300 shrink-0" />
+                          : <Circle size={16} className="text-slate-200 shrink-0" />
                         }
-                        <span className={`type-body text-left ${done ? 'text-slate-500 line-through' : 'text-zinc-800'}`}>{item.task}</span>
+                        <span className={`type-body text-left ${done ? 'text-slate-400 line-through' : 'text-slate-100'}`}>{item.task}</span>
                       </button>
                     );
                   })}
@@ -958,28 +958,28 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="STORE RUNS" subtitle="Receipt capture · Manager approval" />
         <div className="px-6 space-y-4">
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-slate-500">Log New Store Run</p>
-            <input value={storeRunForm.description} onChange={e => setStoreRunForm(f => ({ ...f, description: e.target.value }))} placeholder="What was purchased?" className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+          <div className="bg-white border border-slate-700/80 rounded-xl p-5 space-y-3">
+            <p className="type-micro text-slate-400">Log New Store Run</p>
+            <input value={storeRunForm.description} onChange={e => setStoreRunForm(f => ({ ...f, description: e.target.value }))} placeholder="What was purchased?" className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             <div className="flex gap-2.5">
-              <input value={storeRunForm.amount} onChange={e => setStoreRunForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-              <input value={storeRunForm.vendor} onChange={e => setStoreRunForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Where?" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={storeRunForm.amount} onChange={e => setStoreRunForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount ($)" type="number" step="0.01" className="flex-1 bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={storeRunForm.vendor} onChange={e => setStoreRunForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Where?" className="flex-1 bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             </div>
             <div className="flex gap-2 flex-wrap">
               {["food", "supplies", "equipment", "misc"].map(cat => (
                 <button key={cat} onClick={() => setStoreRunForm(f => ({ ...f, category: cat }))}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${storeRunForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${storeRunForm.category === cat ? 'bg-amber-100 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400'}`}>
                   {cat}
                 </button>
               ))}
             </div>
             <div>
-              <p className="type-micro text-slate-500 mb-2">Authorized By</p>
+              <p className="type-micro text-slate-400 mb-2">Authorized By</p>
               <select value={storeRunForm.authorizedById} onChange={e => setStoreRunForm(f => ({ ...f, authorizedById: Number(e.target.value) }))}
-                className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body focus:outline-none focus:ring-1 focus:ring-amber-300">
+                className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body focus:outline-none focus:ring-1 focus:ring-amber-300">
                 <option value={0}>{staffUser?.isKeyEmployee ? `${staffDisplayName(staffUser)} (me)` : "Select authorizer..."}</option>
                 {keyEmployees.filter(k => k.id !== staffUser?.id).map(k => (
                   <option key={k.id} value={k.id}>{staffDisplayName(k)} ({roleLabel(k.jobRole)})</option>
@@ -987,48 +987,48 @@ export default function CTapHub() {
               </select>
             </div>
             <div>
-              <p className="type-micro text-slate-500 mb-2">Receipt Photo</p>
+              <p className="type-micro text-slate-400 mb-2">Receipt Photo</p>
               <label className={`flex items-center justify-center gap-2 py-3 rounded-xl cursor-pointer transition-all ${
-                receiptPhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500 hover:text-zinc-700'
+                receiptPhotoUrl ? 'bg-amber-400/10 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}>
                 {uploadingPhoto ? <><Loader2 size={14} className="animate-spin" /><span className="type-caption">Uploading...</span></> :
                  receiptPhotoUrl ? <><CheckCircle2 size={14} /><span className="type-caption">Receipt Attached</span></> :
                  <><Camera size={14} /><span className="type-caption">Snap Receipt</span></>}
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handlePhotoCapture(e, "payout")} disabled={uploadingPhoto} />
               </label>
-              {receiptPhotoUrl && <button onClick={() => setReceiptPhotoUrl(null)} className="text-zinc-600 type-micro mt-2 hover:text-red-600 transition-colors">Remove photo</button>}
+              {receiptPhotoUrl && <button onClick={() => setReceiptPhotoUrl(null)} className="text-slate-400 type-micro mt-2 hover:text-red-600 transition-colors">Remove photo</button>}
             </div>
             <button onClick={handleSubmitStoreRun} disabled={createPayout.isPending || uploadingPhoto}
-              className="w-full py-3 rounded-xl bg-amber-500 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
+              className="w-full py-3 rounded-xl bg-amber-400/100 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
               {createPayout.isPending ? "Saving..." : "Log Store Run"}
             </button>
           </div>
 
           {/* Summary */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5">
+          <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
             <div className="flex items-center justify-between">
-              <p className="type-micro text-slate-500">This Week</p>
-              <p className="text-zinc-900 font-semibold font-data">${weeklyTotal.toFixed(2)}</p>
+              <p className="type-micro text-slate-400">This Week</p>
+              <p className="text-slate-50 font-semibold font-data">${weeklyTotal.toFixed(2)}</p>
             </div>
             {flaggedCount > 0 && <p className="type-caption text-red-600 mt-1">{flaggedCount} flagged</p>}
           </div>
 
           {/* Recent */}
           {payoutsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
           ) : allPayouts.length > 0 && (
             <div className="space-y-2">
-              <p className="type-micro text-zinc-600">Recent</p>
+              <p className="type-micro text-slate-400">Recent</p>
               {allPayouts.map(po => (
-                <div key={po.id} className={`bg-white border border-zinc-200 rounded-xl p-4 ${po.flagged ? 'ring-1 ring-red-500/20' : ''}`}>
+                <div key={po.id} className={`bg-white border border-slate-700/80 rounded-xl p-4 ${po.flagged ? 'ring-1 ring-red-500/20' : ''}`}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-zinc-900 type-body font-medium">Staff #{po.staffId}</span>
-                    <span className="text-amber-500 font-semibold font-data">${po.amount}</span>
+                    <span className="text-slate-50 type-body font-medium">Staff #{po.staffId}</span>
+                    <span className="text-amber-300 font-semibold font-data">${po.amount}</span>
                   </div>
-                  <p className="type-caption text-slate-500">{po.description || "—"} · {po.vendor || "Unknown"}</p>
+                  <p className="type-caption text-slate-400">{po.description || "—"} · {po.vendor || "Unknown"}</p>
                   <div className="flex items-center gap-3 mt-2">
-                    {po.receiptPhotoUrl ? <span className="type-micro text-amber-500 flex items-center gap-1"><CheckCircle2 size={10} />Receipt</span> : <span className="type-micro text-zinc-600">No receipt</span>}
-                    {po.authorizedById ? <span className="type-micro text-amber-500 flex items-center gap-1"><CheckCircle2 size={10} />Authorized</span> : <span className="type-micro text-red-600">Unauthorized</span>}
+                    {po.receiptPhotoUrl ? <span className="type-micro text-amber-300 flex items-center gap-1"><CheckCircle2 size={10} />Receipt</span> : <span className="type-micro text-slate-400">No receipt</span>}
+                    {po.authorizedById ? <span className="type-micro text-amber-300 flex items-center gap-1"><CheckCircle2 size={10} />Authorized</span> : <span className="type-micro text-red-600">Unauthorized</span>}
                   </div>
                   {po.flagged && po.flagReason && <p className="type-caption text-red-600 mt-2 bg-red-500/5 rounded-lg p-2">{po.flagReason}</p>}
                 </div>
@@ -1068,20 +1068,20 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="VENDOR INVOICES" subtitle="Track spend · Flag anomalies" />
         <div className="px-6 space-y-4">
           {/* Weekly Spend */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5">
-            <p className="type-micro text-slate-500 mb-3">This Week's Spend</p>
-            <p className="text-2xl font-semibold text-zinc-900 font-data">${weeklyTotal.toFixed(2)}</p>
+          <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+            <p className="type-micro text-slate-400 mb-3">This Week's Spend</p>
+            <p className="text-2xl font-semibold text-slate-50 font-data">${weeklyTotal.toFixed(2)}</p>
             {vendorTotals.length > 0 && (
               <div className="mt-4 space-y-2">
                 {vendorTotals.map(([vendor, total]) => (
                   <div key={vendor} className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    <span className="type-caption text-slate-500 flex-1">{vendor}</span>
-                    <span className="type-caption text-zinc-900 font-data">${total.toFixed(2)}</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400/100 shrink-0" />
+                    <span className="type-caption text-slate-400 flex-1">{vendor}</span>
+                    <span className="type-caption text-slate-50 font-data">${total.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -1089,70 +1089,70 @@ export default function CTapHub() {
           </div>
 
           {/* New Invoice Form */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-slate-500">Log New Invoice</p>
+          <div className="bg-white border border-slate-700/80 rounded-xl p-5 space-y-3">
+            <p className="type-micro text-slate-400">Log New Invoice</p>
             <div>
-              <p className="type-micro text-zinc-600 mb-1.5">Vendor</p>
+              <p className="type-micro text-slate-400 mb-1.5">Vendor</p>
               {!invoiceForm.customVendor ? (
                 <select value={invoiceForm.vendorName} onChange={e => {
                   if (e.target.value === "__custom") setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: true }));
                   else setInvoiceForm(f => ({ ...f, vendorName: e.target.value }));
-                }} className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body focus:outline-none focus:ring-1 focus:ring-amber-300">
+                }} className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body focus:outline-none focus:ring-1 focus:ring-amber-300">
                   <option value="">Select vendor...</option>
                   {COMMON_VENDORS.map(v => <option key={v} value={v}>{v}</option>)}
                   <option value="__custom">Other (type below)</option>
                 </select>
               ) : (
                 <div className="flex gap-2">
-                  <input value={invoiceForm.vendorName} onChange={e => setInvoiceForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="Enter vendor name" autoFocus className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-                  <button onClick={() => setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: false }))} className="text-slate-500 type-caption px-3 rounded-xl bg-zinc-100 hover:text-zinc-700 transition-colors">Back</button>
+                  <input value={invoiceForm.vendorName} onChange={e => setInvoiceForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="Enter vendor name" autoFocus className="flex-1 bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+                  <button onClick={() => setInvoiceForm(f => ({ ...f, vendorName: "", customVendor: false }))} className="text-slate-400 type-caption px-3 rounded-xl bg-slate-800 hover:text-slate-200 transition-colors">Back</button>
                 </div>
               )}
             </div>
             <div className="flex gap-2.5">
-              <input value={invoiceForm.totalAmount} onChange={e => setInvoiceForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="Total ($)" type="number" step="0.01" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
-              <input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice #" className="flex-1 bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={invoiceForm.totalAmount} onChange={e => setInvoiceForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="Total ($)" type="number" step="0.01" className="flex-1 bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              <input value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice #" className="flex-1 bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             </div>
             <div className="flex gap-2 flex-wrap">
               {INVOICE_CATEGORIES.map(cat => (
                 <button key={cat} onClick={() => setInvoiceForm(f => ({ ...f, category: cat }))}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${invoiceForm.category === cat ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${invoiceForm.category === cat ? 'bg-amber-100 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400'}`}>
                   {cat}
                 </button>
               ))}
             </div>
             <div>
-              <p className="type-micro text-zinc-600 mb-1.5">Invoice Photo</p>
+              <p className="type-micro text-slate-400 mb-1.5">Invoice Photo</p>
               <label className={`flex items-center justify-center gap-2 py-3 rounded-xl cursor-pointer transition-all ${
-                invoicePhotoUrl ? 'bg-amber-50 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500 hover:text-zinc-700'
+                invoicePhotoUrl ? 'bg-amber-400/10 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}>
                 {uploadingInvoicePhoto ? <><Loader2 size={14} className="animate-spin" /><span className="type-caption">Uploading...</span></> :
                  invoicePhotoUrl ? <><CheckCircle2 size={14} /><span className="type-caption">Invoice Attached</span></> :
                  <><Camera size={14} /><span className="type-caption">Snap Invoice</span></>}
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handlePhotoCapture(e, "invoice")} disabled={uploadingInvoicePhoto} />
               </label>
-              {invoicePhotoUrl && <button onClick={() => setInvoicePhotoUrl(null)} className="text-zinc-600 type-micro mt-2 hover:text-red-600 transition-colors">Remove photo</button>}
+              {invoicePhotoUrl && <button onClick={() => setInvoicePhotoUrl(null)} className="text-slate-400 type-micro mt-2 hover:text-red-600 transition-colors">Remove photo</button>}
             </div>
             <button onClick={handleSubmitInvoice} disabled={createInvoice.isPending || uploadingInvoicePhoto}
-              className="w-full py-3 rounded-xl bg-amber-500 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
+              className="w-full py-3 rounded-xl bg-amber-400/100 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
               {createInvoice.isPending ? "Saving..." : "Log Invoice"}
             </button>
           </div>
 
           {/* Recent Invoices */}
           {invoicesQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
           ) : allInvoices.length > 0 && (
             <div className="space-y-2">
-              <p className="type-micro text-zinc-600">Recent</p>
+              <p className="type-micro text-slate-400">Recent</p>
               {allInvoices.map(inv => (
-                <div key={inv.id} className="bg-white border border-zinc-200 rounded-xl p-4">
+                <div key={inv.id} className="bg-white border border-slate-700/80 rounded-xl p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-zinc-900 type-body font-medium">{inv.vendorName}</p>
-                      <p className="type-caption text-slate-500">{new Date(inv.date).toLocaleDateString()} · {inv.category}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ''}</p>
+                      <p className="text-slate-50 type-body font-medium">{inv.vendorName}</p>
+                      <p className="type-caption text-slate-400">{new Date(inv.date).toLocaleDateString()} · {inv.category}{inv.invoiceNumber ? ` · #${inv.invoiceNumber}` : ''}</p>
                     </div>
-                    <p className="text-amber-500 font-semibold font-data">${inv.totalAmount}</p>
+                    <p className="text-amber-300 font-semibold font-data">${inv.totalAmount}</p>
                   </div>
                 </div>
               ))}
@@ -1182,28 +1182,28 @@ export default function CTapHub() {
     }, [allVoids, allStaff]);
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="VOID HUNTER" subtitle="Pattern tracking · This week" />
         <div className="px-6 space-y-4">
-          <div className="bg-white border border-zinc-200 rounded-xl p-5">
+          <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div><p className="text-xl font-semibold text-zinc-900 font-data">{voidCount}</p><p className="type-micro text-zinc-600 mt-0.5">Voids</p></div>
-              <div><p className="text-xl font-semibold text-zinc-900 font-data">{compCount}</p><p className="type-micro text-zinc-600 mt-0.5">Comps</p></div>
-              <div><p className="text-xl font-semibold text-zinc-900 font-data">{promoCount}</p><p className="type-micro text-zinc-600 mt-0.5">Promos</p></div>
+              <div><p className="text-xl font-semibold text-slate-50 font-data">{voidCount}</p><p className="type-micro text-slate-400 mt-0.5">Voids</p></div>
+              <div><p className="text-xl font-semibold text-slate-50 font-data">{compCount}</p><p className="type-micro text-slate-400 mt-0.5">Comps</p></div>
+              <div><p className="text-xl font-semibold text-slate-50 font-data">{promoCount}</p><p className="type-micro text-slate-400 mt-0.5">Promos</p></div>
             </div>
           </div>
 
           {voidsByStaff.length > 0 && (
-            <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-              <div className="p-4 border-b border-zinc-200"><p className="type-micro text-slate-500">By Employee</p></div>
+            <div className="bg-white border border-slate-700/80 rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-slate-700/80"><p className="type-micro text-slate-400">By Employee</p></div>
               {voidsByStaff.map((vs, i) => (
-                <div key={i} className={`flex items-center justify-between p-4 border-b border-zinc-200 last:border-0 ${vs.count >= 3 ? 'bg-red-950/10' : ''}`}>
+                <div key={i} className={`flex items-center justify-between p-4 border-b border-slate-700/80 last:border-0 ${vs.count >= 3 ? 'bg-red-950/10' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center"><span className="text-slate-500 type-caption">{vs.initial}</span></div>
-                    <span className="text-zinc-900 type-body">{vs.name}</span>
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center"><span className="text-slate-400 type-caption">{vs.initial}</span></div>
+                    <span className="text-slate-50 type-body">{vs.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`type-body font-semibold font-data ${vs.count >= 3 ? 'text-red-600' : vs.count >= 2 ? 'text-amber-500' : 'text-slate-500'}`}>{vs.count}</span>
+                    <span className={`type-body font-semibold font-data ${vs.count >= 3 ? 'text-red-600' : vs.count >= 2 ? 'text-amber-300' : 'text-slate-400'}`}>{vs.count}</span>
                     {vs.count >= 3 && <AlertTriangle size={12} className="text-red-600" />}
                   </div>
                 </div>
@@ -1212,20 +1212,20 @@ export default function CTapHub() {
           )}
 
           {voidsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
           ) : (
             <div className="space-y-2">
-              <p className="type-micro text-zinc-600">Recent Voids</p>
-              {allVoids.length === 0 && <p className="type-body text-slate-500 text-center py-8">No voids — clean week!</p>}
+              <p className="type-micro text-slate-400">Recent Voids</p>
+              {allVoids.length === 0 && <p className="type-body text-slate-400 text-center py-8">No voids — clean week!</p>}
               {allVoids.slice(0, 10).map(v => {
                 const staffName = allStaff.find(s => s.id === v.staffId);
                 return (
-                  <div key={v.id} className="bg-white border border-zinc-200 rounded-xl p-4">
+                  <div key={v.id} className="bg-white border border-slate-700/80 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-zinc-900 type-body font-medium">{staffName ? staffDisplayName(staffName) : `Staff #${v.staffId}`}</span>
-                      <span className="type-caption text-zinc-600 font-data">{new Date(v.date).toLocaleDateString()}</span>
+                      <span className="text-slate-50 type-body font-medium">{staffName ? staffDisplayName(staffName) : `Staff #${v.staffId}`}</span>
+                      <span className="type-caption text-slate-400 font-data">{new Date(v.date).toLocaleDateString()}</span>
                     </div>
-                    <p className="type-caption text-slate-500">{v.type} · ${v.amount} — "{v.reason}"</p>
+                    <p className="type-caption text-slate-400">{v.type} · ${v.amount} — "{v.reason}"</p>
                   </div>
                 );
               })}
@@ -1251,10 +1251,10 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="DRIVER END OF DAY" subtitle="Required before clocking out" />
         <div className="px-6 space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-4 shadow-[0_14px_35px_rgba(0,0,0,0.18)]">
             <p className="type-caption text-red-600 font-semibold">No sheet = No reimbursement. Manager must hand you cash — not front staff.</p>
           </div>
           {[
@@ -1264,14 +1264,14 @@ export default function CTapHub() {
             { key: "redeliveries", label: "Redeliveries", placeholder: "Ticket # + reason" },
             { key: "notes", label: "Notes", placeholder: "Anything else" },
           ].map(field => (
-            <div key={field.key} className="bg-white border border-zinc-200 rounded-xl p-4">
-              <p className="type-micro text-slate-500 mb-2">{field.label}</p>
+            <div key={field.key} className="bg-white border border-slate-700/80 rounded-xl p-4">
+              <p className="type-micro text-slate-400 mb-2">{field.label}</p>
               <textarea value={(driverEOD as any)[field.key]} onChange={e => setDriverEOD(d => ({ ...d, [field.key]: e.target.value }))} placeholder={field.placeholder}
-                className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
+                className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
             </div>
           ))}
           <button onClick={handleSubmitEOD} disabled={createDriverReport.isPending}
-            className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
+            className="w-full py-3.5 rounded-xl bg-amber-400/100 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
             {createDriverReport.isPending ? "Submitting..." : "Submit EOD Report"}
           </button>
         </div>
@@ -1295,23 +1295,23 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="SHIFT FEEDBACK" subtitle="Your voice matters · +5 pts" />
         <div className="px-6 space-y-4">
-          <div className="bg-white border border-zinc-200 rounded-xl p-5">
+          <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
             <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} placeholder="What worked? What didn't? What was blocked?"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[120px] resize-none" />
+              className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[120px] resize-none" />
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {["equipment", "staffing", "inventory", "customer", "management"].map(t => (
                 <button key={t} onClick={() => setFeedbackCategory(feedbackCategory === t ? null : t)}
-                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${feedbackCategory === t ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
+                  className={`px-3 py-1.5 rounded-full type-micro transition-all ${feedbackCategory === t ? 'bg-amber-100 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400'}`}>
                   {t}
                 </button>
               ))}
             </div>
           </div>
           <button onClick={handleSubmitFeedback} disabled={createFeedback.isPending || !feedbackText.trim()}
-            className="w-full py-3.5 rounded-xl bg-amber-500 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
+            className="w-full py-3.5 rounded-xl bg-amber-400/100 text-black font-semibold type-body disabled:opacity-50 glow-amber transition-all active:scale-[0.98]">
             {createFeedback.isPending ? "Submitting..." : "Submit · +5 pts"}
           </button>
         </div>
@@ -1337,58 +1337,58 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="ISSUES" subtitle="Report · Route · Resolve" />
         <div className="px-6 space-y-4">
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
-            <p className="type-micro text-slate-500">Report New Issue</p>
+          <div className="bg-white border border-slate-700/80 rounded-xl p-5 space-y-3">
+            <p className="type-micro text-slate-400">Report New Issue</p>
             <input value={issueTitle} onChange={e => setIssueTitle(e.target.value)} placeholder="What's the issue?"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
+              className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300" />
             <textarea value={issueDesc} onChange={e => setIssueDesc(e.target.value)} placeholder="Details (optional)"
-              className="w-full bg-zinc-100 rounded-xl p-3 text-zinc-900 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
+              className="w-full bg-slate-800 rounded-xl p-3 text-slate-50 type-body placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-300 min-h-[48px] resize-none" />
             <div>
-              <p className="type-micro text-zinc-600 mb-1.5">Priority</p>
+              <p className="type-micro text-slate-400 mb-1.5">Priority</p>
               <div className="flex gap-2">
                 {["low", "medium", "high", "critical"].map(p => (
                   <button key={p} onClick={() => setIssuePriority(p)}
                     className={`px-3 py-1.5 rounded-full type-micro transition-all ${issuePriority === p
-                      ? (p === 'critical' ? 'bg-red-500/15 text-red-600 ring-1 ring-red-500/30' : 'bg-amber-100 text-amber-500 ring-1 ring-amber-300')
-                      : 'bg-zinc-100 text-slate-500'}`}>
+                      ? (p === 'critical' ? 'bg-red-500/15 text-red-600 ring-1 ring-red-500/30' : 'bg-amber-100 text-amber-300 ring-1 ring-amber-300')
+                      : 'bg-slate-800 text-slate-400'}`}>
                     {p}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <p className="type-micro text-zinc-600 mb-1.5">Category</p>
+              <p className="type-micro text-slate-400 mb-1.5">Category</p>
               <div className="flex gap-2 flex-wrap">
                 {["equipment", "staffing", "inventory", "safety", "other"].map(c => (
                   <button key={c} onClick={() => setIssueCategory(c)}
-                    className={`px-3 py-1.5 rounded-full type-micro transition-all ${issueCategory === c ? 'bg-amber-100 text-amber-500 ring-1 ring-amber-300' : 'bg-zinc-100 text-slate-500'}`}>
+                    className={`px-3 py-1.5 rounded-full type-micro transition-all ${issueCategory === c ? 'bg-amber-100 text-amber-300 ring-1 ring-amber-300' : 'bg-slate-800 text-slate-400'}`}>
                     {c}
                   </button>
                 ))}
               </div>
             </div>
             <button onClick={handleSubmitIssue} disabled={createIssue.isPending || !issueTitle.trim()}
-              className="w-full py-3 rounded-xl bg-red-500/80 text-zinc-900 font-semibold type-body disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+              className="w-full py-3 rounded-xl bg-red-500/80 text-slate-50 font-semibold type-body disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
               {createIssue.isPending ? <><Loader2 size={14} className="animate-spin" /> Reporting...</> : <><Plus size={14} /> Report Issue</>}
             </button>
           </div>
 
           {issuesQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
           ) : openIssues.length > 0 && (
             <div className="space-y-2">
-              <p className="type-micro text-zinc-600">{openIssues.length} Open</p>
+              <p className="type-micro text-slate-400">{openIssues.length} Open</p>
               {openIssues.map(issue => (
-                <div key={issue.id} className="bg-white border border-zinc-200 rounded-xl p-4">
+                <div key={issue.id} className="bg-white border border-slate-700/80 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-zinc-900 type-body font-medium">{issue.title}</p>
-                    <span className={`type-micro px-2 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/15 text-red-600' : issue.priority === 'high' ? 'bg-amber-100 text-amber-400' : 'bg-zinc-100 text-slate-500'}`}>{issue.priority}</span>
+                    <p className="text-slate-50 type-body font-medium">{issue.title}</p>
+                    <span className={`type-micro px-2 py-0.5 rounded-full ${issue.priority === 'critical' ? 'bg-red-500/15 text-red-600' : issue.priority === 'high' ? 'bg-amber-100 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>{issue.priority}</span>
                   </div>
-                  <p className="type-caption text-slate-500">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
-                  {issue.description && <p className="type-caption text-slate-500 mt-1">{issue.description}</p>}
+                  <p className="type-caption text-slate-400">{issue.category} · {new Date(issue.date).toLocaleDateString()}</p>
+                  {issue.description && <p className="type-caption text-slate-400 mt-1">{issue.description}</p>}
                 </div>
               ))}
             </div>
@@ -1402,36 +1402,36 @@ export default function CTapHub() {
   // ─── LEADERBOARD ───────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const LeaderboardScreen = () => (
-    <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+    <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="LEADERBOARD" subtitle="Score = shift priority" />
       <div className="px-6">
-        <div className="bg-white border border-zinc-200 rounded-xl p-4 mb-4">
-          <p className="type-caption text-amber-500">Higher score = first pick on preferred shifts. Execute, contribute, stay on the floor.</p>
+        <div className="bg-white border border-slate-700/80 rounded-xl p-4 mb-4">
+          <p className="type-caption text-amber-300">Higher score = first pick on preferred shifts. Execute, contribute, stay on the floor.</p>
         </div>
         {leaderboardQuery.isLoading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
+          <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-300 animate-spin" /></div>
         ) : (
           <div className="space-y-2">
             {leaderboard.filter(s => s.jobRole !== "owner").map((s, i) => (
-              <div key={s.id} className={`flex items-center gap-3 p-4 rounded-xl transition-all ${s.id === staffUser?.id ? 'bg-amber-50 ring-1 ring-amber-500/15' : 'bg-white border border-zinc-200 rounded-xl'}`}>
+              <div key={s.id} className={`flex items-center gap-3 p-4 rounded-xl transition-all ${s.id === staffUser?.id ? 'bg-amber-400/10 ring-1 ring-amber-500/15' : 'bg-white border border-slate-700/80 rounded-xl'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold type-caption font-data ${
-                  i === 0 ? 'bg-amber-500 text-black' : i === 1 ? 'bg-zinc-400 text-black' : i === 2 ? 'bg-amber-700 text-zinc-900' : 'bg-zinc-100 text-slate-500'
+                  i === 0 ? 'bg-amber-400/100 text-black' : i === 1 ? 'bg-zinc-400 text-black' : i === 2 ? 'bg-amber-700 text-slate-50' : 'bg-slate-800 text-slate-400'
                 }`}>{i + 1}</div>
                 <div className="flex-1">
-                  <p className="text-zinc-900 type-body font-medium">{staffDisplayName(s)}</p>
+                  <p className="text-slate-50 type-body font-medium">{staffDisplayName(s)}</p>
                   <div className="flex items-center gap-2">
-                    <span className="type-caption text-slate-500">{roleLabel(s.jobRole)}</span>
-                    {s.isKeyEmployee && <span className="type-micro text-amber-500">KEY</span>}
-                    {s.currentStreak > 7 && <span className="text-amber-600 type-caption flex items-center gap-0.5"><Flame size={10} />{s.currentStreak}d</span>}
+                    <span className="type-caption text-slate-400">{roleLabel(s.jobRole)}</span>
+                    {s.isKeyEmployee && <span className="type-micro text-amber-300">KEY</span>}
+                    {s.currentStreak > 7 && <span className="text-amber-300 type-caption flex items-center gap-0.5"><Flame size={10} />{s.currentStreak}d</span>}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-amber-500 font-semibold type-body font-data">{s.totalPoints.toLocaleString()}</p>
-                  {isManager && <p className="type-micro text-zinc-600">{s.weeklyVoids}v</p>}
+                  <p className="text-amber-300 font-semibold type-body font-data">{s.totalPoints.toLocaleString()}</p>
+                  {isManager && <p className="type-micro text-slate-400">{s.weeklyVoids}v</p>}
                 </div>
               </div>
             ))}
-            {leaderboard.length === 0 && <p className="type-body text-slate-500 text-center py-8">No leaderboard data yet</p>}
+            {leaderboard.length === 0 && <p className="type-body text-slate-400 text-center py-8">No leaderboard data yet</p>}
           </div>
         )}
       </div>
@@ -1449,7 +1449,7 @@ export default function CTapHub() {
     const flaggedPayouts = allPayouts.filter(p => p.flagged).length;
 
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+      <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="COMMAND CENTER" subtitle="Owner intelligence" />
         <div className="px-6 space-y-4">
           {/* KPIs — clean 2-column grid */}
@@ -1462,10 +1462,10 @@ export default function CTapHub() {
               { label: "Vendor Spend", value: `$${vendorSpend.toFixed(0)}`, sub: "This week" },
               { label: "Open Issues", value: `${openIssues.length}`, sub: openIssues.length > 0 ? "Needs attention" : "All clear" },
             ].map((kpi, i) => (
-              <div key={i} className="bg-white border border-zinc-200 rounded-xl p-4">
-                <p className="type-micro text-zinc-600">{kpi.label}</p>
-                <p className="text-zinc-900 text-lg font-semibold font-data mt-1">{kpi.value}</p>
-                <p className="type-caption text-slate-500 mt-0.5">{kpi.sub}</p>
+              <div key={i} className="bg-white border border-slate-700/80 rounded-xl p-4">
+                <p className="type-micro text-slate-400">{kpi.label}</p>
+                <p className="text-slate-50 text-lg font-semibold font-data mt-1">{kpi.value}</p>
+                <p className="type-caption text-slate-400 mt-0.5">{kpi.sub}</p>
               </div>
             ))}
           </div>
@@ -1479,25 +1479,25 @@ export default function CTapHub() {
               { icon: Lock, label: "Security", s: "security-records" as Screen },
             ].map(item => (
               <button key={item.s} onClick={() => navigateTo(item.s)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-zinc-200 rounded-xl hover:border-zinc-300 hover:shadow-sm transition-all active:scale-[0.98]">
-                <item.icon size={18} className="text-amber-500" />
-                <span className="type-micro text-slate-500 normal-case">{item.label}</span>
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-slate-700/80 rounded-xl hover:border-amber-400/45 hover:shadow-sm transition-all active:scale-[0.98]">
+                <item.icon size={18} className="text-amber-300" />
+                <span className="type-micro text-slate-400 normal-case">{item.label}</span>
               </button>
             ))}
           </div>
 
           {/* Wi-Fi Proximity */}
-          <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-zinc-200">
-              <p className="type-body text-zinc-900 font-semibold flex items-center gap-2"><Wifi size={14} className="text-amber-500" />Wi-Fi Proximity</p>
+          <div className="bg-white border border-slate-700/80 rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-slate-700/80">
+              <p className="type-body text-slate-50 font-semibold flex items-center gap-2"><Wifi size={14} className="text-amber-300" />Wi-Fi Proximity</p>
             </div>
             {leaderboard.filter(s => s.jobRole !== "owner").slice(0, 8).map((s, i) => (
-              <div key={i} className="flex items-center justify-between p-3.5 border-b border-zinc-200 last:border-0">
+              <div key={i} className="flex items-center justify-between p-3.5 border-b border-slate-700/80 last:border-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-zinc-900 type-caption">{staffDisplayName(s)}</span>
+                  <div className="w-2 h-2 rounded-full bg-amber-400/100" />
+                  <span className="text-slate-50 type-caption">{staffDisplayName(s)}</span>
                 </div>
-                <span className="type-micro text-amber-500">On floor</span>
+                <span className="type-micro text-amber-300">On floor</span>
               </div>
             ))}
           </div>
@@ -1510,68 +1510,68 @@ export default function CTapHub() {
   // ─── PROFILE ───────────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const ProfileScreen = () => (
-    <div className="min-h-[100dvh] bg-white flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
+    <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="PROFILE" subtitle={staffUser ? staffDisplayName(staffUser) : ""} />
       <div className="px-6 space-y-4">
         {/* Hero Card */}
-        <div className="bg-white border border-zinc-200 rounded-xl p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
-            <span className="text-amber-500 text-2xl font-bold">{staffUser?.firstName?.charAt(0)}</span>
+        <div className="bg-white border border-slate-700/80 rounded-xl p-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-400/10 flex items-center justify-center mx-auto mb-4">
+            <span className="text-amber-300 text-2xl font-bold">{staffUser?.firstName?.charAt(0)}</span>
           </div>
-          <p className="type-heading text-zinc-900">{staffUser ? staffDisplayName(staffUser) : ""}</p>
-          <p className="type-caption text-slate-500 mt-0.5">{staffUser ? roleLabel(staffUser.jobRole) : ""}</p>
+          <p className="type-heading text-slate-50">{staffUser ? staffDisplayName(staffUser) : ""}</p>
+          <p className="type-caption text-slate-400 mt-0.5">{staffUser ? roleLabel(staffUser.jobRole) : ""}</p>
           {staffUser?.isKeyEmployee && (
-            <span className="type-micro text-amber-500 px-2.5 py-1 rounded-full bg-amber-50 inline-block mt-2">KEY EMPLOYEE</span>
+            <span className="type-micro text-amber-300 px-2.5 py-1 rounded-full bg-amber-400/10 inline-block mt-2">KEY EMPLOYEE</span>
           )}
           <div className="flex items-center justify-center gap-6 mt-5">
             <div className="text-center">
-              <p className="text-amber-500 font-semibold text-lg font-data">{staffUser?.totalPoints?.toLocaleString()}</p>
-              <p className="type-micro text-zinc-600 mt-0.5">Score</p>
+              <p className="text-amber-300 font-semibold text-lg font-data">{staffUser?.totalPoints?.toLocaleString()}</p>
+              <p className="type-micro text-slate-400 mt-0.5">Score</p>
             </div>
-            <div className="w-px h-8 bg-zinc-100" />
+            <div className="w-px h-8 bg-slate-800" />
             <div className="text-center">
-              <p className="text-zinc-900 font-semibold text-lg font-data">{staffUser?.currentStreak}</p>
-              <p className="type-micro text-zinc-600 mt-0.5">Streak</p>
+              <p className="text-slate-50 font-semibold text-lg font-data">{staffUser?.currentStreak}</p>
+              <p className="type-micro text-slate-400 mt-0.5">Streak</p>
             </div>
-            <div className="w-px h-8 bg-zinc-100" />
+            <div className="w-px h-8 bg-slate-800" />
             <div className="text-center">
-              <p className="text-zinc-900 font-semibold text-lg font-data">{staffUser?.schedulePriority}</p>
-              <p className="type-micro text-zinc-600 mt-0.5">Priority</p>
+              <p className="text-slate-50 font-semibold text-lg font-data">{staffUser?.schedulePriority}</p>
+              <p className="type-micro text-slate-400 mt-0.5">Priority</p>
             </div>
           </div>
         </div>
 
         {/* Details */}
-        <div className="bg-white border border-zinc-200 rounded-xl p-5">
-          <p className="type-micro text-slate-500 mb-3">Details</p>
+        <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+          <p className="type-micro text-slate-400 mb-3">Details</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="type-caption text-slate-500">Department</span>
-              <span className="type-caption text-zinc-900 capitalize">{staffUser?.department}</span>
+              <span className="type-caption text-slate-400">Department</span>
+              <span className="type-caption text-slate-50 capitalize">{staffUser?.department}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="type-caption text-slate-500">Role</span>
-              <span className="type-caption text-zinc-900">{staffUser ? roleLabel(staffUser.jobRole) : ""}</span>
+              <span className="type-caption text-slate-400">Role</span>
+              <span className="type-caption text-slate-50">{staffUser ? roleLabel(staffUser.jobRole) : ""}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="type-caption text-slate-500">Employee #</span>
-              <span className="type-caption text-zinc-900 font-data">{staffUser?.employeeNumber || "—"}</span>
+              <span className="type-caption text-slate-400">Employee #</span>
+              <span className="type-caption text-slate-50 font-data">{staffUser?.employeeNumber || "—"}</span>
             </div>
           </div>
         </div>
 
         {/* Self-only activity */}
         {!isManager && (
-          <div className="bg-white border border-zinc-200 rounded-xl p-5">
-            <p className="type-micro text-slate-500 mb-3">Your Activity</p>
+          <div className="bg-[#0d1b2d] border border-slate-700/80 rounded-2xl p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+            <p className="type-micro text-slate-400 mb-3">Your Activity</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-zinc-900 font-semibold type-body font-data">{myVoids.length}</p>
-                <p className="type-caption text-slate-500">Voids</p>
+                <p className="text-slate-50 font-semibold type-body font-data">{myVoids.length}</p>
+                <p className="type-caption text-slate-400">Voids</p>
               </div>
               <div>
-                <p className="text-zinc-900 font-semibold type-body font-data">{myPayouts.length}</p>
-                <p className="type-caption text-slate-500">Pay Outs</p>
+                <p className="text-slate-50 font-semibold type-body font-data">{myPayouts.length}</p>
+                <p className="type-caption text-slate-400">Pay Outs</p>
               </div>
             </div>
           </div>
@@ -1579,7 +1579,7 @@ export default function CTapHub() {
 
         {/* Change PIN */}
         <button onClick={() => navigateTo("pin-change")}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-50 border border-amber-500/20 text-amber-400 type-caption font-semibold hover:bg-amber-500/20 transition-all">
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-400/10 border border-amber-500/20 text-amber-300 type-caption font-semibold hover:bg-amber-400/100/20 transition-all">
           <Lock size={14} />
           Change PIN
         </button>
@@ -1593,7 +1593,7 @@ export default function CTapHub() {
           setPin("");
           setChecklistProgress({});
           toast.success("Signed out");
-        }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-slate-500 type-caption font-semibold hover:bg-zinc-100 hover:text-zinc-700 transition-all">
+        }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-slate-800 text-slate-400 type-caption font-semibold hover:bg-slate-800 hover:text-slate-200 transition-all">
           <LogOut size={14} />
           Sign Out
         </button>
@@ -1613,15 +1613,15 @@ export default function CTapHub() {
     ];
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-zinc-200 border-t border-zinc-200 z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#081321]/92 backdrop-blur-xl border-t border-slate-700/70 z-50 shadow-[0_-18px_45px_rgba(0,0,0,0.34)]">
         <div className="flex items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
           {navItems.map(item => {
             const active = screen === item.s;
             return (
               <button key={item.s} onClick={() => setScreen(item.s)}
-                className="flex flex-col items-center gap-0.5 py-1.5 px-4 transition-all">
-                <item.icon size={20} className={`transition-colors ${active ? 'text-amber-500' : 'text-zinc-600'}`} />
-                <span className={`text-[10px] font-medium transition-colors ${active ? 'text-amber-500' : 'text-zinc-600'}`}>{item.label}</span>
+                className={`flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl transition-all ${active ? 'bg-amber-400/12' : 'bg-transparent'}`}>
+                <item.icon size={20} className={`transition-colors ${active ? 'text-amber-300' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-medium transition-colors ${active ? 'text-amber-200' : 'text-slate-400'}`}>{item.label}</span>
               </button>
             );
           })}
@@ -1680,7 +1680,7 @@ export default function CTapHub() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#07111f]">
       {renderScreen()}
       {showNav && <BottomNav />}
     </div>
