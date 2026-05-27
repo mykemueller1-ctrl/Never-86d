@@ -313,7 +313,7 @@ export const appRouter = router({
     byDepartment: publicProcedure.input(z.object({ department: z.string() })).query(({ input }) => getStaffByDepartment(input.department)),
     // Leaderboard is public (gamification visible to all logged-in staff)
     leaderboard: staffOrAuthProcedure.query(() => getLeaderboard()),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       firstName: z.string(),
       lastName: z.string(),
       department: z.enum(["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"]),
@@ -325,7 +325,7 @@ export const appRouter = router({
       email: z.string().optional(),
       employeeNumber: z.string().optional(),
     })).mutation(({ input }) => createStaff(input)),
-    updateStatus: protectedProcedure.input(z.object({
+    updateStatus: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       status: z.enum(["active", "inactive", "terminated"]),
     })).mutation(({ input }) => updateStaffStatus(input.staffId, input.status)),
@@ -336,14 +336,14 @@ export const appRouter = router({
 
   // ============ PAYOUTS ============
   payouts: router({
-    list: protectedProcedure.query(() => getAllPayouts()),
-    flagged: protectedProcedure.query(() => getFlaggedPayouts()),
-    byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
+    list: staffOrAuthProcedure.query(() => getAllPayouts()),
+    flagged: staffOrAuthProcedure.query(() => getFlaggedPayouts()),
+    byStaff: staffOrAuthProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
     // Staff self-only: uses server-side staff session cookie, ignores client-supplied staffId
     myPayouts: staffSessionProcedure.query(({ ctx }) => {
       return getPayoutsByStaff(ctx.staffId);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       authorizedById: z.number().optional(),
       date: z.date(),
@@ -382,9 +382,9 @@ export const appRouter = router({
 
   // ============ INVOICES ============
   invoices: router({
-    list: protectedProcedure.query(() => getAllInvoices()),
-    byVendor: protectedProcedure.input(z.object({ vendorName: z.string() })).query(({ input }) => getInvoicesByVendor(input.vendorName)),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.query(() => getAllInvoices()),
+    byVendor: staffOrAuthProcedure.input(z.object({ vendorName: z.string() })).query(({ input }) => getInvoicesByVendor(input.vendorName)),
+    create: staffOrAuthProcedure.input(z.object({
       vendorName: z.string(),
       vendorAddress: z.string().optional(),
       vendorPhone: z.string().optional(),
@@ -457,14 +457,14 @@ export const appRouter = router({
 
   // ============ VOIDS ============
   voids: router({
-    list: protectedProcedure.query(() => getAllVoids()),
-    byStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
+    list: staffOrAuthProcedure.query(() => getAllVoids()),
+    byStaff: staffOrAuthProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getVoidsByStaff(input.staffId)),
     // Staff self-only: uses server-side staff session cookie, ignores client-supplied staffId
     myVoids: staffSessionProcedure.query(({ ctx }) => {
       return getVoidsByStaff(ctx.staffId);
     }),
-    weeklyByStaff: protectedProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
-    create: protectedProcedure.input(z.object({
+    weeklyByStaff: staffOrAuthProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getWeeklyVoidsByStaff(input.staffId)),
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
       orderNumber: z.string().optional(),
@@ -500,7 +500,7 @@ export const appRouter = router({
   checklists: router({
     list: publicProcedure.query(() => getAllChecklists()),
     byDepartment: publicProcedure.input(z.object({ department: z.string() })).query(({ input }) => getChecklistsByDepartment(input.department)),
-    complete: protectedProcedure.input(z.object({
+    complete: staffOrAuthProcedure.input(z.object({
       checklistId: z.number(),
       staffId: z.number(),
       date: z.date(),
@@ -535,8 +535,8 @@ export const appRouter = router({
 
   // ============ DRIVER REPORTS ============
   driverReports: router({
-    list: protectedProcedure.query(() => getDriverReports()),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.query(() => getDriverReports()),
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
       totalDeliveries: z.number(),
@@ -585,8 +585,8 @@ export const appRouter = router({
 
   // ============ FEEDBACK ============
   feedback: router({
-    list: protectedProcedure.query(() => getAllFeedback()),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.query(() => getAllFeedback()),
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
       shiftType: z.enum(["open", "mid", "close"]).optional(),
@@ -605,7 +605,7 @@ export const appRouter = router({
   // ============ GAMIFICATION ============
   gamification: router({
     leaderboard: publicProcedure.query(() => getLeaderboard()),
-    addEvent: protectedProcedure.input(z.object({
+    addEvent: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
       eventType: z.enum([
@@ -623,7 +623,7 @@ export const appRouter = router({
   issues: router({
     // Production hardening: open issues can include sensitive staff/vendor/ops details, so require a staff or owner session.
     open: staffOrAuthProcedure.query(() => getOpenIssues()),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       reportedById: z.number(),
       date: z.date(),
       title: z.string(),
@@ -654,7 +654,7 @@ export const appRouter = router({
 
   // ============ PHOTO UPLOAD ============
   upload: router({
-    receiptPhoto: protectedProcedure.input(z.object({
+    receiptPhoto: staffOrAuthProcedure.input(z.object({
       base64: z.string(),
       filename: z.string(),
       mimeType: z.string().default("image/jpeg"),
@@ -679,11 +679,11 @@ export const appRouter = router({
         role: z.string().optional(),
       })),
     })).mutation(({ input }) => syncStaffFromDriveData(input.employees)),
-    payoutTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
-    payoutTotalsByVendor: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByVendor(input?.days ?? 7)),
-    invoiceTotals: protectedProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),
+    payoutTotals: staffOrAuthProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByCategory(input?.days ?? 7)),
+    payoutTotalsByVendor: staffOrAuthProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getPayoutTotalsByVendor(input?.days ?? 7)),
+    invoiceTotals: staffOrAuthProcedure.input(z.object({ days: z.number().default(7) }).optional()).query(({ input }) => getInvoiceTotalsByVendor(input?.days ?? 7)),
     // Pattern detection: find employees with repeated misc payouts
-    miscPayoutPatterns: protectedProcedure.input(z.object({ days: z.number().default(14) }).optional()).query(async ({ input }) => {
+    miscPayoutPatterns: staffOrAuthProcedure.input(z.object({ days: z.number().default(14) }).optional()).query(async ({ input }) => {
       const allPayouts = await getAllPayouts();
       const since = new Date(Date.now() - (input?.days ?? 14) * 24 * 60 * 60 * 1000);
       const miscPayouts = allPayouts.filter(p => p.category === "miscellaneous" && new Date(p.date) >= since);
@@ -725,7 +725,7 @@ export const appRouter = router({
   // ============ DAILY BRIEFING ============
   briefing: router({
     latest: publicProcedure.query(() => getLatestBriefing()),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       date: z.date(),
       salesYesterday: z.string().optional(),
       ordersYesterday: z.number().optional(),
@@ -738,13 +738,13 @@ export const appRouter = router({
 
   // ============ KNOWLEDGE BRAIN ============
   knowledge: router({
-    list: protectedProcedure.input(z.object({ station: z.string().optional(), category: z.string().optional() }).optional()).query(({ input }) => {
+    list: staffOrAuthProcedure.input(z.object({ station: z.string().optional(), category: z.string().optional() }).optional()).query(({ input }) => {
       if (input?.station) return getKnowledgeByStation(input.station);
       if (input?.category) return getKnowledgeByCategory(input.category);
       return getAllKnowledge();
     }),
     search: publicProcedure.input(z.object({ query: z.string(), station: z.string().optional() })).query(({ input }) => searchKnowledge(input.query, input.station)),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       station: z.enum(["pizza_line", "fry_line", "bar", "waitstaff", "bbq_room", "store_room", "bathroom", "dish_pit", "general"]),
       category: z.enum(["recipe", "location", "process", "equipment", "vendor", "allergen", "prep", "cleaning", "safety", "menu_info"]),
       question: z.string(),
@@ -847,7 +847,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       return { answer, sourcesUsed: relevantKnowledge.length, station: input.station || "general" };
     }),
     // Submit a correction to a knowledge entry
-    correct: protectedProcedure.input(z.object({
+    correct: staffOrAuthProcedure.input(z.object({
       entryId: z.number(),
       correctedByStaffId: z.number(),
       oldAnswer: z.string(),
@@ -866,16 +866,16 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       return { success: true };
     }),
     corrections: router({
-      pending: protectedProcedure.query(() => getPendingCorrections()),
-      approve: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveCorrection(input.id, input.approvedByStaffId)),
-      reject: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => rejectCorrection(input.id, input.approvedByStaffId)),
+      pending: staffOrAuthProcedure.query(() => getPendingCorrections()),
+      approve: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveCorrection(input.id, input.approvedByStaffId)),
+      reject: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => rejectCorrection(input.id, input.approvedByStaffId)),
     }),
   }),
 
   // ============ PHOTO INTELLIGENCE ============
   photos: router({
     // Analyze a photo with LLM vision and extract structured data
-    analyze: protectedProcedure.input(z.object({
+    analyze: staffOrAuthProcedure.input(z.object({
       photoUrl: z.string(),
       photoType: z.enum(["invoice", "shelf", "station", "equipment", "plate", "delivery", "prep", "other"]),
       staffId: z.number(),
@@ -955,8 +955,8 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       return { extraction, photoType: input.photoType, pointsAwarded: 5, knowledgeEntriesCreated: knowledgeEntryIds.length };
     }),
     mySubmissions: staffSessionProcedure.query(({ ctx }) => getPhotoSubmissionsByStaff(ctx.staffId)),
-    byMission: protectedProcedure.input(z.object({ missionId: z.number() })).query(({ input }) => getPhotoSubmissionsByMission(input.missionId)),
-    verify: protectedProcedure.input(z.object({ id: z.number(), verifiedByStaffId: z.number() })).mutation(({ input }) => verifyPhotoSubmission(input.id, input.verifiedByStaffId)),
+    byMission: staffOrAuthProcedure.input(z.object({ missionId: z.number() })).query(({ input }) => getPhotoSubmissionsByMission(input.missionId)),
+    verify: staffOrAuthProcedure.input(z.object({ id: z.number(), verifiedByStaffId: z.number() })).mutation(({ input }) => verifyPhotoSubmission(input.id, input.verifiedByStaffId)),
   }),
 
   // ============ ACHIEVEMENTS ============
@@ -992,7 +992,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
   rewards: router({
     list: publicProcedure.query(() => getAllRewards()),
     myRedemptions: staffSessionProcedure.query(({ ctx }) => getStaffRedemptions(ctx.staffId)),
-    redeem: protectedProcedure.input(z.object({
+    redeem: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       rewardId: z.number(),
       pointsSpent: z.number(),
@@ -1007,8 +1007,8 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       // Create redemption
       return createRedemption(input);
     }),
-    pendingApprovals: protectedProcedure.query(() => getPendingRedemptions()),
-    approve: protectedProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveRedemption(input.id, input.approvedByStaffId)),
+    pendingApprovals: staffOrAuthProcedure.query(() => getPendingRedemptions()),
+    approve: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedByStaffId: z.number() })).mutation(({ input }) => approveRedemption(input.id, input.approvedByStaffId)),
     // Admin: seed rewards
     seed: adminProcedure.mutation(async () => {
       const rewardDefs = [
@@ -1043,8 +1043,8 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
 
   // ============ VENDOR PRODUCTS & ORDER GUIDES ============
   vendorProducts: router({
-    list: protectedProcedure.input(z.object({ vendorName: z.string().optional() }).optional()).query(({ input }) => getVendorProducts(input?.vendorName)),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.input(z.object({ vendorName: z.string().optional() }).optional()).query(({ input }) => getVendorProducts(input?.vendorName)),
+    create: staffOrAuthProcedure.input(z.object({
       vendorName: z.string(),
       sku: z.string().optional(),
       productName: z.string(),
@@ -1055,12 +1055,12 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       orderFrequency: z.enum(["daily", "twice_weekly", "weekly", "biweekly", "monthly", "as_needed"]).optional(),
       notes: z.string().optional(),
     })).mutation(({ input }) => createVendorProduct(input)),
-    updatePrice: protectedProcedure.input(z.object({ id: z.number(), newPrice: z.string() })).mutation(({ input }) => updateVendorProductPrice(input.id, input.newPrice)),
-    parSuggestions: protectedProcedure.query(() => getParLevelSuggestions()),
+    updatePrice: staffOrAuthProcedure.input(z.object({ id: z.number(), newPrice: z.string() })).mutation(({ input }) => updateVendorProductPrice(input.id, input.newPrice)),
+    parSuggestions: staffOrAuthProcedure.query(() => getParLevelSuggestions()),
   }),
   orderGuides: router({
-    list: protectedProcedure.input(z.object({ staffId: z.number().optional() }).optional()).query(({ input }) => getOrderGuides(input?.staffId)),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.input(z.object({ staffId: z.number().optional() }).optional()).query(({ input }) => getOrderGuides(input?.staffId)),
+    create: staffOrAuthProcedure.input(z.object({
       name: z.string(),
       assignedToStaffId: z.number().optional(),
       vendorName: z.string(),
@@ -1070,8 +1070,8 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
 
   // ============ BRIEFING MEMORY ============
   briefingMemory: router({
-    relevant: protectedProcedure.query(() => getRelevantMemories()),
-    create: protectedProcedure.input(z.object({
+    relevant: staffOrAuthProcedure.query(() => getRelevantMemories()),
+    create: staffOrAuthProcedure.input(z.object({
       factType: z.enum(["event_pattern", "shortage", "equipment_issue", "staff_pattern", "vendor_change", "menu_change", "seasonal", "custom"]),
       fact: z.string(),
       relevanceScore: z.number().default(50),
@@ -1107,7 +1107,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       }
       return getTrainingCompletions(targetId);
     }),
-    complete: protectedProcedure.input(z.object({
+    complete: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       moduleId: z.number(),
       completedAt: z.date(),
@@ -1131,7 +1131,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       }
       return getSkillCertifications(targetId);
     }),
-    certify: protectedProcedure.input(z.object({
+    certify: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       skillName: z.string(),
       skillCategory: z.enum(["equipment", "food_prep", "service", "management", "safety"]),
@@ -1154,7 +1154,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       }
       return getEvaluations(targetId);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       evaluatorId: z.number(),
       evaluatedAt: z.date(),
@@ -1195,7 +1195,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       }
       return getActiveWriteUps(targetId);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       issuedById: z.number(),
       issuedAt: z.date(),
@@ -1206,7 +1206,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       followUpDate: z.date().optional(),
       expiresAt: z.date().optional(),
     })).mutation(({ input }) => createWriteUp(input)),
-    acknowledge: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => acknowledgeWriteUp(input.id)),
+    acknowledge: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => acknowledgeWriteUp(input.id)),
   }),
 
   // ============ WORKER CAREER TRACK ============
@@ -1221,7 +1221,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       }
       return getCareerTrack(targetId);
     }),
-    upsert: protectedProcedure.input(z.object({
+    upsert: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       track: z.enum(["kitchen", "pizza", "foh", "driver"]),
       currentLevel: z.number().default(1),
@@ -1286,41 +1286,41 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
 
   // ============ PRICE COMPARISON ============
   priceComparison: router({
-    list: protectedProcedure.query(() => getPriceComparisons()),
+    list: staffOrAuthProcedure.query(() => getPriceComparisons()),
   }),
 
   // ============ EVENT-AWARE BRIEFING ============
   eventBriefing: router({
-    context: protectedProcedure.query(() => getEventAwareBriefingContext()),
+    context: staffOrAuthProcedure.query(() => getEventAwareBriefingContext()),
   }),
 
   // ============ INTELLIGENCE ENGINE ============
   intelligence: router({
     // Void Analysis
-    voidRecords: protectedProcedure.input(z.object({
+    voidRecords: staffOrAuthProcedure.input(z.object({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
       employeeName: z.string().optional(),
     }).optional()).query(({ input }) => getVoidRecords(input)),
-    voidSummary: protectedProcedure.query(() => getVoidSummaryByEmployee()),
+    voidSummary: staffOrAuthProcedure.query(() => getVoidSummaryByEmployee()),
 
     // Product Mix
-    productMix: protectedProcedure.input(z.object({ category: z.string().optional() }).optional()).query(({ input }) => getProductMix(input?.category)),
+    productMix: staffOrAuthProcedure.input(z.object({ category: z.string().optional() }).optional()).query(({ input }) => getProductMix(input?.category)),
 
     // Weather
-    weather: protectedProcedure.query(() => getWeatherData()),
-    weatherCorrelation: protectedProcedure.query(() => getWeatherSalesCorrelation()),
+    weather: staffOrAuthProcedure.query(() => getWeatherData()),
+    weatherCorrelation: staffOrAuthProcedure.query(() => getWeatherSalesCorrelation()),
 
     // Hourly Heatmap
-    hourlyHeatmap: protectedProcedure.query(() => getHourlySalesHeatmap()),
+    hourlyHeatmap: staffOrAuthProcedure.query(() => getHourlySalesHeatmap()),
 
     // Anomalies
-    anomalies: protectedProcedure.input(z.object({ severity: z.string().optional() }).optional()).query(({ input }) => getAnomalies(input?.severity)),
-    acknowledgeAnomaly: protectedProcedure.input(z.object({ id: z.number(), acknowledgedBy: z.string() })).mutation(({ input }) => acknowledgeAnomaly(input.id, input.acknowledgedBy)),
+    anomalies: staffOrAuthProcedure.input(z.object({ severity: z.string().optional() }).optional()).query(({ input }) => getAnomalies(input?.severity)),
+    acknowledgeAnomaly: staffOrAuthProcedure.input(z.object({ id: z.number(), acknowledgedBy: z.string() })).mutation(({ input }) => acknowledgeAnomaly(input.id, input.acknowledgedBy)),
 
     // Events
-    upcomingEvents: protectedProcedure.query(() => getUpcomingEvents()),
-    addEvent: protectedProcedure.input(z.object({
+    upcomingEvents: staffOrAuthProcedure.query(() => getUpcomingEvents()),
+    addEvent: staffOrAuthProcedure.input(z.object({
       eventName: z.string(),
       eventDate: z.string(),
       eventTime: z.string().optional(),
@@ -1335,10 +1335,10 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
     })).mutation(({ input }) => addLocalEvent(input)),
 
     // Schedule Intelligence
-    scheduleIntel: protectedProcedure.input(z.object({ weekStart: z.string() })).query(({ input }) => getScheduleIntelligence(input.weekStart)),
+    scheduleIntel: staffOrAuthProcedure.input(z.object({ weekStart: z.string() })).query(({ input }) => getScheduleIntelligence(input.weekStart)),
 
     // Generate schedule intelligence using LLM
-    generateScheduleIntel: protectedProcedure.input(z.object({ weekStart: z.string(), weekEnd: z.string() })).mutation(async ({ input }) => {
+    generateScheduleIntel: staffOrAuthProcedure.input(z.object({ weekStart: z.string(), weekEnd: z.string() })).mutation(async ({ input }) => {
       const [dowPattern, weatherData, events, anomalies, voidSummary] = await Promise.all([
         getDayOfWeekPattern(new Date().getDay()),
         getWeatherData(true),
@@ -1384,11 +1384,11 @@ Respond in JSON format: { "days": [{ "date": "YYYY-MM-DD", "dayOfWeek": "Monday"
 
   // ============ MANAGEMENT BRIEFINGS ============
   briefings: router({
-    list: protectedProcedure.input(z.object({ role: z.string().optional() }).optional()).query(({ input }) => getManagementBriefings(input?.role)),
-    markRead: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => markBriefingRead(input.id)),
+    list: staffOrAuthProcedure.input(z.object({ role: z.string().optional() }).optional()).query(({ input }) => getManagementBriefings(input?.role)),
+    markRead: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => markBriefingRead(input.id)),
 
     // Generate a comprehensive briefing for all roles using LLM
-    generate: protectedProcedure.mutation(async () => {
+    generate: staffOrAuthProcedure.mutation(async () => {
       const snapshot = await getBriefingDataSnapshot();
       if (!snapshot) return { error: 'No data available' };
 
@@ -1542,11 +1542,11 @@ Respond in JSON with this exact structure:
 
   // ============ SALES FORECAST ============
   forecast: router({
-    generate: protectedProcedure.input(z.object({ targetDate: z.string() })).query(async ({ input }) => {
+    generate: staffOrAuthProcedure.input(z.object({ targetDate: z.string() })).query(async ({ input }) => {
       const date = new Date(input.targetDate);
       return generateSalesForecast(date);
     }),
-    weekAhead: protectedProcedure.query(async () => {
+    weekAhead: staffOrAuthProcedure.query(async () => {
       const forecasts = [];
       for (let i = 0; i < 7; i++) {
         const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
@@ -1555,24 +1555,24 @@ Respond in JSON with this exact structure:
       }
       return forecasts;
     }),
-    eventImpactHistory: protectedProcedure.query(async () => {
+    eventImpactHistory: staffOrAuthProcedure.query(async () => {
       return getEventImpactHistory();
     }),
-    mlPrediction: protectedProcedure.input(z.object({ daysAhead: z.number().min(1).max(30).default(14) })).query(async ({ input }) => {
+    mlPrediction: staffOrAuthProcedure.input(z.object({ daysAhead: z.number().min(1).max(30).default(14) })).query(async ({ input }) => {
       return getMLSalesPrediction(input.daysAhead);
     }),
   }),
 
   // ============ RECIPES ============
   recipes: router({
-    list: protectedProcedure.query(async () => getAllRecipes()),
-    getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+    list: staffOrAuthProcedure.query(async () => getAllRecipes()),
+    getById: staffOrAuthProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
       const recipe = await getRecipeById(input.id);
       if (!recipe) return null;
       const ingredients = await getRecipeIngredients(input.id);
       return { ...recipe, ingredients };
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       name: z.string(),
       category: z.string(),
       subcategory: z.string().optional(),
@@ -1584,7 +1584,7 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return createRecipe(input as any);
     }),
-    update: protectedProcedure.input(z.object({
+    update: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       name: z.string().optional(),
       category: z.string().optional(),
@@ -1599,7 +1599,7 @@ Respond in JSON with this exact structure:
       const { id, ...data } = input;
       return updateRecipe(id, data as any);
     }),
-    recalculateCost: protectedProcedure.input(z.object({ recipeId: z.number() })).mutation(async ({ input }) => {
+    recalculateCost: staffOrAuthProcedure.input(z.object({ recipeId: z.number() })).mutation(async ({ input }) => {
       return recalculateRecipeCost(input.recipeId);
     }),
     seedIngredients: staffOrAuthProcedure.input(z.object({
@@ -1622,7 +1622,7 @@ Respond in JSON with this exact structure:
 
       return seedRecipeIngredients(input ?? {});
     }),
-    addIngredient: protectedProcedure.input(z.object({
+    addIngredient: staffOrAuthProcedure.input(z.object({
       recipeId: z.number(),
       skuId: z.number().optional(),
       ingredientName: z.string(),
@@ -1635,7 +1635,7 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return addRecipeIngredient(input as any);
     }),
-    updateIngredient: protectedProcedure.input(z.object({
+    updateIngredient: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       ingredientName: z.string().optional(),
       quantity: z.string().optional(),
@@ -1649,26 +1649,26 @@ Respond in JSON with this exact structure:
       const { id, ...data } = input;
       return updateRecipeIngredient(id, data as any);
     }),
-    deleteIngredient: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    deleteIngredient: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       return deleteRecipeIngredient(input.id);
     }),
   }),
 
   // ============ SKU CATALOG ============
   skus: router({
-    list: protectedProcedure.input(z.object({ activeOnly: z.boolean().optional() }).optional()).query(async ({ input }) => {
+    list: staffOrAuthProcedure.input(z.object({ activeOnly: z.boolean().optional() }).optional()).query(async ({ input }) => {
       return getAllSkus(input?.activeOnly ?? true);
     }),
-    getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+    getById: staffOrAuthProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
       return getSkuById(input.id);
     }),
-    byVendor: protectedProcedure.input(z.object({ vendorName: z.string() })).query(async ({ input }) => {
+    byVendor: staffOrAuthProcedure.input(z.object({ vendorName: z.string() })).query(async ({ input }) => {
       return getSkusByVendor(input.vendorName);
     }),
-    byCategory: protectedProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
+    byCategory: staffOrAuthProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
       return getSkusByCategory(input.category);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       productName: z.string(),
       vendorName: z.string(),
       category: z.string(),
@@ -1681,7 +1681,7 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return createSku(input as any);
     }),
-    update: protectedProcedure.input(z.object({
+    update: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       productName: z.string().optional(),
       vendorName: z.string().optional(),
@@ -1696,10 +1696,10 @@ Respond in JSON with this exact structure:
       const { id, ...data } = input;
       return updateSku(id, data as any);
     }),
-    priceHistory: protectedProcedure.input(z.object({ skuId: z.number(), limit: z.number().optional() })).query(async ({ input }) => {
+    priceHistory: staffOrAuthProcedure.input(z.object({ skuId: z.number(), limit: z.number().optional() })).query(async ({ input }) => {
       return getSkuPriceHistory(input.skuId, input.limit);
     }),
-    addPriceEntry: protectedProcedure.input(z.object({
+    addPriceEntry: staffOrAuthProcedure.input(z.object({
       skuId: z.number(),
       vendorName: z.string(),
       price: z.string(),
@@ -1708,21 +1708,21 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return addSkuPriceEntry(input as any);
     }),
-    crossVendorCompare: protectedProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
+    crossVendorCompare: staffOrAuthProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
       return crossVendorPriceComparison(input.productName);
     }),
-    weekOverWeek: protectedProcedure.query(async () => {
+    weekOverWeek: staffOrAuthProcedure.query(async () => {
       return getWeekOverWeekPriceDeltas();
     }),
-    invoicePriceComparison: protectedProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
+    invoicePriceComparison: staffOrAuthProcedure.input(z.object({ productName: z.string() })).query(async ({ input }) => {
       return getInvoicePriceComparison(input.productName);
     }),
   }),
 
   // ============ MENU ITEMS ============
   menuCost: router({
-    list: protectedProcedure.query(async () => getAllMenuItems()),
-    create: protectedProcedure.input(z.object({
+    list: staffOrAuthProcedure.query(async () => getAllMenuItems()),
+    create: staffOrAuthProcedure.input(z.object({
       posItemName: z.string(),
       recipeId: z.number().optional(),
       menuPrice: z.string(),
@@ -1731,7 +1731,7 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return createMenuItem(input as any);
     }),
-    update: protectedProcedure.input(z.object({
+    update: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       posItemName: z.string().optional(),
       recipeId: z.number().optional(),
@@ -1742,18 +1742,18 @@ Respond in JSON with this exact structure:
       const { id, ...data } = input;
       return updateMenuItem(id, data as any);
     }),
-    recalculateMargin: protectedProcedure.input(z.object({ menuItemId: z.number() })).mutation(async ({ input }) => {
+    recalculateMargin: staffOrAuthProcedure.input(z.object({ menuItemId: z.number() })).mutation(async ({ input }) => {
       return recalculateMenuItemMargin(input.menuItemId);
     }),
-    summary: protectedProcedure.query(async () => getFoodCostSummary()),
+    summary: staffOrAuthProcedure.query(async () => getFoodCostSummary()),
   }),
 
   // ============ WASTE LOG ============
   waste: router({
-    list: protectedProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
+    list: staffOrAuthProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
       return getWasteLog(input?.days ?? 7);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number().optional(),
       date: z.string(),
       itemName: z.string(),
@@ -1767,23 +1767,23 @@ Respond in JSON with this exact structure:
     })).mutation(async ({ input }) => {
       return createWasteEntry({ ...input, date: new Date(input.date) } as any);
     }),
-    summary: protectedProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
+    summary: staffOrAuthProcedure.input(z.object({ days: z.number().optional() }).optional()).query(async ({ input }) => {
       return getWasteSummary(input?.days ?? 7);
     }),
   }),
 
   // ============ PRICE ALERTS ============
   priceAlerts: router({
-    pending: protectedProcedure.query(async () => getPriceAlerts(false)),
-    reviewed: protectedProcedure.query(async () => getPriceAlerts(true)),
-    review: protectedProcedure.input(z.object({
+    pending: staffOrAuthProcedure.query(async () => getPriceAlerts(false)),
+    reviewed: staffOrAuthProcedure.query(async () => getPriceAlerts(true)),
+    review: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       reviewedBy: z.number(),
       notes: z.string().optional(),
     })).mutation(async ({ input }) => {
       return reviewPriceAlert(input.id, input.reviewedBy, input.notes);
     }),
-    scan: protectedProcedure.mutation(async () => {
+    scan: staffOrAuthProcedure.mutation(async () => {
       return scanForPriceChanges();
     }),
   }),
@@ -1793,7 +1793,7 @@ Respond in JSON with this exact structure:
     active: publicProcedure.input(z.object({ station: z.string().optional() }).optional()).query(async ({ input }) => {
       return getActiveBroadcasts(input?.station);
     }),
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       broadcastType: z.string(),
       itemName: z.string(),
       message: z.string().optional(),
@@ -1816,29 +1816,29 @@ Respond in JSON with this exact structure:
       }
       return { success: true };
     }),
-    acknowledge: protectedProcedure.input(z.object({
+    acknowledge: staffOrAuthProcedure.input(z.object({
       broadcastId: z.number(),
       staffId: z.number(),
     })).mutation(async ({ input }) => {
       return acknowledgeBroadcast(input.broadcastId, input.staffId);
     }),
-    resolve: protectedProcedure.input(z.object({ broadcastId: z.number() })).mutation(async ({ input }) => {
+    resolve: staffOrAuthProcedure.input(z.object({ broadcastId: z.number() })).mutation(async ({ input }) => {
       return resolveBroadcast(input.broadcastId);
     }),
-    history: protectedProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input }) => {
+    history: staffOrAuthProcedure.input(z.object({ limit: z.number().optional() }).optional()).query(async ({ input }) => {
       return getBroadcastHistory(input?.limit);
     }),
   }),
 
   // ============ SMART NOTIFICATIONS ============
   notifications: router({
-    undelivered: protectedProcedure.input(z.object({
+    undelivered: staffOrAuthProcedure.input(z.object({
       staffId: z.number().optional(),
       role: z.string().optional(),
     }).optional()).query(async ({ input }) => {
       return getUndeliveredNotifications(input?.staffId, input?.role);
     }),
-    shiftRecipients: protectedProcedure.input(z.object({
+    shiftRecipients: staffOrAuthProcedure.input(z.object({
       area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]),
       date: z.date().optional(),
       shiftType: z.enum(["am", "pm", "close"]).optional(),
@@ -1857,7 +1857,7 @@ Respond in JSON with this exact structure:
         })),
       };
     }),
-    createShiftAlert: protectedProcedure.input(z.object({
+    createShiftAlert: staffOrAuthProcedure.input(z.object({
       area: z.enum(["kitchen", "foh", "driver", "pizza", "fry", "vendor", "general"]),
       shiftType: z.enum(["am", "pm", "close"]).optional(),
       title: z.string().min(1).max(255),
@@ -1866,20 +1866,20 @@ Respond in JSON with this exact structure:
       priority: z.enum(["critical", "high", "normal", "low"]).default("high"),
       date: z.date().optional(),
     })).mutation(async ({ input }) => queueShiftGovernanceAlert(input)),
-    markDelivered: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    markDelivered: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       return markNotificationDelivered(input.id);
     }),
-    markRead: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    markRead: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       return markNotificationRead(input.id);
     }),
-    batchPending: protectedProcedure.mutation(async () => {
+    batchPending: staffOrAuthProcedure.mutation(async () => {
       return batchNotifications();
     }),
   }),
 
   // ============ SCHEDULE ============
   schedule: router({
-    getWeek: protectedProcedure.input(z.object({
+    getWeek: staffOrAuthProcedure.input(z.object({
       startDate: z.coerce.date(),
       endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByDateRange(input.startDate, input.endDate)),
@@ -1890,13 +1890,13 @@ Respond in JSON with this exact structure:
       endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByStaff(input.staffId, input.startDate, input.endDate)),
 
-    getByDepartment: protectedProcedure.input(z.object({
+    getByDepartment: staffOrAuthProcedure.input(z.object({
       department: z.string(),
       startDate: z.coerce.date(),
       endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByDepartment(input.department, input.startDate, input.endDate)),
 
-    create: protectedProcedure.input(z.object({
+    create: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       date: z.date(),
       startTime: z.string(),
@@ -1907,7 +1907,7 @@ Respond in JSON with this exact structure:
       createdBy: z.number().optional(),
     })).mutation(({ input }) => createScheduleShift(input)),
 
-    bulkCreate: protectedProcedure.input(z.object({
+    bulkCreate: staffOrAuthProcedure.input(z.object({
       shifts: z.array(z.object({
         staffId: z.number(),
         date: z.date(),
@@ -1920,7 +1920,7 @@ Respond in JSON with this exact structure:
       })),
     })).mutation(({ input }) => bulkCreateScheduleShifts(input.shifts)),
 
-    update: protectedProcedure.input(z.object({
+    update: staffOrAuthProcedure.input(z.object({
       id: z.number(),
       staffId: z.number().optional(),
       date: z.date().optional(),
@@ -1934,14 +1934,14 @@ Respond in JSON with this exact structure:
       return updateScheduleShift(id, data);
     }),
 
-    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => deleteScheduleShift(input.id)),
+    delete: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => deleteScheduleShift(input.id)),
   }),
 
   // ============ AVAILABILITY ============
   // SECURED: Staff can only view/set their own availability via session
   availability: router({
     getByStaff: staffSessionProcedure.query(({ ctx }) => getAvailabilityByStaff(ctx.staffId)),
-    getAll: protectedProcedure.query(() => getAllAvailability()),
+    getAll: staffOrAuthProcedure.query(() => getAllAvailability()),
     set: staffSessionProcedure.input(z.object({
       dayOfWeek: z.number().min(0).max(6),
       startTime: z.string(),
@@ -1959,9 +1959,9 @@ Respond in JSON with this exact structure:
       reason: z.string().optional(),
     })).mutation(({ input, ctx }) => createTimeOffRequest({ ...input, staffId: ctx.staffId })),
     myRequests: staffSessionProcedure.query(({ ctx }) => getTimeOffByStaff(ctx.staffId)),
-    pending: protectedProcedure.query(() => getPendingTimeOff()),
-    approve: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveTimeOff(input.id, input.approvedBy)),
-    deny: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denyTimeOff(input.id, input.approvedBy)),
+    pending: staffOrAuthProcedure.query(() => getPendingTimeOff()),
+    approve: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveTimeOff(input.id, input.approvedBy)),
+    deny: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denyTimeOff(input.id, input.approvedBy)),
   }),
 
   // ============ SHIFT SWAPS ============
@@ -1973,9 +1973,9 @@ Respond in JSON with this exact structure:
       reason: z.string().optional(),
     })).mutation(({ input, ctx }) => createShiftSwapRequest({ ...input, requesterId: ctx.staffId })),
     mySwaps: staffSessionProcedure.query(({ ctx }) => getSwapsByStaff(ctx.staffId)),
-    pending: protectedProcedure.query(() => getPendingSwaps()),
-    approve: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveSwap(input.id, input.approvedBy)),
-    deny: protectedProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denySwap(input.id, input.approvedBy)),
+    pending: staffOrAuthProcedure.query(() => getPendingSwaps()),
+    approve: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => approveSwap(input.id, input.approvedBy)),
+    deny: staffOrAuthProcedure.input(z.object({ id: z.number(), approvedBy: z.number() })).mutation(({ input }) => denySwap(input.id, input.approvedBy)),
   }),
 
   // ============ TIME CLOCK ============
@@ -2014,13 +2014,13 @@ Respond in JSON with this exact structure:
       endDate: z.date(),
     })).query(({ input, ctx }) => getTimeEntriesByStaff(ctx.staffId, input.startDate, input.endDate)),
     weeklyHours: staffSessionProcedure.query(({ ctx }) => getWeeklyHours(ctx.staffId)),
-    allActive: protectedProcedure.query(() => getAllActiveClocks()),
-    allWeeklyHours: protectedProcedure.query(() => getAllWeeklyHours()),
+    allActive: staffOrAuthProcedure.query(() => getAllActiveClocks()),
+    allWeeklyHours: staffOrAuthProcedure.query(() => getAllWeeklyHours()),
   }),
 
   // ============ EOD DIGEST ============
   eodDigest: router({
-    getData: protectedProcedure.query(() => getEodDigestData()),
+    getData: staffOrAuthProcedure.query(() => getEodDigestData()),
   }),
 
   // ============ PIN MANAGEMENT ============
@@ -2102,7 +2102,7 @@ Respond in JSON with this exact structure:
   // ============ SECURITY RECORDS (AUDIT LOG) ============
   security: router({
     // Manager/Owner: View all security events (filterable)
-    events: protectedProcedure.input(z.object({
+    events: staffOrAuthProcedure.input(z.object({
       limit: z.number().min(1).max(500).default(100),
       offset: z.number().min(0).default(0),
       eventType: z.string().optional(),
@@ -2112,18 +2112,18 @@ Respond in JSON with this exact structure:
       endDate: z.date().optional(),
     }).optional()).query(({ input }) => getSecurityEvents(input ?? {})),
     // Manager/Owner: View security events for a specific staff member
-    byStaff: protectedProcedure.input(z.object({
+    byStaff: staffOrAuthProcedure.input(z.object({
       staffId: z.number(),
       limit: z.number().min(1).max(200).default(50),
     })).query(({ input }) => getSecurityEventsByStaff(input.staffId, input.limit)),
     // Manager/Owner: Get recent lockouts
-    recentLockouts: protectedProcedure.input(z.object({
+    recentLockouts: staffOrAuthProcedure.input(z.object({
       hours: z.number().min(1).max(168).default(24),
     }).optional()).query(({ input }) => getRecentLockouts(input?.hours ?? 24)),
     // Manager/Owner: Security stats dashboard
-    stats: protectedProcedure.query(() => getSecurityStats()),
+    stats: staffOrAuthProcedure.query(() => getSecurityStats()),
     // Manager/Owner: Resolve/acknowledge a security event
-    resolve: protectedProcedure.input(z.object({
+    resolve: staffOrAuthProcedure.input(z.object({
       eventId: z.number(),
       resolvedBy: z.string(),
     })).mutation(({ input }) => resolveSecurityEvent(input.eventId, input.resolvedBy)),

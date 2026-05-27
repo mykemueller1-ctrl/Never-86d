@@ -1829,7 +1829,7 @@ export async function getAllRewards() {
   return db
     .select()
     .from(rewards)
-    .where(eq(rewards.active, true))
+    .where(sql`${rewards.active} = 1`)
     .orderBy(rewards.pointsCost);
 }
 
@@ -1888,7 +1888,7 @@ export async function getActiveMissions() {
   return db
     .select()
     .from(photoMissions)
-    .where(eq(photoMissions.active, true))
+    .where(sql`${photoMissions.active} = 1`)
     .orderBy(desc(photoMissions.createdAt));
 }
 
@@ -1957,7 +1957,7 @@ export async function getVendorProducts(vendorName?: string) {
       .where(
         and(
           eq(vendorProducts.vendorName, vendorName),
-          eq(vendorProducts.active, true)
+          sql`${vendorProducts.active} = 1`
         )
       )
       .orderBy(vendorProducts.category, vendorProducts.productName);
@@ -1965,7 +1965,7 @@ export async function getVendorProducts(vendorName?: string) {
   return db
     .select()
     .from(vendorProducts)
-    .where(eq(vendorProducts.active, true))
+    .where(sql`${vendorProducts.active} = 1`)
     .orderBy(
       vendorProducts.vendorName,
       vendorProducts.category,

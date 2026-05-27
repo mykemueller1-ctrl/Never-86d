@@ -1,4 +1,3 @@
-@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -46,102 +45,102 @@
 }
 
 /*
- * ─── DESIGN SYSTEM: "Night Shift" ───────────────────────────────
- * Inspired by Apple's design philosophy:
- * - One accent color (warm amber)
- * - Strict grayscale hierarchy
- * - Generous whitespace
- * - Purposeful typography scale
- * - Subtle depth over hard borders
+ * ─── DESIGN SYSTEM: "Enterprise White" ───────────────────────────────
+ * Clean, professional, restaurant operations tool.
+ * - White backgrounds with subtle gray hierarchy
+ * - Orange/amber accent for primary actions
+ * - Generous whitespace, clean typography
+ * - Subtle shadows over hard borders
  */
 
 :root {
   --radius: 0.75rem;
 
-  /* Surfaces — true black OLED with subtle warm tint */
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.95 0.005 80);
-  --card: oklch(0.13 0.003 80);
-  --card-foreground: oklch(0.95 0.005 80);
-  --popover: oklch(0.13 0.003 80);
-  --popover-foreground: oklch(0.95 0.005 80);
+  /* Surfaces — clean white */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0.005 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.005 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.005 250);
 
-  /* Primary — warm amber, the ONE accent */
-  --primary: oklch(0.80 0.16 75);
-  --primary-foreground: oklch(0.10 0.01 75);
+  /* Primary — warm orange, the ONE accent */
+  --primary: oklch(0.72 0.17 55);
+  --primary-foreground: oklch(1 0 0);
 
-  /* Secondary — elevated surface */
-  --secondary: oklch(0.18 0.003 80);
-  --secondary-foreground: oklch(0.85 0.005 80);
+  /* Secondary — light gray surface */
+  --secondary: oklch(0.96 0.003 250);
+  --secondary-foreground: oklch(0.30 0.005 250);
 
   /* Muted — receded content */
-  --muted: oklch(0.18 0.003 80);
-  --muted-foreground: oklch(0.55 0.005 80);
+  --muted: oklch(0.96 0.003 250);
+  --muted-foreground: oklch(0.50 0.005 250);
 
   /* Accent — interactive highlight */
-  --accent: oklch(0.18 0.003 80);
-  --accent-foreground: oklch(0.95 0.005 80);
+  --accent: oklch(0.96 0.003 250);
+  --accent-foreground: oklch(0.15 0.005 250);
 
   /* Destructive — restrained red */
-  --destructive: oklch(0.60 0.20 25);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
 
-  /* Borders — barely there */
-  --border: oklch(1 0 0 / 6%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.80 0.16 75);
+  /* Borders — subtle gray */
+  --border: oklch(0.90 0.003 250);
+  --input: oklch(0.92 0.003 250);
+  --ring: oklch(0.72 0.17 55);
 
-  /* Charts — amber-based monochromatic + one contrast */
-  --chart-1: oklch(0.80 0.16 75);
-  --chart-2: oklch(0.65 0.12 75);
-  --chart-3: oklch(0.50 0.08 75);
-  --chart-4: oklch(0.70 0.10 200);
+  /* Charts — orange-based with variety */
+  --chart-1: oklch(0.72 0.17 55);
+  --chart-2: oklch(0.60 0.14 55);
+  --chart-3: oklch(0.50 0.10 55);
+  --chart-4: oklch(0.65 0.12 200);
   --chart-5: oklch(0.55 0.15 25);
 
   /* Sidebar */
-  --sidebar: oklch(0.08 0.003 80);
-  --sidebar-foreground: oklch(0.95 0.005 80);
-  --sidebar-primary: oklch(0.80 0.16 75);
-  --sidebar-primary-foreground: oklch(0.10 0.01 75);
-  --sidebar-accent: oklch(0.18 0.003 80);
-  --sidebar-accent-foreground: oklch(0.95 0.005 80);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.80 0.16 75);
+  --sidebar: oklch(0.97 0.003 250);
+  --sidebar-foreground: oklch(0.15 0.005 250);
+  --sidebar-primary: oklch(0.72 0.17 55);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.94 0.003 250);
+  --sidebar-accent-foreground: oklch(0.15 0.005 250);
+  --sidebar-border: oklch(0.90 0.003 250);
+  --sidebar-ring: oklch(0.72 0.17 55);
 }
 
+/* Dark mode not used — keep minimal fallback */
 .dark {
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.95 0.005 80);
-  --card: oklch(0.13 0.003 80);
-  --card-foreground: oklch(0.95 0.005 80);
-  --popover: oklch(0.13 0.003 80);
-  --popover-foreground: oklch(0.95 0.005 80);
-  --primary: oklch(0.80 0.16 75);
-  --primary-foreground: oklch(0.10 0.01 75);
-  --secondary: oklch(0.18 0.003 80);
-  --secondary-foreground: oklch(0.85 0.005 80);
-  --muted: oklch(0.18 0.003 80);
-  --muted-foreground: oklch(0.55 0.005 80);
-  --accent: oklch(0.18 0.003 80);
-  --accent-foreground: oklch(0.95 0.005 80);
-  --destructive: oklch(0.60 0.20 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 6%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.80 0.16 75);
-  --chart-1: oklch(0.80 0.16 75);
-  --chart-2: oklch(0.65 0.12 75);
-  --chart-3: oklch(0.50 0.08 75);
-  --chart-4: oklch(0.70 0.10 200);
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0.005 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.005 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.005 250);
+  --primary: oklch(0.72 0.17 55);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.003 250);
+  --secondary-foreground: oklch(0.30 0.005 250);
+  --muted: oklch(0.96 0.003 250);
+  --muted-foreground: oklch(0.50 0.005 250);
+  --accent: oklch(0.96 0.003 250);
+  --accent-foreground: oklch(0.15 0.005 250);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.90 0.003 250);
+  --input: oklch(0.92 0.003 250);
+  --ring: oklch(0.72 0.17 55);
+  --chart-1: oklch(0.72 0.17 55);
+  --chart-2: oklch(0.60 0.14 55);
+  --chart-3: oklch(0.50 0.10 55);
+  --chart-4: oklch(0.65 0.12 200);
   --chart-5: oklch(0.55 0.15 25);
-  --sidebar: oklch(0.08 0.003 80);
-  --sidebar-foreground: oklch(0.95 0.005 80);
-  --sidebar-primary: oklch(0.80 0.16 75);
-  --sidebar-primary-foreground: oklch(0.10 0.01 75);
-  --sidebar-accent: oklch(0.18 0.003 80);
-  --sidebar-accent-foreground: oklch(0.95 0.005 80);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.80 0.16 75);
+  --sidebar: oklch(0.97 0.003 250);
+  --sidebar-foreground: oklch(0.15 0.005 250);
+  --sidebar-primary: oklch(0.72 0.17 55);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.94 0.003 250);
+  --sidebar-accent-foreground: oklch(0.15 0.005 250);
+  --sidebar-border: oklch(0.90 0.003 250);
+  --sidebar-ring: oklch(0.72 0.17 55);
 }
 
 @layer base {
@@ -253,25 +252,29 @@
     text-transform: uppercase;
   }
 
-  /* ─── Surface System ─── */
+  /* ─── Surface System (light theme) ─── */
   .surface-base {
-    background-color: oklch(0.13 0.003 80);
+    background-color: oklch(0.97 0.003 250);
     border-radius: 0.75rem;
+    border: 1px solid oklch(0.92 0.003 250);
   }
 
   .surface-elevated {
-    background-color: oklch(0.16 0.003 80);
+    background-color: oklch(1 0 0);
     border-radius: 0.75rem;
+    box-shadow: 0 1px 3px oklch(0 0 0 / 6%), 0 1px 2px oklch(0 0 0 / 4%);
   }
 
   .surface-interactive {
-    background-color: oklch(0.13 0.003 80);
+    background-color: oklch(0.98 0.003 250);
     border-radius: 0.75rem;
-    transition: background-color 200ms ease, transform 100ms ease;
+    border: 1px solid oklch(0.92 0.003 250);
+    transition: background-color 200ms ease, transform 100ms ease, box-shadow 200ms ease;
   }
 
   .surface-interactive:hover {
-    background-color: oklch(0.16 0.003 80);
+    background-color: oklch(0.96 0.003 250);
+    box-shadow: 0 2px 4px oklch(0 0 0 / 5%);
   }
 
   .surface-interactive:active {
@@ -311,20 +314,20 @@
 
   /* ─── Glow Effects (primary actions only) ─── */
   .glow-amber {
-    box-shadow: 0 0 20px oklch(0.80 0.16 75 / 15%), 0 0 40px oklch(0.80 0.16 75 / 5%);
+    box-shadow: 0 4px 14px oklch(0.72 0.17 55 / 20%), 0 2px 6px oklch(0.72 0.17 55 / 10%);
   }
 
   .glow-amber-strong {
-    box-shadow: 0 0 24px oklch(0.80 0.16 75 / 25%), 0 0 48px oklch(0.80 0.16 75 / 8%);
+    box-shadow: 0 6px 20px oklch(0.72 0.17 55 / 30%), 0 3px 8px oklch(0.72 0.17 55 / 15%);
   }
 
   /* ─── Skeleton Loading ─── */
   .skeleton {
     background: linear-gradient(
       90deg,
-      oklch(0.15 0 0) 0%,
-      oklch(0.20 0 0) 50%,
-      oklch(0.15 0 0) 100%
+      oklch(0.94 0 0) 0%,
+      oklch(0.97 0 0) 50%,
+      oklch(0.94 0 0) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
@@ -336,10 +339,11 @@
     100% { background-position: -200% 0; }
   }
 
-  /* ─── Bottom Nav Glass Effect ─── */
+  /* ─── Bottom Nav Glass Effect (light) ─── */
   .nav-glass {
-    background: oklch(0.06 0 0 / 85%);
+    background: oklch(1 0 0 / 90%);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid oklch(0.92 0.003 250);
   }
 }
