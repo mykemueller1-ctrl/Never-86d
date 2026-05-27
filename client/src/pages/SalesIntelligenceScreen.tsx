@@ -46,7 +46,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
   const [expandedAnomaly, setExpandedAnomaly] = useState<number | null>(null);
 
   // Data queries
-  const { data: dailySales = [] } = trpc.sales.daily.useQuery({ limit: daysBack });
+  const dailySalesQuery = trpc.sales.daily.useQuery({ limit: daysBack });
+  const dailySales = dailySalesQuery.data || [];
   const { data: productMix = [] } = trpc.intelligence.productMix.useQuery({ category: mixCategory });
   const { data: voidSummary = [] } = trpc.intelligence.voidSummary.useQuery();
   const { data: weatherCorrelation } = trpc.intelligence.weatherCorrelation.useQuery();
@@ -56,6 +57,20 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
 
   const ackMutation = trpc.intelligence.acknowledgeAnomaly.useMutation();
   const genScheduleMutation = trpc.intelligence.generateScheduleIntel.useMutation();
+
+  const canonicalVoidTotals = useMemo(() => {
+    const rowTotalVoids = voidSummary.reduce((sum: number, e: any) => sum + (Number(e.totalVoids) || 0), 0);
+    const rowTotalAmount = voidSummary.reduce((sum: number, e: any) => sum + (Number(e.totalAmount) || 0), 0);
+
+    if (rowTotalVoids > 0 || rowTotalAmount > 0) {
+      return { totalVoids: rowTotalVoids, totalVoidAmount: rowTotalAmount };
+    }
+
+    return {
+      totalVoids: dailySales.reduce((sum: number, d: any) => sum + (Number(d.voidsCount) || 0), 0),
+      totalVoidAmount: dailySales.reduce((sum: number, d: any) => sum + (parseFloat(d.voidsAmount || "0") || 0), 0),
+    };
+  }, [dailySales, voidSummary]);
 
   // Computed daily stats
   const stats = useMemo(() => {
@@ -73,10 +88,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
     const beer = dailySales.reduce((s, d) => s + parseFloat(d.catBeerAmount || "0"), 0);
     const liquor = dailySales.reduce((s, d) => s + parseFloat(d.catLiquorAmount || "0"), 0);
     const avgLabor = dailySales.reduce((s, d) => s + parseFloat(d.laborPct || "0"), 0) / dailySales.length;
-    const totalVoids = dailySales.reduce((s, d) => s + (d.voidsCount || 0), 0);
-    const totalVoidAmount = dailySales.reduce((s, d) => s + parseFloat(d.voidsAmount || "0"), 0);
-    return { avg, max, min, total, pickup, delivery, bar, table, food, beer, liquor, avgLabor, totalVoids, totalVoidAmount };
-  }, [dailySales]);
+    return { avg, max, min, total, pickup, delivery, bar, table, food, beer, liquor, avgLabor, ...canonicalVoidTotals };
+  }, [dailySales, canonicalVoidTotals]);
 
   const recentDays = useMemo(() => {
     return dailySales.slice(0, 14).map((d, i) => {
@@ -115,111 +128,151 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
   const TABS = isManager ? managerTabs : staffTabs;
 
   // ─── Daily Tab ───
-  const DailyTab = () => (
-    <div className="space-y-3">
-      {stats && (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-500 text-[10px] uppercase">Avg / Day</p>
-            <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.avg) : salesVibe(stats.avg).label}</p>
-          </div>
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-500 text-[10px] uppercase">Period Total</p>
-            <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.total) : `${dailySales.length} days`}</p>
-          </div>
-          {isManager && (
-            <>
-              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-                <p className="text-zinc-500 text-[10px] uppercase">Best Day</p>
-                <p className="text-green-400 font-bold text-lg">{formatMoney(stats.max)}</p>
-              </div>
-              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-                <p className="text-zinc-500 text-[10px] uppercase">Slowest Day</p>
-                <p className="text-red-400 font-bold text-lg">{formatMoney(stats.min)}</p>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-      <div className="flex gap-1">
-        {[7, 14, 30, 90].map(d => (
-          <button key={d} onClick={() => setDaysBack(d)}
-            className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
-              daysBack === d ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
-            }`}>{d}d</button>
-        ))}
-      </div>
-      <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-        <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Daily Revenue</p>
-        <div className="space-y-1">
-          {recentDays.map(d => {
-            const maxVal = stats?.max || 1;
-            const pct = (d.current / maxVal) * 100;
-            const dayName = new Date(d.businessDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-            return (
-              <div key={d.businessDate} className="flex items-center gap-2">
-                <span className="text-zinc-500 text-[9px] w-16 shrink-0">{dayName}</span>
-                <div className="flex-1 h-4 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${d.current >= (stats?.avg || 0) ? "bg-green-500/60" : "bg-amber-500/40"}`} style={{ width: `${pct}%` }} />
-                </div>
-                {isManager ? (
-                  <div className="flex items-center gap-1 w-20 justify-end">
-                    <span className="text-white text-[10px] font-medium">{formatMoney(d.current)}</span>
-                    <span className={`text-[8px] ${d.change.up ? "text-green-400" : "text-red-400"}`}>{d.change.pct}</span>
-                  </div>
-                ) : (
-                  <span className={`text-[10px] w-20 text-right ${salesVibe(d.current).color}`}>{salesVibe(d.current).label}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Channel & Category breakdown */}
-      {stats && isManager && (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Channels</p>
-            {[
-              { label: "Pickup", val: stats.pickup, color: "bg-blue-500" },
-              { label: "Delivery", val: stats.delivery, color: "bg-green-500" },
-              { label: "Bar", val: stats.bar, color: "bg-purple-500" },
-              { label: "Table", val: stats.table, color: "bg-amber-500" },
-            ].map(ch => (
-              <div key={ch.label} className="mb-1.5">
-                <div className="flex justify-between text-[9px]">
-                  <span className="text-zinc-400">{ch.label}</span>
-                  <span className="text-zinc-500">{((ch.val / stats.total) * 100).toFixed(0)}%</span>
-                </div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className={`h-full ${ch.color} rounded-full`} style={{ width: `${(ch.val / Math.max(stats.pickup, stats.delivery, stats.bar, stats.table)) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
-            <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Categories</p>
-            {[
-              { label: "Food", val: stats.food, color: "bg-amber-500" },
-              { label: "Beer", val: stats.beer, color: "bg-yellow-500" },
-              { label: "Liquor", val: stats.liquor, color: "bg-purple-500" },
-            ].map(cat => (
-              <div key={cat.label} className="mb-1.5">
-                <div className="flex justify-between text-[9px]">
-                  <span className="text-zinc-400">{cat.label}</span>
-                  <span className="text-zinc-500">{formatMoney(cat.val)}</span>
-                </div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${(cat.val / Math.max(stats.food, stats.beer, stats.liquor)) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+  const PeriodButtons = () => (
+    <div className="flex gap-1">
+      {[7, 14, 30, 90].map(d => (
+        <button key={d} onClick={() => setDaysBack(d)}
+          className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+            daysBack === d ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+          }`}>{d}d</button>
+      ))}
     </div>
   );
+
+  const DailyTab = () => {
+    if (dailySalesQuery.isLoading) {
+      return (
+        <div className="space-y-3">
+          <PeriodButtons />
+          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 text-center">
+            <Clock size={22} className="text-amber-500 mx-auto mb-2 animate-pulse" />
+            <p className="text-zinc-400 text-[11px]">Loading canonical daily sales history...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (dailySalesQuery.isError || dailySales.length === 0) {
+      return (
+        <div className="space-y-3">
+          <PeriodButtons />
+          <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 text-center">
+            <Calendar size={24} className="text-zinc-700 mx-auto mb-2" />
+            <p className="text-white text-xs font-semibold">No daily sales records found</p>
+            <p className="text-zinc-500 text-[10px] mt-1">
+              Uploaded PDQ/Z-report history will appear here after it is imported. Supporting intelligence tabs may still show historical data from their own canonical tables.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {stats && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+              <p className="text-zinc-500 text-[10px] uppercase">Avg / Day</p>
+              <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.avg) : salesVibe(stats.avg).label}</p>
+            </div>
+            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+              <p className="text-zinc-500 text-[10px] uppercase">Period Total</p>
+              <p className="text-white font-bold text-lg">{isManager ? formatMoney(stats.total) : `${dailySales.length} days`}</p>
+            </div>
+            {isManager && (
+              <>
+                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+                  <p className="text-zinc-500 text-[10px] uppercase">Best Day</p>
+                  <p className="text-green-400 font-bold text-lg">{formatMoney(stats.max)}</p>
+                </div>
+                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+                  <p className="text-zinc-500 text-[10px] uppercase">Slowest Day</p>
+                  <p className="text-red-400 font-bold text-lg">{formatMoney(stats.min)}</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        <PeriodButtons />
+        <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+          <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Daily Revenue</p>
+          <div className="space-y-1">
+            {recentDays.map(d => {
+              const maxVal = stats?.max || 1;
+              const pct = Math.max(0, Math.min(100, (d.current / maxVal) * 100));
+              const dayName = new Date(d.businessDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+              return (
+                <div key={d.businessDate} className="flex items-center gap-2">
+                  <span className="text-zinc-500 text-[9px] w-16 shrink-0">{dayName}</span>
+                  <div className="flex-1 h-4 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${d.current >= (stats?.avg || 0) ? "bg-green-500/60" : "bg-amber-500/40"}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  {isManager ? (
+                    <div className="flex items-center gap-1 w-20 justify-end">
+                      <span className="text-white text-[10px] font-medium">{formatMoney(d.current)}</span>
+                      <span className={`text-[8px] ${d.change.up ? "text-green-400" : "text-red-400"}`}>{d.change.pct}</span>
+                    </div>
+                  ) : (
+                    <span className={`text-[10px] w-20 text-right ${salesVibe(d.current).color}`}>{salesVibe(d.current).label}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Channel & Category breakdown */}
+        {stats && isManager && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+              <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Channels</p>
+              {[
+                { label: "Pickup", val: stats.pickup, color: "bg-blue-500" },
+                { label: "Delivery", val: stats.delivery, color: "bg-green-500" },
+                { label: "Bar", val: stats.bar, color: "bg-purple-500" },
+                { label: "Table", val: stats.table, color: "bg-amber-500" },
+              ].map(ch => {
+                const maxChannel = Math.max(stats.pickup, stats.delivery, stats.bar, stats.table, 1);
+                const share = stats.total > 0 ? ((ch.val / stats.total) * 100).toFixed(0) : "0";
+                return (
+                  <div key={ch.label} className="mb-1.5">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-zinc-400">{ch.label}</span>
+                      <span className="text-zinc-500">{share}%</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className={`h-full ${ch.color} rounded-full`} style={{ width: `${(ch.val / maxChannel) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
+              <p className="text-zinc-400 text-[10px] uppercase mb-2 font-semibold">Categories</p>
+              {[
+                { label: "Food", val: stats.food, color: "bg-amber-500" },
+                { label: "Beer", val: stats.beer, color: "bg-yellow-500" },
+                { label: "Liquor", val: stats.liquor, color: "bg-purple-500" },
+              ].map(cat => {
+                const maxCategory = Math.max(stats.food, stats.beer, stats.liquor, 1);
+                return (
+                  <div key={cat.label} className="mb-1.5">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-zinc-400">{cat.label}</span>
+                      <span className="text-zinc-500">{formatMoney(cat.val)}</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${(cat.val / maxCategory) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ─── Product Mix Tab ───
   const ProductMixTab = () => {
@@ -280,8 +333,8 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
             <p className="text-zinc-500 text-[10px] uppercase">Total Voids</p>
-            <p className="text-red-400 font-bold text-lg">{stats?.totalVoids || 0}</p>
-            <p className="text-zinc-600 text-[9px]">{formatMoney(stats?.totalVoidAmount)} total</p>
+            <p className="text-red-400 font-bold text-lg">{canonicalVoidTotals.totalVoids}</p>
+            <p className="text-zinc-600 text-[9px]">{formatMoney(canonicalVoidTotals.totalVoidAmount)} total</p>
           </div>
           <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800">
             <p className="text-zinc-500 text-[10px] uppercase">Employees</p>
@@ -634,7 +687,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
+    <div className="min-h-[100dvh] bg-black flex flex-col overflow-hidden overscroll-contain">
       {/* Header */}
       <div className="p-4 pb-2 flex items-center gap-3 shrink-0">
         <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors">
@@ -662,7 +715,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-20">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-32">
         {tab === "daily" && <DailyTab />}
         {tab === "product" && <ProductMixTab />}
         {tab === "voids" && <VoidsTab />}

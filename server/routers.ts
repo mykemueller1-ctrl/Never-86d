@@ -1880,20 +1880,20 @@ Respond in JSON with this exact structure:
   // ============ SCHEDULE ============
   schedule: router({
     getWeek: protectedProcedure.input(z.object({
-      startDate: z.date(),
-      endDate: z.date(),
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByDateRange(input.startDate, input.endDate)),
 
     getByStaff: publicProcedure.input(z.object({
       staffId: z.number(),
-      startDate: z.date(),
-      endDate: z.date(),
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByStaff(input.staffId, input.startDate, input.endDate)),
 
     getByDepartment: protectedProcedure.input(z.object({
       department: z.string(),
-      startDate: z.date(),
-      endDate: z.date(),
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
     })).query(({ input }) => getScheduleByDepartment(input.department, input.startDate, input.endDate)),
 
     create: protectedProcedure.input(z.object({

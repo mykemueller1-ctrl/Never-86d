@@ -37,7 +37,7 @@ export default function ClockWidget({ staffId, staffName }: Props) {
   const utils = trpc.useUtils();
 
   const clockInMut = trpc.timeClock.clockIn.useMutation({
-    onSuccess: () => { utils.timeClock.active.invalidate(); toast.success("Clocked in"); },
+    onSuccess: () => { utils.timeClock.active.invalidate(); utils.timeClock.weeklyHours.invalidate(); toast.success("Clocked in"); },
     onError: (e) => toast.error(e.message),
   });
   const clockOutMut = trpc.timeClock.clockOut.useMutation({
@@ -45,19 +45,55 @@ export default function ClockWidget({ staffId, staffName }: Props) {
     onError: (e) => toast.error(e.message),
   });
   const startBreakMut = trpc.timeClock.startBreak.useMutation({
-    onSuccess: () => { utils.timeClock.active.invalidate(); toast.success("Break started"); },
+    onSuccess: () => { utils.timeClock.active.invalidate(); utils.timeClock.weeklyHours.invalidate(); toast.success("Break started"); },
     onError: (e) => toast.error(e.message),
   });
   const endBreakMut = trpc.timeClock.endBreak.useMutation({
-    onSuccess: () => { utils.timeClock.active.invalidate(); toast.success("Break ended"); },
+    onSuccess: () => { utils.timeClock.active.invalidate(); utils.timeClock.weeklyHours.invalidate(); toast.success("Break ended"); },
     onError: (e) => toast.error(e.message),
   });
 
   const entry = activeEntry.data as any;
   const hours = weeklyHours.data as any;
-  const isClockedIn = entry && entry.status !== "clocked_out";
+  const isClockedIn = Boolean(entry && entry.status !== "clocked_out");
   const isOnBreak = entry?.status === "on_break";
   const isPending = clockInMut.isPending || clockOutMut.isPending || startBreakMut.isPending || endBreakMut.isPending;
+
+  if (activeEntry.isLoading || activeEntry.isFetching) {
+    return (
+      <div className="surface-base p-5 rounded-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">
+              <Loader2 size={18} className="text-amber-500 animate-spin" />
+            </div>
+            <div>
+              <p className="type-caption text-zinc-400">Checking clock status...</p>
+              {hours?.totalHours && (
+                <p className="type-micro text-zinc-600 normal-case">{Number(hours.totalHours).toFixed(1)}h this week</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeEntry.isError) {
+    return (
+      <div className="surface-base p-5 rounded-xl border border-red-500/15">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+            <Clock size={18} className="text-red-400" />
+          </div>
+          <div>
+            <p className="type-caption text-red-300">Clock status unavailable</p>
+            <p className="type-micro text-zinc-600 normal-case">Refresh or ask a manager before starting work.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Not clocked in
   if (!isClockedIn) {

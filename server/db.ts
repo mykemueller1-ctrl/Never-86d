@@ -817,6 +817,24 @@ export async function getOpenIssues() {
 
 // ============ DAILY BRIEFING HELPERS ============
 
+export async function getCanonicalOutageItems(station?: string): Promise<string[]> {
+  const activeBroadcasts = await getActiveBroadcasts(station);
+  const seen = new Set<string>();
+  const items: string[] = [];
+
+  for (const broadcast of activeBroadcasts as any[]) {
+    if (broadcast.broadcastType !== "86d") continue;
+    const itemName = String(broadcast.itemName || "").trim();
+    if (!itemName) continue;
+    const key = itemName.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(itemName);
+  }
+
+  return items;
+}
+
 export async function getLatestBriefing() {
   const db = await getDb();
   if (!db) return undefined;
@@ -825,7 +843,25 @@ export async function getLatestBriefing() {
     .from(dailyBriefings)
     .orderBy(desc(dailyBriefings.date))
     .limit(1);
-  return result[0];
+
+  const latest = result[0];
+  const canonicalOutages = await getCanonicalOutageItems();
+
+  if (!latest) {
+    return {
+      id: 0,
+      date: new Date(),
+      eightySixedItems: canonicalOutages,
+      specials: [],
+      openIssues: [],
+      shoutouts: [],
+    } as any;
+  }
+
+  return {
+    ...latest,
+    eightySixedItems: canonicalOutages,
+  };
 }
 
 export async function createBriefing(data: typeof dailyBriefings.$inferInsert) {
@@ -4983,17 +5019,21 @@ export async function denySwap(id: number, approvedBy: number) {
 export async function clockIn(staffId: number) {
   const db = await getDb();
   if (!db) return null;
-  // Check if already clocked in
+  // Check if already clocked in or on break so we never create duplicate active rows.
   const existing = await db
     .select()
     .from(timeEntries)
     .where(
       and(
         eq(timeEntries.staffId, staffId),
-        eq(timeEntries.status, "clocked_in")
+        or(
+          eq(timeEntries.status, "clocked_in"),
+          eq(timeEntries.status, "on_break")
+        )
       )
-    );
-  if (existing.length > 0) return existing[0]; // Already clocked in
+    )
+    .orderBy(desc(timeEntries.clockIn));
+  if (existing.length > 0) return existing[0]; // Already active
   const [result] = await db
     .insert(timeEntries)
     .values({
@@ -5008,16 +5048,20 @@ export async function clockIn(staffId: number) {
 export async function clockOut(staffId: number) {
   const db = await getDb();
   if (!db) return null;
-  // Find the active time entry
+  // Find the newest active time entry. A staff member may clock out from active work or from break.
   const [active] = await db
     .select()
     .from(timeEntries)
     .where(
       and(
         eq(timeEntries.staffId, staffId),
-        eq(timeEntries.status, "clocked_in")
+        or(
+          eq(timeEntries.status, "clocked_in"),
+          eq(timeEntries.status, "on_break")
+        )
       )
-    );
+    )
+    .orderBy(desc(timeEntries.clockIn));
   if (!active) return null; // Not clocked in
   const clockOutTime = new Date();
   const hoursWorked = (
@@ -5106,7 +5150,8 @@ export async function getActiveTimeEntry(staffId: number) {
           eq(timeEntries.status, "on_break")
         )
       )
-    );
+    )
+    .orderBy(desc(timeEntries.clockIn));
   return active || null;
 }
 

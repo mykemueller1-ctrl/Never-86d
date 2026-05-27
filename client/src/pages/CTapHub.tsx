@@ -389,8 +389,8 @@ export default function CTapHub() {
   // ─── LOGIN — Multi-mode: PIN / Email / Register / Facebook ─────
   // ════════════════════════════════════════════════════════════════
   const LoginScreen = () => (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto screen-enter">
-      <div className="flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-8">
+    <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain screen-enter">
+      <div className="flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-32">
         <div className="w-full max-w-sm">
           <h2 className="type-display text-white mb-2">START YOUR SHIFT</h2>
           <p className="type-body text-zinc-500 mb-6">Sign in to get started.</p>
@@ -765,7 +765,7 @@ export default function CTapHub() {
     const vibe = salesVibe(briefing?.salesYesterday ? Number(briefing.salesYesterday) : null);
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-8 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <div className="px-6 pt-12">
           <p className="type-micro text-zinc-600 mb-2">{today}</p>
           <h2 className="type-display text-white mb-8">TODAY'S BRIEFING</h2>
@@ -870,7 +870,7 @@ export default function CTapHub() {
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         {/* Header — minimal, confident */}
         <div className="px-6 pt-8 pb-2">
           <div className="flex items-center justify-between">
@@ -1104,7 +1104,7 @@ export default function CTapHub() {
   // ─── CHECKLIST ─────────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const ChecklistScreen = () => (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+    <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="CHECKLISTS" subtitle={`${staffUser?.department || "your"} department`} />
       <div className="px-6 space-y-4">
         {checklistsQuery.isLoading ? (
@@ -1209,7 +1209,7 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="STORE RUNS" subtitle="Receipt capture · Manager approval" />
         <div className="px-6 space-y-4">
           <div className="surface-base p-5 space-y-3">
@@ -1319,7 +1319,7 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="VENDOR INVOICES" subtitle="Track spend · Flag anomalies" />
         <div className="px-6 space-y-4">
           {/* Weekly Spend */}
@@ -1433,7 +1433,7 @@ export default function CTapHub() {
     }, [allVoids, allStaff]);
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="VOID HUNTER" subtitle="Pattern tracking · This week" />
         <div className="px-6 space-y-4">
           <div className="surface-base p-5">
@@ -1502,7 +1502,7 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="DRIVER END OF DAY" subtitle="Required before clocking out" />
         <div className="px-6 space-y-4">
           <div className="bg-red-950/20 rounded-xl p-4">
@@ -1546,7 +1546,7 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="SHIFT FEEDBACK" subtitle="Your voice matters · +5 pts" />
         <div className="px-6 space-y-4">
           <div className="surface-base p-5">
@@ -1588,7 +1588,7 @@ export default function CTapHub() {
     };
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="ISSUES" subtitle="Report · Route · Resolve" />
         <div className="px-6 space-y-4">
           <div className="surface-base p-5 space-y-3">
@@ -1653,7 +1653,7 @@ export default function CTapHub() {
   // ─── LEADERBOARD ───────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const LeaderboardScreen = () => (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+    <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="LEADERBOARD" subtitle="Score = shift priority" />
       <div className="px-6">
         <div className="surface-base p-4 mb-4">
@@ -1700,7 +1700,7 @@ export default function CTapHub() {
     const flaggedPayouts = allPayouts.filter(p => p.flagged).length;
 
     return (
-      <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+      <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
         <ScreenHeader title="COMMAND CENTER" subtitle="Owner intelligence" />
         <div className="px-6 space-y-4">
           {/* KPIs — clean 2-column grid */}
@@ -1761,7 +1761,7 @@ export default function CTapHub() {
   // ─── PROFILE ───────────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   const ProfileScreen = () => (
-    <div className="h-screen bg-black flex flex-col overflow-y-auto pb-24 screen-enter">
+    <div className="min-h-[100dvh] bg-black flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
       <ScreenHeader title="PROFILE" subtitle={staffUser ? staffDisplayName(staffUser) : ""} />
       <div className="px-6 space-y-4">
         {/* Hero Card */}
@@ -1858,8 +1858,8 @@ export default function CTapHub() {
   const BottomNav = () => {
     const navItems: { icon: any; label: string; s: Screen }[] = [
       { icon: Home, label: "Home", s: "home" },
-      { icon: Trophy, label: "Rank", s: "leaderboard" },
-      { icon: Brain, label: "Brain", s: "ask-brain" },
+      { icon: Calendar, label: "Schedule", s: "schedule" },
+      { icon: Brain, label: "Ned", s: "ask-brain" },
       { icon: UserCircle, label: "Profile", s: "profile" },
     ];
 

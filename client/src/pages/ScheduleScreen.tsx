@@ -56,11 +56,13 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   const startDate = weekDates[0];
   const endDate = new Date(weekDates[6]);
   endDate.setHours(23, 59, 59, 999);
+  const startDateKey = startDate.toISOString();
+  const endDateKey = endDate.toISOString();
 
   // Queries
   const scheduleQuery = isManager
-    ? trpc.schedule.getWeek.useQuery({ startDate, endDate })
-    : trpc.schedule.getByStaff.useQuery({ staffId: staffUser.id, startDate, endDate });
+    ? trpc.schedule.getWeek.useQuery({ startDate: startDateKey, endDate: endDateKey })
+    : trpc.schedule.getByStaff.useQuery({ staffId: staffUser.id, startDate: startDateKey, endDate: endDateKey });
 
   const myAvailability = trpc.availability.getByStaff.useQuery();
   const myTimeOff = trpc.timeOff.myRequests.useQuery();
@@ -113,7 +115,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   }, [shifts, weekDates]);
 
   return (
-    <div className="h-screen bg-black flex flex-col screen-enter">
+    <div className="min-h-[100dvh] bg-black flex flex-col screen-enter overscroll-contain">
       {/* Header */}
       <div className="px-6 pt-10 pb-2">
         <button onClick={onBack} className="text-amber-500 type-caption mb-3 flex items-center gap-1 hover:text-amber-400 transition-colors">
@@ -161,7 +163,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 pb-8">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-32">
         {tab === "schedule" && (
           <ScheduleGrid
             weekDates={weekDates}
@@ -172,6 +174,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
             onEdit={(id) => setEditingShift(id)}
             onDelete={(id) => deleteShift.mutate({ id })}
             isLoading={scheduleQuery.isLoading}
+            isError={scheduleQuery.isError}
           />
         )}
 
@@ -228,7 +231,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
 }
 
 // ─── Schedule Grid ──────────────────────────────────────────────────────────
-function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, onEdit, onDelete, isLoading }: {
+function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, onEdit, onDelete, isLoading, isError }: {
   weekDates: Date[];
   shiftsByDate: Record<string, any[]>;
   staffUser: SafeStaff;
@@ -237,6 +240,7 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   isLoading: boolean;
+  isError: boolean;
 }) {
   const today = new Date().toISOString().split("T")[0];
 
@@ -252,12 +256,24 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
 
   const totalShifts = Object.values(shiftsByDate).reduce((s, arr) => s + arr.length, 0);
 
-  if (totalShifts === 0 && !isManager) {
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <AlertTriangle size={40} className="text-amber-500 mb-4" />
+        <p className="type-heading text-zinc-400 mb-2">Schedule unavailable</p>
+        <p className="type-body text-zinc-600 text-center">We could not load schedule data right now. Try again in a moment.</p>
+      </div>
+    );
+  }
+
+  if (totalShifts === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Calendar size={40} className="text-zinc-700 mb-4" />
-        <p className="type-heading text-zinc-400 mb-2">No shifts scheduled</p>
-        <p className="type-body text-zinc-600 text-center">Your schedule for this week hasn't been posted yet. Check back later or ask your manager.</p>
+        <p className="type-heading text-zinc-400 mb-2">{isManager ? "No schedules created yet" : "No shifts scheduled"}</p>
+        <p className="type-body text-zinc-600 text-center">
+          {isManager ? "Use Add Shift to build this week’s schedule." : "Your schedule for this week hasn't been posted yet. Check back later or ask your manager."}
+        </p>
       </div>
     );
   }

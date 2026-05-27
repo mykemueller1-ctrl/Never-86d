@@ -41,8 +41,9 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [chatHistory]);
 
-  const handleAsk = async () => {
-    if (!question.trim() || isAsking) return;
+  const handleAsk = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (!question.trim() || isAsking || askBrain.isPending) return;
     const q = question.trim();
     setQuestion("");
     setChatHistory(prev => [...prev, { role: "user", text: q }]);
@@ -67,11 +68,11 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
     : ["What did we do in sales yesterday?", "Who do I call about a broken keg?", "What does 86'd mean?"];
 
   return (
-    <div className="h-screen flex flex-col bg-black screen-enter">
+    <div className="min-h-[100dvh] flex flex-col bg-black screen-enter overscroll-contain">
       <ScreenHeader title="ASK THE BRAIN" subtitle={station ? `Station: ${station.replace("_", " ")}` : "General knowledge"} onBack={onBack} />
 
       {/* Chat Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 space-y-3 pb-32">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain px-6 space-y-3 pb-48">
         {chatHistory.length === 0 && (
           <div className="text-center py-8">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4">
@@ -111,17 +112,17 @@ export function AskBrainScreen({ staffUser, station, onBack }: { staffUser: Safe
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 py-4 nav-glass border-t border-white/5">
+      <form onSubmit={handleAsk} className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-0 right-0 z-[60] px-6 py-4 nav-glass border-t border-white/5">
         <div className="flex gap-2.5">
-          <input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAsk()}
+          <input value={question} onChange={e => setQuestion(e.target.value)}
             placeholder="Ask anything..."
             className="flex-1 bg-zinc-800/50 rounded-xl px-4 py-3 type-body text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30" />
-          <button onClick={handleAsk} disabled={!question.trim() || isAsking}
+          <button type="submit" disabled={!question.trim() || isAsking || askBrain.isPending}
             className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center disabled:opacity-40 glow-amber transition-all active:scale-95">
-            <Send size={16} className="text-black" />
+            {isAsking || askBrain.isPending ? <Loader2 size={16} className="animate-spin text-black" /> : <Send size={16} className="text-black" />}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -170,7 +171,7 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
   };
 
   return (
-    <div className="h-screen overflow-y-auto bg-black pb-24 screen-enter">
+    <div className="min-h-[100dvh] overflow-y-auto overscroll-contain bg-black pb-32 screen-enter">
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
       <ScreenHeader title="PHOTO MISSIONS" subtitle="Earn points by documenting the restaurant" onBack={onBack} />
 
@@ -195,10 +196,19 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
         <p className="type-micro text-zinc-600">Active Missions</p>
         {missions.isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 size={20} className="text-amber-500 animate-spin" /></div>
-        ) : missions.data?.length === 0 ? (
-          <p className="type-body text-zinc-500 text-center py-12">No active missions right now</p>
+        ) : missions.isError ? (
+          <div className="surface-base p-5 text-center">
+            <p className="type-body text-red-300 font-medium">Photo missions unavailable</p>
+            <p className="type-caption text-zinc-500 mt-1">Refresh the page or ask a manager to confirm missions are enabled.</p>
+          </div>
+        ) : !missions.data || missions.data.length === 0 ? (
+          <div className="surface-base p-5 text-center">
+            <Camera size={22} className="text-zinc-600 mx-auto mb-3" />
+            <p className="type-body text-zinc-400 font-medium">No active missions right now</p>
+            <p className="type-caption text-zinc-600 mt-1">When managers create photo missions, they will appear here.</p>
+          </div>
         ) : (
-          missions.data?.map((mission: any) => (
+          missions.data.map((mission: any) => (
             <div key={mission.id} className="surface-base p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
