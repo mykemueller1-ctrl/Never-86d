@@ -1240,7 +1240,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
       limit: z.number().default(90),
     }).optional()).query(({ input }) => getDailySales(input?.startDate, input?.endDate, input?.limit)),
     hourly: publicProcedure.input(z.object({ businessDate: z.string() })).query(({ input }) => getHourlySales(input.businessDate)),
-    importDaily: adminProcedure.input(z.object({
+    importDaily: staffSessionProcedure.input(z.object({
       businessDate: z.string(),
       grandTotal: z.string().optional(),
       tax: z.string().optional(),
