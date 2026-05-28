@@ -10,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerScheduledRoutes } from "./scheduledRoutes";
+import { seedSalesOnce } from "../seed-sales-once";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +41,10 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerScheduledRoutes(app);
+
+  seedSalesOnce().catch(error => {
+    console.error("[seed-sales-once] startup hook failed", error);
+  });
 
   // tRPC API
   // SECURITY: Do not register anonymous owner-login shortcuts here. Owner access must
