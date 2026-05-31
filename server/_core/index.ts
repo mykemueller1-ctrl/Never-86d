@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerScheduledRoutes } from "./scheduledRoutes";
 import { seedSalesOnce } from "../seed-sales-once";
+import { fixKitchenStaffNames } from "../fix-kitchen-staff-names";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -44,6 +45,10 @@ async function startServer() {
 
   seedSalesOnce().catch(error => {
     console.error("[seed-sales-once] startup hook failed", error);
+  });
+
+  fixKitchenStaffNames().catch(error => {
+    console.error("[fix-kitchen-names] startup hook failed", error);
   });
 
   // tRPC API
