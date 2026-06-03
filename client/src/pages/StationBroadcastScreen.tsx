@@ -16,6 +16,19 @@ const BROADCAST_TYPES = [
   { value: 'alert', label: 'Alert', icon: Bell, color: 'text-amber-400', desc: 'General station alert' },
 ];
 
+function safeJsonArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function StationBroadcastScreen({ onBack, staffUser }: StationBroadcastScreenProps) {
   const [tab, setTab] = useState<Tab>('active');
   const [stationFilter, setStationFilter] = useState<string | undefined>(undefined);
@@ -134,14 +147,14 @@ export default function StationBroadcastScreen({ onBack, staffUser }: StationBro
             ) : (activeBroadcasts.data?.length || 0) === 0 ? (
               <div className="text-center py-10">
                 <Check className="w-12 h-12 text-emerald-500/20 mx-auto mb-3" />
-                <p className="text-slate-900/30 text-sm">All clear — no active broadcasts</p>
+                <p className="text-slate-900/30 text-sm">No 86'd items right now</p>
               </div>
             ) : (
               activeBroadcasts.data?.map((b: any) => {
                 const typeConfig = getTypeConfig(b.broadcastType);
                 const TypeIcon = typeConfig.icon;
-                const acknowledged = b.acknowledgedBy ? JSON.parse(b.acknowledgedBy || '[]') : [];
-                const targets = b.targetStations ? JSON.parse(b.targetStations) : [];
+                const acknowledged = safeJsonArray(b.acknowledgedBy);
+                const targets = safeJsonArray(b.targetStations);
 
                 return (
                   <div key={b.id} className={`rounded-2xl border overflow-hidden ${
@@ -344,7 +357,7 @@ export default function StationBroadcastScreen({ onBack, staffUser }: StationBro
                         {b.status === 'resolved' && <span className="text-[10px] text-emerald-400 ml-2">RESOLVED</span>}
                       </div>
                       <div className="text-[10px] text-slate-900/30">
-                        {b.fromStation} → {b.targetStations ? JSON.parse(b.targetStations).join(', ') : 'all'} · {formatTime(b.createdAt)}
+                        {b.fromStation} → {(safeJsonArray(b.targetStations).length ? safeJsonArray(b.targetStations).join(', ') : 'all')} · {formatTime(b.createdAt)}
                       </div>
                     </div>
                   </div>

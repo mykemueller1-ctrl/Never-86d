@@ -47,7 +47,9 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
 
   // Data queries
   const dailySalesQuery = trpc.sales.daily.useQuery({ limit: daysBack });
+  const coverageSalesQuery = trpc.sales.daily.useQuery({ limit: 1000 }, { staleTime: 60_000 });
   const dailySales = dailySalesQuery.data || [];
+  const availableSalesDays = coverageSalesQuery.data?.length ?? dailySales.length;
   const { data: productMix = [] } = trpc.intelligence.productMix.useQuery({ category: mixCategory });
   const { data: voidSummary = [] } = trpc.intelligence.voidSummary.useQuery();
   const { data: weatherCorrelation } = trpc.intelligence.weatherCorrelation.useQuery();
@@ -697,7 +699,7 @@ export default function SalesIntelligenceScreen({ staffUser, onBack }: Props) {
           <h2 className="text-slate-900 font-bold text-base" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" }}>
             Intelligence
           </h2>
-          <p className="text-slate-500 text-[10px]">PDQ POS · {dailySales.length} days · {anomalies.length} alerts</p>
+          <p className="text-slate-500 text-[10px]">PDQ POS · {availableSalesDays} {availableSalesDays === 1 ? "day" : "days"} · {anomalies.length} alerts</p>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, ChefHat, Plus, DollarSign, Percent, Clock, Edit2, Trash2, RefreshCw, Package, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -40,10 +40,51 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
     }
   });
 
-  const formatCurrency = (n: string | number | null) => {
+  const formatCurrency = (n: string | number | null | undefined) => {
     const val = typeof n === 'string' ? parseFloat(n) : (n || 0);
-    return `$${val.toFixed(2)}`;
+    return `$${Number.isFinite(val) ? val.toFixed(2) : '0.00'}`;
   };
+
+  const toNumber = (value: string | number | null | undefined): number => {
+    const parsed = typeof value === 'string' ? parseFloat(value) : Number(value ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const calculatedRecipeCost = (recipe: any, menuPriceOverride?: string | number | null): number => {
+    const storedCost = toNumber(recipe?.totalCost ?? recipe?.theoreticalCost);
+    if (storedCost > 0) return storedCost;
+    const pct = toNumber(recipe?.foodCostPercent ?? recipe?.targetFoodCostPercent);
+    const price = toNumber(menuPriceOverride ?? recipe?.menuPrice);
+    return price > 0 && pct > 0 ? (price * pct) / 100 : 0;
+  };
+
+  const calculatedMenuItemCost = (item: any): number => {
+    const storedCost = toNumber(item?.theoreticalCost ?? item?.actualCost);
+    if (storedCost > 0) return storedCost;
+    const linkedRecipe = (recipes.data ?? []).find((recipe: any) => recipe.id === item.recipeId);
+    return linkedRecipe ? calculatedRecipeCost(linkedRecipe, item.menuPrice) : 0;
+  };
+
+  const localCategorySummary = useMemo(() => {
+    const groups = new Map<string, { category: string; itemCount: number; totalCost: number; totalFoodCostPct: number }>();
+    for (const item of (menuItems.data ?? []) as any[]) {
+      const category = item.category || 'uncategorized';
+      const menuPrice = toNumber(item.menuPrice);
+      const cost = calculatedMenuItemCost(item);
+      const pct = menuPrice > 0 ? (cost / menuPrice) * 100 : 0;
+      const group = groups.get(category) ?? { category, itemCount: 0, totalCost: 0, totalFoodCostPct: 0 };
+      group.itemCount += 1;
+      group.totalCost += cost;
+      group.totalFoodCostPct += pct;
+      groups.set(category, group);
+    }
+    return Array.from(groups.values()).map(group => ({
+      category: group.category,
+      itemCount: group.itemCount,
+      avgCost: group.itemCount > 0 ? group.totalCost / group.itemCount : 0,
+      avgFoodCostPct: group.itemCount > 0 ? group.totalFoodCostPct / group.itemCount : 0,
+    }));
+  }, [menuItems.data, recipes.data]);
 
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
@@ -60,9 +101,10 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
   if (selectedRecipeId && recipeDetail.data) {
     const r = recipeDetail.data;
     const ingredients = r.ingredients || [];
-    const totalCost = ingredients.reduce((sum: number, ing: any) => sum + parseFloat(ing.totalCost || '0'), 0);
-    const menuPrice = parseFloat(r.menuPrice || '0');
-    const foodCostPct = menuPrice > 0 ? (totalCost / menuPrice * 100) : 0;
+    const ingredientCost = ingredients.reduce((sum: number, ing: any) => sum + toNumber(ing.totalCost), 0);
+    const totalCost = ingredientCost > 0 ? ingredientCost : calculatedRecipeCost(r);
+    const menuPrice = toNumber(r.menuPrice);
+    const foodCostPct = menuPrice > 0 ? (totalCost / menuPrice * 100) : toNumber(r.foodCostPercent);
     const targetPct = parseFloat(r.targetFoodCostPercent || '30');
     const isOverTarget = foodCostPct > targetPct;
 
@@ -294,8 +336,10 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
             ) : (
               recipes.data?.map((r: any) => {
                 const isExpanded = expandedRecipe === r.id;
-                const costPct = r.menuPrice && parseFloat(r.menuPrice) > 0
-                  ? ((parseFloat(r.totalCost || '0') / parseFloat(r.menuPrice)) * 100)
+                const recipeCost = calculatedRecipeCost(r);
+                const menuPrice = toNumber(r.menuPrice);
+                const costPct = menuPrice > 0
+                  ? ((recipeCost / menuPrice) * 100)
                   : null;
                 return (
                   <div key={r.id} className="bg-white/5 rounded-xl border border-slate-200 overflow-hidden">
@@ -317,7 +361,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold text-orange-300">{formatCurrency(r.totalCost)}</div>
+                        <div className="text-sm font-bold text-orange-300">{formatCurrency(recipeCost)}</div>
                         {costPct !== null && (
                           <div className={`text-[10px] ${costPct > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {costPct.toFixed(1)}% cost
@@ -344,7 +388,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                         </div>
                         {r.menuPrice && (
                           <div className="mt-2 text-xs text-slate-400">
-                            Menu: {formatCurrency(r.menuPrice)} · Margin: {formatCurrency(parseFloat(r.menuPrice) - parseFloat(r.totalCost || '0'))}
+                            Menu: {formatCurrency(r.menuPrice)} · Cost: {formatCurrency(recipeCost)} · Margin: {formatCurrency(menuPrice - recipeCost)}
                           </div>
                         )}
                       </div>
@@ -359,22 +403,26 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
         {tab === 'menu-cost' && (
           <div className="space-y-4">
             {/* Food Cost Summary */}
-            {foodCostSummary.data && (
+            {(localCategorySummary.length > 0 || foodCostSummary.data) && (
               <div className="bg-gradient-to-br from-orange-900/30 to-red-900/30 rounded-2xl p-4 border border-orange-500/20">
                 <h3 className="text-sm font-bold mb-3">Food Cost Summary</h3>
                 <div className="space-y-2">
-                  {(foodCostSummary.data as any[]).map((cat: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
-                      <span className="text-sm capitalize">{cat.category}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-400">{cat.itemCount} items</span>
-                        <span className="text-sm font-bold">{formatCurrency(cat.avgCost)}</span>
-                        <span className={`text-xs font-medium ${parseFloat(cat.avgFoodCostPct || '0') > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {parseFloat(cat.avgFoodCostPct || '0').toFixed(1)}%
-                        </span>
+                  {(localCategorySummary.length > 0 ? localCategorySummary : (foodCostSummary.data as any[])).map((cat: any, i: number) => {
+                    const avgCost = toNumber(cat.avgCost ?? cat.avgTheoreticalCost);
+                    const avgFoodCostPct = toNumber(cat.avgFoodCostPct ?? cat.avgActualFoodCostPct);
+                    return (
+                      <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                        <span className="text-sm capitalize">{cat.category}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-400">{cat.itemCount} items</span>
+                          <span className="text-sm font-bold">{formatCurrency(avgCost)}</span>
+                          <span className={`text-xs font-medium ${avgFoodCostPct > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {avgFoodCostPct.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -391,7 +439,9 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
             ) : (
               <div className="space-y-2">
                 {(menuItems.data as any[]).map((item: any) => {
-                  const costPct = item.actualFoodCostPercent ? parseFloat(item.actualFoodCostPercent) : null;
+                  const menuPrice = toNumber(item.menuPrice);
+                  const itemCost = calculatedMenuItemCost(item);
+                  const costPct = menuPrice > 0 && itemCost > 0 ? (itemCost / menuPrice) * 100 : null;
                   return (
                     <div key={item.id} className="bg-white/5 rounded-xl px-4 py-3 border border-slate-200 flex items-center gap-3">
                       <div className="flex-1 min-w-0">
@@ -400,6 +450,7 @@ export default function RecipeCostScreen({ onBack }: RecipeCostScreenProps) {
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold">{formatCurrency(item.menuPrice)}</div>
+                        <div className="text-[10px] text-orange-300 font-semibold">Cost: {formatCurrency(itemCost)}</div>
                         {costPct !== null && (
                           <div className={`text-[10px] ${costPct > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {costPct.toFixed(1)}% food cost

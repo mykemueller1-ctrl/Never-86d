@@ -434,6 +434,17 @@ export async function getAllPayouts(limit = 50) {
   return db.select().from(payouts).orderBy(desc(payouts.date)).limit(limit);
 }
 
+export async function getPayoutsByDateRange(startDate: Date, endDate: Date, limit = 500) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(payouts)
+    .where(and(gte(payouts.date, startDate), lte(payouts.date, endDate)))
+    .orderBy(desc(payouts.date))
+    .limit(limit);
+}
+
 export async function createPayout(data: InsertPayout) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -516,6 +527,17 @@ export async function getAllInvoices(limit = 50) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(invoices).orderBy(desc(invoices.date)).limit(limit);
+}
+
+export async function getInvoicesByDateRange(startDate: Date, endDate: Date, limit = 500) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(invoices)
+    .where(and(gte(invoices.date, startDate), lte(invoices.date, endDate)))
+    .orderBy(desc(invoices.date))
+    .limit(limit);
 }
 
 export async function createInvoice(data: InsertInvoice) {
@@ -899,11 +921,16 @@ export async function getLatestBriefing() {
 
   const latest = result[0];
   const canonicalOutages = await getCanonicalOutageItems();
+  const yesterdaySales = await getYesterdaySales();
+  const actualSalesYesterday = yesterdaySales?.totalAmount ?? yesterdaySales?.grandTotal ?? null;
+  const actualOrdersYesterday = yesterdaySales?.totalQty ?? null;
 
   if (!latest) {
     return {
       id: 0,
       date: new Date(),
+      salesYesterday: actualSalesYesterday,
+      ordersYesterday: actualOrdersYesterday,
       eightySixedItems: canonicalOutages,
       specials: [],
       openIssues: [],
@@ -913,6 +940,8 @@ export async function getLatestBriefing() {
 
   return {
     ...latest,
+    salesYesterday: latest.salesYesterday ?? actualSalesYesterday,
+    ordersYesterday: latest.ordersYesterday ?? actualOrdersYesterday,
     eightySixedItems: canonicalOutages,
   };
 }
@@ -2000,26 +2029,162 @@ export async function verifyPhotoSubmission(
 
 // ============ VENDOR PRODUCTS ============
 
+const VENDOR_PRODUCT_CATEGORIES = [
+  "meat",
+  "dairy",
+  "produce",
+  "bread",
+  "frozen",
+  "dry_goods",
+  "paper",
+  "chemicals",
+  "liquor",
+  "beer",
+  "wine",
+  "soda",
+  "other",
+] as const;
+
+type VendorProductCategory = (typeof VENDOR_PRODUCT_CATEGORIES)[number];
+
+function safeInvoiceItemArray(items: unknown): any[] {
+  if (!items) return [];
+  if (Array.isArray(items)) return items;
+  if (typeof items === "string") {
+    try {
+      const parsed = JSON.parse(items);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  if (typeof items === "object" && Array.isArray((items as any).items)) {
+    return (items as any).items;
+  }
+  return [];
+}
+
+function toFiniteNumber(value: unknown): number {
+  const parsed = typeof value === "string" ? parseFloat(value.replace(/[$,]/g, "")) : Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function inferVendorProductCategory(invoiceCategory: string | null | undefined, productName: string): VendorProductCategory {
+  const category = String(invoiceCategory || "").toLowerCase();
+  const name = productName.toLowerCase();
+  if (category === "beer" || name.includes("beer") || name.includes("keg")) return "beer";
+  if (category === "liquor" || name.includes("vodka") || name.includes("whiskey") || name.includes("rum") || name.includes("tequila")) return "liquor";
+  if (category === "meat" || /beef|chicken|pork|bacon|sausage|ribeye|tender|patty/.test(name)) return "meat";
+  if (category === "bread" || /bun|bread|roll|tortilla|crust/.test(name)) return "bread";
+  if (category === "produce" || /lettuce|tomato|onion|pepper|mushroom|potato|fruit|veg/.test(name)) return "produce";
+  if (/cheese|milk|cream|dairy/.test(name)) return "dairy";
+  if (/frozen|frz/.test(name)) return "frozen";
+  if (/napkin|box|container|paper|liner|cup|straw|bag/.test(name)) return "paper";
+  if (/clean|soap|sanit|chemical|degreaser/.test(name)) return "chemicals";
+  if (/soda|pop|cola|sprite|pepsi|coke/.test(name)) return "soda";
+  if (/wine|cabernet|merlot|chardonnay/.test(name)) return "wine";
+  if (category === "supplies") return "paper";
+  return "other";
+}
+
+async function getInvoiceDerivedVendorProducts(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, vendorName?: string) {
+  const invoiceRows = await db
+    .select()
+    .from(invoices)
+    .orderBy(desc(invoices.date))
+    .limit(1000);
+
+  const products = new Map<string, any>();
+  const counts = new Map<string, number>();
+
+  for (const invoice of invoiceRows) {
+    if (vendorName && invoice.vendorName !== vendorName) continue;
+    const items = safeInvoiceItemArray(invoice.items);
+    for (const item of items) {
+      const productName = String(
+        item.productName ?? item.item ?? item.description ?? item.name ?? item.itemName ?? ""
+      ).trim();
+      if (!productName) continue;
+
+      const quantity = Math.max(1, toFiniteNumber(item.quantity ?? item.qty ?? item.caseQty ?? 1));
+      const explicitUnitPrice = toFiniteNumber(item.unitPrice ?? item.price ?? item.cost ?? item.rate ?? item.lastPrice);
+      const total = toFiniteNumber(item.total ?? item.extendedTotal ?? item.amount ?? item.lineTotal);
+      const lastPrice = explicitUnitPrice > 0 ? explicitUnitPrice : total > 0 ? total / quantity : 0;
+      if (lastPrice <= 0) continue;
+
+      const key = `${invoice.vendorName.toLowerCase()}::${productName.toLowerCase()}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+
+      const existing = products.get(key);
+      if (!existing) {
+        products.set(key, {
+          id: -Math.abs(products.size + 1),
+          vendorName: invoice.vendorName,
+          sku: item.sku ?? item.itemCode ?? item.productCode ?? null,
+          productName,
+          category: inferVendorProductCategory(invoice.category, productName),
+          unit: item.unit ?? item.unitOfMeasure ?? item.uom ?? "each",
+          lastPrice: lastPrice.toFixed(2),
+          previousPrice: null,
+          priceChangePercent: null,
+          parLevel: 2,
+          orderFrequency: "weekly",
+          lastOrderedAt: invoice.date,
+          notes: "Auto-populated from invoice line items",
+          active: true,
+          createdAt: invoice.createdAt,
+        });
+      } else if (!existing.previousPrice && Math.abs(parseFloat(existing.lastPrice) - lastPrice) > 0.005) {
+        existing.previousPrice = lastPrice.toFixed(2);
+        const current = parseFloat(existing.lastPrice);
+        existing.priceChangePercent = lastPrice > 0 ? (((current - lastPrice) / lastPrice) * 100).toFixed(2) : null;
+      }
+    }
+  }
+
+  return Array.from(products.values()).map(product => {
+    const count = counts.get(`${product.vendorName.toLowerCase()}::${product.productName.toLowerCase()}`) || 1;
+    return {
+      ...product,
+      parLevel: Math.max(1, Math.min(12, Math.ceil(Math.sqrt(count * 2)))),
+      orderFrequency: count >= 8 ? "twice_weekly" : count >= 3 ? "weekly" : "as_needed",
+    };
+  });
+}
+
 export async function getVendorProducts(vendorName?: string) {
   const db = await getDb();
   if (!db) return [];
   const activeFilter = sql`(${vendorProducts.active} = 1 OR ${vendorProducts.active} IS NULL)`;
-  if (vendorName) {
-    return db
-      .select()
-      .from(vendorProducts)
-      .where(and(eq(vendorProducts.vendorName, vendorName), activeFilter))
-      .orderBy(vendorProducts.category, vendorProducts.productName);
-  }
-  return db
-    .select()
-    .from(vendorProducts)
-    .where(activeFilter)
-    .orderBy(
-      vendorProducts.vendorName,
-      vendorProducts.category,
-      vendorProducts.productName
-    );
+  const persisted = vendorName
+    ? await db
+        .select()
+        .from(vendorProducts)
+        .where(and(eq(vendorProducts.vendorName, vendorName), activeFilter))
+        .orderBy(vendorProducts.category, vendorProducts.productName)
+    : await db
+        .select()
+        .from(vendorProducts)
+        .where(activeFilter)
+        .orderBy(
+          vendorProducts.vendorName,
+          vendorProducts.category,
+          vendorProducts.productName
+        );
+
+  const derived = await getInvoiceDerivedVendorProducts(db, vendorName);
+  const persistedKeys = new Set(
+    persisted.map(product => `${product.vendorName.toLowerCase()}::${product.productName.toLowerCase()}`)
+  );
+  const derivedOnly = derived.filter(
+    product => !persistedKeys.has(`${product.vendorName.toLowerCase()}::${product.productName.toLowerCase()}`)
+  );
+
+  return [...persisted, ...derivedOnly].sort((a, b) =>
+    String(a.vendorName).localeCompare(String(b.vendorName)) ||
+    String(a.category).localeCompare(String(b.category)) ||
+    String(a.productName).localeCompare(String(b.productName))
+  );
 }
 
 export async function createVendorProduct(
@@ -3913,6 +4078,19 @@ export async function scanForPriceChanges() {
 
 // ============ STATION BROADCASTS (86'd) ============
 
+function safeJsonArray(value: unknown, fallback: unknown[] = []): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function getActiveBroadcasts(station?: string) {
   const db = await getDb();
   if (!db) return [];
@@ -3928,15 +4106,8 @@ export async function getActiveBroadcasts(station?: string) {
   if (station) {
     // Filter to broadcasts targeting this station. Treat malformed or missing target lists as "all" so active 86'd items never disappear from the floor view.
     return rows.filter((b: any) => {
-      let targets = b.targetStations;
-      if (typeof targets === "string") {
-        try {
-          targets = JSON.parse(targets);
-        } catch {
-          targets = ["all"];
-        }
-      }
-      if (!Array.isArray(targets) || targets.length === 0) targets = ["all"];
+      let targets = safeJsonArray(b.targetStations, ["all"]);
+      if (targets.length === 0) targets = ["all"];
       return targets.includes(station) || targets.includes("all");
     });
   }
@@ -3961,10 +4132,7 @@ export async function acknowledgeBroadcast(
     .where(eq(stationBroadcasts.id, broadcastId))
     .limit(1);
   if (!broadcast[0]) return;
-  const currentAcks =
-    typeof broadcast[0].acknowledgedBy === "string"
-      ? JSON.parse(broadcast[0].acknowledgedBy)
-      : broadcast[0].acknowledgedBy || [];
+  const currentAcks = safeJsonArray(broadcast[0].acknowledgedBy, []);
   if (!currentAcks.includes(staffId)) {
     currentAcks.push(staffId);
   }
@@ -4093,7 +4261,7 @@ export async function generateSalesForecast(targetDate: Date) {
       avgTotalAmount: sql<string>`CAST(AVG(${dailySales.totalAmount}) AS CHAR)`,
       avgGrandTotal: sql<string>`CAST(AVG(${dailySales.grandTotal}) AS CHAR)`,
       avgTotalQty: sql<string>`CAST(AVG(${dailySales.totalQty}) AS CHAR)`,
-      avgPerGuest: sql<string>`CAST(AVG(${dailySales.avgPerGuest}) AS CHAR)`,
+      avgPerGuest: sql<string>`CAST(AVG(CASE WHEN ${dailySales.totalAmount} IS NOT NULL AND ${dailySales.tableGuests} IS NOT NULL AND ${dailySales.tableGuests} > 0 THEN ${dailySales.totalAmount} / ${dailySales.tableGuests} WHEN ${dailySales.avgPerGuest} IS NOT NULL AND ${dailySales.avgPerGuest} > 0 THEN ${dailySales.avgPerGuest} ELSE NULL END) AS CHAR)`,
       sampleCount: sql<number>`COUNT(*)`,
       minTotalAmount: sql<string>`CAST(MIN(${dailySales.totalAmount}) AS CHAR)`,
       maxTotalAmount: sql<string>`CAST(MAX(${dailySales.totalAmount}) AS CHAR)`,

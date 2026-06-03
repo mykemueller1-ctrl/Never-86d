@@ -9,8 +9,8 @@ import { z } from "zod";
 import { createHash } from "node:crypto";
 import {
   getAllStaff, getStaffById, getStaffByDepartment, getActiveStaff, createStaff, updateStaffPoints, updateStaffStatus, getStaffByPinInternal, getStaffByIdInternal,
-  getAllPayouts, createPayout, getFlaggedPayouts, getPayoutsByStaff,
-  getAllInvoices, createInvoice, updateInvoice, deleteInvoice, getInvoiceByDedupeKey, getInvoicesByVendor,
+  getAllPayouts, getPayoutsByDateRange, createPayout, getFlaggedPayouts, getPayoutsByStaff,
+  getAllInvoices, getInvoicesByDateRange, createInvoice, updateInvoice, deleteInvoice, getInvoiceByDedupeKey, getInvoicesByVendor,
   getAllVoids, createVoid, getVoidsByStaff, getWeeklyVoidsByStaff,
   getAllChecklists, getChecklistsByDepartment, createChecklistCompletion,
   createDriverReport, getDriverReports,
@@ -367,6 +367,11 @@ export const appRouter = router({
   // ============ PAYOUTS ============
   payouts: router({
     list: staffOrAuthProcedure.query(() => getAllPayouts()),
+    byDateRange: staffOrAuthProcedure.input(z.object({
+      startDate: z.date(),
+      endDate: z.date(),
+      limit: z.number().default(500),
+    })).query(({ input }) => getPayoutsByDateRange(input.startDate, input.endDate, input.limit)),
     flagged: staffOrAuthProcedure.query(() => getFlaggedPayouts()),
     byStaff: staffOrAuthProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getPayoutsByStaff(input.staffId)),
     // Staff self-only: uses server-side staff session cookie, ignores client-supplied staffId
@@ -413,6 +418,11 @@ export const appRouter = router({
   // ============ INVOICES ============
   invoices: router({
     list: staffOrAuthProcedure.query(() => getAllInvoices()),
+    byDateRange: staffOrAuthProcedure.input(z.object({
+      startDate: z.date(),
+      endDate: z.date(),
+      limit: z.number().default(500),
+    })).query(({ input }) => getInvoicesByDateRange(input.startDate, input.endDate, input.limit)),
     byVendor: staffOrAuthProcedure.input(z.object({ vendorName: z.string() })).query(({ input }) => getInvoicesByVendor(input.vendorName)),
     create: staffOrAuthProcedure.input(z.object({
       vendorName: z.string(),

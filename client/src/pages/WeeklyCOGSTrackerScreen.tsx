@@ -71,11 +71,29 @@ function isWithin(dateValue: Date | string, range: WeekRange): boolean {
   return date >= range.start && date <= range.end;
 }
 
-function bucketForInvoice(category: string): CogsBucket {
-  if (category === "beer") return "beer";
+function bucketForInvoice(invoice: { category?: string | null; vendorName?: string | null; items?: unknown }): CogsBucket {
+  const category = invoice.category ?? "misc";
+  const vendor = (invoice.vendorName ?? "").toLowerCase();
+
+  // A few imported liquor invoices were categorized as beer. Vendor-level clues are a safer fallback
+  // than treating the full invoice total as beer COGS when the source is wine/spirits/liquor.
+  if (category === "beer") {
+    if (/liquor|spirit|wine/.test(vendor) && !/beer|brew|distribut/.test(vendor)) return "liquor";
+    return "beer";
+  }
   if (category === "liquor") return "liquor";
   if (FOOD_INVOICE_CATEGORIES.has(category)) return "food";
   return "food";
+}
+
+function netSalesForDay(row: any): number {
+  const explicitNet = dollars(row.totalAmount);
+  if (explicitNet > 0) return explicitNet;
+  const grandTotal = dollars(row.grandTotal);
+  const tax = dollars(row.tax);
+  const voids = dollars(row.voidsAmount);
+  const discounts = dollars(row.discountTotal);
+  return Math.max(0, grandTotal - tax - voids - discounts);
 }
 
 function trend(current: number, previous: number): { trend: Trend; delta: number } {
@@ -100,8 +118,8 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
   const currentRange = useMemo(() => weekRange(offsetWeeks), [offsetWeeks]);
   const previousRange = useMemo(() => weekRange(offsetWeeks - 1), [offsetWeeks]);
 
-  const invoicesQuery = trpc.invoices.list.useQuery(undefined, { enabled: isManagerOrOwner(staffUser), staleTime: 30_000 });
-  const payoutsQuery = trpc.payouts.list.useQuery(undefined, { enabled: isManagerOrOwner(staffUser), staleTime: 30_000 });
+  const invoicesQuery = trpc.invoices.byDateRange.useQuery({ startDate: previousRange.start, endDate: currentRange.end, limit: 500 }, { enabled: isManagerOrOwner(staffUser), staleTime: 30_000 });
+  const payoutsQuery = trpc.payouts.byDateRange.useQuery({ startDate: previousRange.start, endDate: currentRange.end, limit: 500 }, { enabled: isManagerOrOwner(staffUser), staleTime: 30_000 });
   const salesQuery = trpc.sales.daily.useQuery({ startDate: previousRange.startKey, endDate: currentRange.endKey, limit: 30 }, { enabled: isManagerOrOwner(staffUser), staleTime: 30_000 });
 
   const summary = useMemo(() => {
@@ -109,7 +127,7 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
     const previousBuckets: Record<CogsBucket, number> = { food: 0, beer: 0, liquor: 0, store_runs: 0 };
 
     for (const invoice of invoicesQuery.data ?? []) {
-      const bucket = bucketForInvoice(invoice.category);
+      const bucket = bucketForInvoice(invoice);
       if (isWithin(invoice.date, currentRange)) emptyBuckets[bucket] += dollars(invoice.totalAmount);
       if (isWithin(invoice.date, previousRange)) previousBuckets[bucket] += dollars(invoice.totalAmount);
     }
@@ -123,8 +141,8 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
     const currentSalesRows = (salesQuery.data ?? []).filter(row => row.businessDate >= currentRange.startKey && row.businessDate <= currentRange.endKey);
     const previousSalesRows = (salesQuery.data ?? []).filter(row => row.businessDate >= previousRange.startKey && row.businessDate <= previousRange.endKey);
 
-    const netSales = currentSalesRows.reduce((sum, row) => sum + dollars(row.grandTotal) - dollars(row.voidsAmount) - dollars(row.discountTotal), 0);
-    const previousNetSales = previousSalesRows.reduce((sum, row) => sum + dollars(row.grandTotal) - dollars(row.voidsAmount) - dollars(row.discountTotal), 0);
+    const netSales = currentSalesRows.reduce((sum, row) => sum + netSalesForDay(row), 0);
+    const previousNetSales = previousSalesRows.reduce((sum, row) => sum + netSalesForDay(row), 0);
     const labor = currentSalesRows.reduce((sum, row) => sum + dollars(row.laborTotal), 0);
     const previousLabor = previousSalesRows.reduce((sum, row) => sum + dollars(row.laborTotal), 0);
     const cogs = Object.values(emptyBuckets).reduce((sum, value) => sum + value, 0);
@@ -224,7 +242,7 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-slate-900 text-xs font-bold flex items-center gap-2"><DollarSign size={13} className="text-amber-400" /> Actual Net Sales</p>
           <p className="text-amber-400 text-xl font-black mt-1">{formatMoney(summary.netSales)}</p>
-          <p className="text-slate-500 text-[10px] mt-1">Calculated from sales less voids and discounts when those fields are present. Cash-to-bank detail can be added once the bank deposit field is mapped.</p>
+            <p className="text-slate-500 text-[10px] mt-1">Calculated from PDQ net sales for this Sunday–Saturday week only. Falls back to grand total less tax, voids, and discounts if explicit net sales is missing.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -243,7 +261,7 @@ export default function WeeklyCOGSTrackerScreen({ staffUser, onBack }: Props) {
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-slate-900 text-xs font-bold flex items-center gap-2"><BarChart3 size={13} className="text-amber-400" /> Formula</p>
           <p className="text-slate-500 text-[10px] leading-relaxed mt-2">
-            COGS combines invoices by category plus store-run payouts. Prime cost is COGS plus imported labor dollars divided by actual net sales. The week starts at Sunday open and ends at Saturday close.
+            COGS combines only invoices dated inside the selected Sunday–Saturday week plus same-week store-run payouts. Prime cost is COGS plus imported labor dollars divided by that same week's actual net sales.
           </p>
         </div>
       </div>

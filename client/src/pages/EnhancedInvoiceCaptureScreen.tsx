@@ -321,10 +321,12 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
                       <button
                         type="button"
                         onClick={() => isEditing ? setEditingInvoiceId(null) : startEditingInvoice(invoice)}
-                        className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 flex items-center justify-center"
+                        className="min-w-[44px] h-9 px-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-700 flex items-center justify-center gap-1 shadow-sm"
                         aria-label={isEditing ? "Close invoice editor" : "Edit invoice"}
+                        title={isEditing ? "Close invoice editor" : "Edit invoice"}
                       >
-                        {isEditing ? <X size={13} /> : <Pencil size={13} />}
+                        {isEditing ? <X size={14} /> : <Pencil size={14} />}
+                        <span className="text-[9px] font-black uppercase">{isEditing ? "Close" : "Edit"}</span>
                       </button>
                     </div>
                   </div>

@@ -513,7 +513,15 @@ export default function CTapHub() {
     const openIssuesBriefing: { description: string; priority: string }[] = briefing?.openIssues ? (briefing.openIssues as any[]) : [];
     const shoutouts: { staffName: string; reason: string }[] = briefing?.shoutouts ? (briefing.shoutouts as any[]) : [];
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-    const vibe = salesVibe(briefing?.salesYesterday ? Number(briefing.salesYesterday) : null);
+    const yesterdaySalesValue = briefing?.salesYesterday != null ? Number(briefing.salesYesterday) : null;
+    const yesterdayOrdersValue = briefing?.ordersYesterday != null ? Number(briefing.ordersYesterday) : null;
+    const formattedYesterdaySales = yesterdaySalesValue != null && Number.isFinite(yesterdaySalesValue)
+      ? `$${yesterdaySalesValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : "—";
+    const formattedYesterdayOrders = yesterdayOrdersValue != null && Number.isFinite(yesterdayOrdersValue)
+      ? yesterdayOrdersValue.toLocaleString("en-US")
+      : "—";
+    const vibe = salesVibe(yesterdaySalesValue);
 
     return (
       <div className="min-h-[100dvh] bg-[#07111f] flex flex-col overflow-y-auto overscroll-contain pb-32 screen-enter">
@@ -533,11 +541,11 @@ export default function CTapHub() {
                 {isManager ? (
                   <div className="flex gap-8">
                     <div>
-                      <p className="text-2xl font-semibold text-slate-50 font-data">${briefing.salesYesterday || "—"}</p>
+                      <p className="text-2xl font-semibold text-slate-50 font-data">{formattedYesterdaySales}</p>
                       <p className="type-caption text-slate-400 mt-0.5">sales</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-slate-50 font-data">{briefing.ordersYesterday || "—"}</p>
+                      <p className="text-2xl font-semibold text-slate-50 font-data">{formattedYesterdayOrders}</p>
                       <p className="type-caption text-slate-400 mt-0.5">orders</p>
                     </div>
                   </div>
@@ -1625,7 +1633,7 @@ export default function CTapHub() {
     const navItems: { icon: any; label: string; s: Screen }[] = [
       { icon: Home, label: "Home", s: "home" },
       { icon: Calendar, label: "Schedule", s: "schedule" },
-      { icon: Brain, label: "Ned", s: "ask-brain" },
+      { icon: Brain, label: "Brain", s: "ask-brain" },
       { icon: UserCircle, label: "Profile", s: "profile" },
     ];
 
@@ -1661,7 +1669,7 @@ export default function CTapHub() {
       case "home": return <HomeScreen />;
       case "checklist": return <ChecklistScreen />;
       case "store-run": return <StoreRunScreen />;
-      case "invoices": return <InvoiceScreen />;
+      case "invoices": return <EnhancedInvoiceCaptureScreen staffUser={staffUser!} onBack={() => setScreen("home")} />;
       case "voids": return <VoidScreen />;
       case "driver-eod": return <DriverEODScreen />;
       case "feedback": return <FeedbackScreen />;

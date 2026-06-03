@@ -25,19 +25,19 @@ const VENDOR_GROUPS = {
   food: {
     label: "Food & Supplies",
     desc: "Tom's Order Guide",
-    vendors: ["Sawyer's Meats", "PFG/RFS", "Sysco", "Fareway", "Hy-Vee"],
+    vendors: ["Sawyer's Meats", "Sawyers Meats", "Sawyer's", "PFG/RFS", "PFG", "Performance Foodservice", "Performance Food Group", "RFS", "Robert's Food Service", "Roberts Food Service", "Sysco", "Fareway", "Hy-Vee"],
     color: "amber",
   },
   bar: {
     label: "Bar & Beverage",
     desc: "Ashley's Order Guide",
-    vendors: ["Hughes Distributing", "Fort Dodge Distributing", "Confluence Brewing"],
+    vendors: ["Hughes Distributing", "Hughes", "Fort Dodge Distributing", "Fort Dodge", "Confluence Brewing", "Confluence", "Johnson Brothers", "Southern Glazer's", "Southern Glazers", "Hy-Vee Wine & Spirits", "Hy-Vee Liquor"],
     color: "purple",
   },
   other: {
     label: "Other Vendors",
     desc: "Misc supplies",
-    vendors: ["Dollar General"],
+    vendors: ["Dollar General", "Amazon", "Menards", "Walmart", "Sam's Club", "Sams Club"],
     color: "zinc",
   },
 };
