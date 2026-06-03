@@ -161,8 +161,12 @@ export function PhotoMissionsScreen({ staffUser, onBack }: { staffUser: SafeStaf
       });
       const mission = missions.data?.find((m: any) => m.id === selectedMission);
       const photoType = (mission?.category || "station") as "invoice" | "shelf" | "station" | "equipment" | "plate" | "delivery" | "prep" | "other";
-      await analyzePhoto.mutateAsync({ photoUrl: uploadResult.url, photoType, staffId: staffUser.id, missionId: selectedMission });
-      toast.success("Photo submitted & analyzed! +5 pts");
+      const analysis = await analyzePhoto.mutateAsync({ photoUrl: uploadResult.url, photoType, staffId: staffUser.id, missionId: selectedMission });
+      if (analysis.duplicateWarning) {
+        toast.warning("This invoice may already be logged");
+      } else {
+        toast.success("Photo submitted & analyzed! +5 pts");
+      }
       myPhotos.refetch();
     } catch { toast.error("Upload failed. Try again."); }
     setUploading(false);

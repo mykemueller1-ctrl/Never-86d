@@ -6,10 +6,11 @@ import { publicProcedure, protectedProcedure, adminProcedure, staffSessionProced
 import { TRPCError } from "@trpc/server";
 import { checkPinRateLimit, recordFailedAttempt, recordSuccessfulLogin, getClientIp } from "./rateLimiter";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import {
   getAllStaff, getStaffById, getStaffByDepartment, getActiveStaff, createStaff, updateStaffPoints, updateStaffStatus, getStaffByPinInternal, getStaffByIdInternal,
   getAllPayouts, createPayout, getFlaggedPayouts, getPayoutsByStaff,
-  getAllInvoices, createInvoice, getInvoicesByVendor,
+  getAllInvoices, createInvoice, updateInvoice, deleteInvoice, getInvoiceByDedupeKey, getInvoicesByVendor,
   getAllVoids, createVoid, getVoidsByStaff, getWeeklyVoidsByStaff,
   getAllChecklists, getChecklistsByDepartment, createChecklistCompletion,
   createDriverReport, getDriverReports,
@@ -92,6 +93,35 @@ import { seedRecipeIngredients } from "./seedRecipeIngredients";
 
 type ShiftAlertArea = "kitchen" | "foh" | "driver" | "pizza" | "fry" | "vendor" | "general";
 type ShiftType = "am" | "pm" | "close";
+
+function stableDedupeKey(parts: Array<string | number | undefined | null>): string {
+  const payload = parts
+    .map(part => String(part ?? "").trim().toLowerCase())
+    .join("|");
+  return createHash("sha256").update(payload).digest("hex");
+}
+
+function normalizeInvoiceDate(value: unknown): string {
+  if (!value) return "";
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return String(value).trim();
+  return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeInvoiceAmount(value: unknown): string {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return String(value ?? "").trim();
+  return parsed.toFixed(2);
+}
+
+function buildPhotoInvoiceDedupeKey(extraction: any): string | null {
+  const vendor = extraction?.vendor;
+  const invoiceNumber = extraction?.invoiceNumber;
+  const date = normalizeInvoiceDate(extraction?.date);
+  const total = normalizeInvoiceAmount(extraction?.total);
+  if (!vendor || !invoiceNumber || !date || !total) return null;
+  return stableDedupeKey(["photo-invoice", vendor, invoiceNumber, date, total]);
+}
 
 const areaDepartments: Record<ShiftAlertArea, string[]> = {
   kitchen: ["kitchen_line", "pizza_side", "dishwasher", "management"],
@@ -413,6 +443,17 @@ export const appRouter = router({
       needsReview: z.boolean().optional(),
       rawText: z.string().optional(),
     })).mutation(async ({ input }) => {
+      if (input.dedupeKey) {
+        const existingInvoice = await getInvoiceByDedupeKey(input.dedupeKey);
+        if (existingInvoice) {
+          return {
+            action: "skipped" as const,
+            duplicateWarning: "This invoice may already be logged",
+            invoice: existingInvoice,
+          };
+        }
+      }
+
       const invoice = await createInvoice(input);
       // Auto-update vendor product prices from OCR-extracted line items
       if (input.items && Array.isArray(input.items)) {
@@ -453,6 +494,27 @@ export const appRouter = router({
       } catch { /* price scan is best-effort */ }
       return invoice;
     }),
+    update: staffOrAuthProcedure.input(z.object({
+      id: z.number(),
+      vendorName: z.string().optional(),
+      category: z.enum(["meat", "bread", "produce", "liquor", "beer", "supplies", "misc"]).optional(),
+      invoiceNumber: z.string().nullable().optional(),
+      date: z.date().optional(),
+      totalAmount: z.string().optional(),
+      items: z.array(z.object({
+        product: z.string().nullish(),
+        unitPrice: z.string().nullish(),
+        unit: z.string().nullish(),
+        quantity: z.number().nullish(),
+        total: z.string().nullish(),
+        note: z.string().nullish(),
+      })).optional(),
+      needsReview: z.boolean().optional(),
+    })).mutation(({ input }) => {
+      const { id, ...data } = input;
+      return updateInvoice(id, data);
+    }),
+    delete: staffOrAuthProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => deleteInvoice(input.id)),
   }),
 
   // ============ VOIDS ============
@@ -913,6 +975,18 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
         extraction = { raw: aiContent };
       }
 
+      let invoiceDedupeKey: string | null = null;
+      let duplicateInvoice: Awaited<ReturnType<typeof getInvoiceByDedupeKey>> | undefined;
+      if (input.photoType === "invoice") {
+        invoiceDedupeKey = buildPhotoInvoiceDedupeKey(extraction);
+        if (invoiceDedupeKey && extraction && typeof extraction === "object") {
+          extraction.dedupeKey = invoiceDedupeKey;
+        }
+        if (invoiceDedupeKey) {
+          duplicateInvoice = await getInvoiceByDedupeKey(invoiceDedupeKey);
+        }
+      }
+
       // Save the photo submission
       await createPhotoSubmission({
         staffId: input.staffId,
@@ -933,6 +1007,18 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
         description: `Photo submitted: ${input.photoType}`,
       });
 
+      if (duplicateInvoice) {
+        return {
+          extraction,
+          photoType: input.photoType,
+          pointsAwarded: 5,
+          knowledgeEntriesCreated: 0,
+          duplicateWarning: "This invoice may already be logged",
+          existingInvoice: duplicateInvoice,
+          dedupeKey: invoiceDedupeKey,
+        };
+      }
+
       // If invoice, auto-create knowledge entries from extracted items
       const knowledgeEntryIds: number[] = [];
       if (input.photoType === "invoice" && extraction.items && Array.isArray(extraction.items)) {
@@ -952,7 +1038,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
         }
       }
 
-      return { extraction, photoType: input.photoType, pointsAwarded: 5, knowledgeEntriesCreated: knowledgeEntryIds.length };
+      return { extraction, photoType: input.photoType, pointsAwarded: 5, knowledgeEntriesCreated: knowledgeEntryIds.length, dedupeKey: invoiceDedupeKey };
     }),
     mySubmissions: staffSessionProcedure.query(({ ctx }) => getPhotoSubmissionsByStaff(ctx.staffId)),
     byMission: staffOrAuthProcedure.input(z.object({ missionId: z.number() })).query(({ input }) => getPhotoSubmissionsByMission(input.missionId)),

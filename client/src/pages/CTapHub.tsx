@@ -133,6 +133,8 @@ export default function CTapHub() {
   const [receiptPhotoUrl, setReceiptPhotoUrl] = useState<string | null>(null);
   const [invoicePhotoUrl, setInvoicePhotoUrl] = useState<string | null>(null);
   const [invoiceExtractedItems, setInvoiceExtractedItems] = useState<any[]>([]);
+  const [invoiceDedupeKey, setInvoiceDedupeKey] = useState<string | null>(null);
+  const [invoiceDuplicateWarning, setInvoiceDuplicateWarning] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingInvoicePhoto, setUploadingInvoicePhoto] = useState(false);
   // Email/Password & Facebook login state
@@ -919,6 +921,14 @@ export default function CTapHub() {
         toast.success("Invoice photo uploaded — analyzing...");
         try {
           const analysis = await analyzePhoto.mutateAsync({ photoUrl: url, photoType: "invoice", staffId: staffUser?.id || 0 });
+          if (analysis.duplicateWarning) {
+            setInvoiceDuplicateWarning(analysis.duplicateWarning);
+            setInvoiceDedupeKey(analysis.dedupeKey || analysis.extraction?.dedupeKey || null);
+            toast.warning("This invoice may already be logged");
+            return;
+          }
+          setInvoiceDuplicateWarning(null);
+          setInvoiceDedupeKey(analysis.dedupeKey || analysis.extraction?.dedupeKey || null);
           if (analysis.extraction) {
             const ext = analysis.extraction;
             if (ext.vendor && !invoiceForm.vendorName) setInvoiceForm(f => ({ ...f, vendorName: ext.vendor, customVendor: !COMMON_VENDORS_SET.has(ext.vendor) }));
@@ -1057,12 +1067,19 @@ export default function CTapHub() {
     const handleSubmitInvoice = async () => {
       if (!isAuthenticated) { toast.error("Please sign in via Manus to log invoices"); return; }
       if (!invoiceForm.vendorName || !invoiceForm.totalAmount) { toast.error("Vendor name and total are required"); return; }
+      if (invoiceDuplicateWarning) { toast.warning("This invoice may already be logged"); return; }
       try {
-        await createInvoice.mutateAsync({ vendorName: invoiceForm.vendorName, date: new Date(), totalAmount: invoiceForm.totalAmount, category: invoiceForm.category as any, invoiceNumber: invoiceForm.invoiceNumber || undefined, receiptPhotoUrl: invoicePhotoUrl || undefined, items: invoiceExtractedItems.length > 0 ? invoiceExtractedItems : undefined });
+        const result = await createInvoice.mutateAsync({ vendorName: invoiceForm.vendorName, date: new Date(), totalAmount: invoiceForm.totalAmount, category: invoiceForm.category as any, invoiceNumber: invoiceForm.invoiceNumber || undefined, receiptPhotoUrl: invoicePhotoUrl || undefined, items: invoiceExtractedItems.length > 0 ? invoiceExtractedItems : undefined, dedupeKey: invoiceDedupeKey || undefined });
+        if (result && typeof result === "object" && "duplicateWarning" in result) {
+          toast.warning("This invoice may already be logged");
+          return;
+        }
         toast.success("Invoice logged" + (invoiceExtractedItems.length > 0 ? ` — ${invoiceExtractedItems.length} prices updated` : ""));
         setInvoiceForm({ vendorName: "", totalAmount: "", category: "meat", invoiceNumber: "", customVendor: false });
         setInvoicePhotoUrl(null);
         setInvoiceExtractedItems([]);
+        setInvoiceDedupeKey(null);
+        setInvoiceDuplicateWarning(null);
         invoicesQuery.refetch();
       } catch { toast.error("Failed to log invoice"); }
     };

@@ -524,6 +524,18 @@ export async function createInvoice(data: InsertInvoice) {
   return db.insert(invoices).values(data);
 }
 
+export async function updateInvoice(id: number, data: Partial<InsertInvoice>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(invoices).set(data).where(eq(invoices.id, id));
+}
+
+export async function deleteInvoice(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(invoices).where(eq(invoices.id, id));
+}
+
 export async function getInvoiceByDedupeKey(dedupeKey: string) {
   const db = await getDb();
   if (!db) return undefined;
