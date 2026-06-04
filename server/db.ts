@@ -2558,13 +2558,137 @@ export async function upsertDailySales(data: typeof dailySales.$inferInsert) {
     .from(dailySales)
     .where(eq(dailySales.businessDate, data.businessDate!))
     .limit(1);
-  if (existing.length > 0) {
-    return db
-      .update(dailySales)
-      .set(data)
-      .where(eq(dailySales.id, existing[0].id));
+
+  const result = existing.length > 0
+    ? await db
+        .update(dailySales)
+        .set(data)
+        .where(eq(dailySales.id, existing[0].id))
+    : await db.insert(dailySales).values(data);
+
+  await detectDailySalesAnomalies(data).catch(error => {
+    console.warn("[Intelligence] Failed to detect daily sales anomalies:", error);
+  });
+
+  return result;
+}
+
+type SalesMetricKey = "grandTotal" | "catBeerAmount" | "catLiquorAmount";
+
+const parseSalesAmount = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+
+const average = (values: number[]) =>
+  values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+
+async function createSalesDeviationAnomaly(input: {
+  anomalyType: string;
+  severity: "high" | "medium" | "low";
+  detail: string;
+  theory: string;
+  businessDate: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+
+  const existing = await db
+    .select({ id: intelligenceAnomalies.id })
+    .from(intelligenceAnomalies)
+    .where(
+      and(
+        eq(intelligenceAnomalies.anomalyType, input.anomalyType),
+        eq(intelligenceAnomalies.businessDate, input.businessDate)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) return;
+
+  await createAnomaly(input);
+}
+
+async function detectDailySalesAnomalies(data: typeof dailySales.$inferInsert) {
+  if (!data.businessDate) return;
+
+  const businessDate = String(data.businessDate);
+  const date = new Date(`${businessDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return;
+
+  const db = await getDb();
+  if (!db) return;
+
+  const dayOfWeek = date.getDay();
+  const historicalSales = await db
+    .select()
+    .from(dailySales)
+    .orderBy(desc(dailySales.businessDate));
+
+  const matchingDays = historicalSales.filter(record => {
+    if (record.businessDate === businessDate) return false;
+    const recordDate = new Date(`${record.businessDate}T12:00:00`);
+    return !Number.isNaN(recordDate.getTime()) && recordDate.getDay() === dayOfWeek;
+  });
+
+  if (matchingDays.length === 0) return;
+
+  const checks: Array<{
+    key: SalesMetricKey;
+    label: string;
+    threshold: number;
+    anomalyType: string;
+  }> = [
+    {
+      key: "grandTotal",
+      label: "grand total sales",
+      threshold: 0.2,
+      anomalyType: "sales_grand_total_deviation",
+    },
+    {
+      key: "catBeerAmount",
+      label: "beer sales",
+      threshold: 0.3,
+      anomalyType: "beer_sales_deviation",
+    },
+    {
+      key: "catLiquorAmount",
+      label: "liquor sales",
+      threshold: 0.3,
+      anomalyType: "liquor_sales_deviation",
+    },
+  ];
+
+  for (const check of checks) {
+    const actual = parseSalesAmount(data[check.key]);
+    if (actual === null) continue;
+
+    const historicalValues = matchingDays
+      .map(record => parseSalesAmount(record[check.key]))
+      .filter((value): value is number => value !== null);
+    const expected = average(historicalValues);
+    if (!expected || expected <= 0) continue;
+
+    const deviation = (actual - expected) / expected;
+    if (Math.abs(deviation) <= check.threshold) continue;
+
+    const direction = deviation > 0 ? "above" : "below";
+    const deviationPct = Math.round(Math.abs(deviation) * 1000) / 10;
+    const severity: "high" | "medium" = Math.abs(deviation) >= check.threshold * 2 ? "high" : "medium";
+    const detail = `${businessDate} ${check.label} was ${formatCurrency(actual)}, ${deviationPct}% ${direction} the same-day-of-week average. Expected ${formatCurrency(expected)} based on ${historicalValues.length} comparable ${historicalValues.length === 1 ? "day" : "days"}; actual was ${formatCurrency(actual)}.`;
+
+    await createSalesDeviationAnomaly({
+      anomalyType: check.anomalyType,
+      severity,
+      detail,
+      theory: `Automatically detected after daily sales import because ${check.label} deviated more than ${Math.round(check.threshold * 100)}% from the day-of-week average.`,
+      businessDate,
+    });
   }
-  return db.insert(dailySales).values(data);
 }
 
 export async function getDailySalesByDedupeKey(dedupeKey: string) {
@@ -3063,6 +3187,26 @@ export async function getWeatherSalesCorrelation() {
         : 0,
     },
   };
+}
+
+export async function createAnomaly(data: {
+  anomalyType: string;
+  severity: "high" | "medium" | "low";
+  detail: string;
+  theory?: string;
+  businessDate?: string;
+  employeeName?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(intelligenceAnomalies).values({
+    anomalyType: data.anomalyType,
+    severity: data.severity,
+    detail: data.detail,
+    theory: data.theory,
+    businessDate: data.businessDate,
+    employeeName: data.employeeName,
+  });
 }
 
 /** Get anomalies with severity filter */

@@ -43,7 +43,7 @@ import {
   // Intelligence Engine
   getVoidRecords, getVoidSummaryByEmployee, getProductMix,
   getWeatherData, getWeatherSalesCorrelation,
-  getAnomalies, acknowledgeAnomaly,
+  getAnomalies, createAnomaly, acknowledgeAnomaly,
   getUpcomingEvents, addLocalEvent,
   getScheduleIntelligence, saveScheduleIntelligence,
   getStaffShiftProfiles, getStaffShiftProfile, getTeamScheduleInsights,
@@ -1413,6 +1413,14 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
 
     // Anomalies
     anomalies: staffOrAuthProcedure.input(z.object({ severity: z.string().optional() }).optional()).query(({ input }) => getAnomalies(input?.severity)),
+    createAnomaly: publicProcedure.input(z.object({
+      anomalyType: z.string(),
+      severity: z.enum(["high", "medium", "low"]),
+      detail: z.string(),
+      theory: z.string().optional(),
+      businessDate: z.string().optional(),
+      employeeName: z.string().optional(),
+    })).mutation(({ input }) => createAnomaly(input)),
     acknowledgeAnomaly: staffOrAuthProcedure.input(z.object({ id: z.number(), acknowledgedBy: z.string() })).mutation(({ input }) => acknowledgeAnomaly(input.id, input.acknowledgedBy)),
 
     // Events
