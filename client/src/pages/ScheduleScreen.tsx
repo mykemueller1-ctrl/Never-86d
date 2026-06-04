@@ -22,6 +22,16 @@ const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"]
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DEPARTMENTS: Array<"bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management"> = ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"];
 
+const DEPT_GROUPS: Record<string, string[]> = {
+  bar: ["bar", "dining_room"],
+  dining_room: ["bar", "dining_room"],
+  kitchen_line: ["kitchen_line", "pizza_side", "dishwasher"],
+  pizza_side: ["kitchen_line", "pizza_side", "dishwasher"],
+  dishwasher: ["kitchen_line", "pizza_side", "dishwasher"],
+  driver: ["driver"],
+  management: ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"],
+};
+
 function getWeekDates(offset: number): Date[] {
   const now = new Date();
   const monday = new Date(now);
@@ -60,9 +70,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   const endDateKey = endDate.toISOString();
 
   // Queries
-  const scheduleQuery = isManager
-    ? trpc.schedule.getWeek.useQuery({ startDate: startDateKey, endDate: endDateKey })
-    : trpc.schedule.getByStaff.useQuery({ staffId: staffUser.id, startDate: startDateKey, endDate: endDateKey });
+  const scheduleQuery = trpc.schedule.getWeek.useQuery({ startDate: startDateKey, endDate: endDateKey });
 
   const myAvailability = trpc.availability.getByStaff.useQuery();
   const myTimeOff = trpc.timeOff.myRequests.useQuery();
@@ -99,6 +107,11 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   });
 
   const shifts = (scheduleQuery.data ?? []) as any[];
+  const myDeptGroup = useMemo(() => DEPT_GROUPS[staffUser.department] || [staffUser.department], [staffUser.department]);
+  const filteredShifts = useMemo(
+    () => isManager ? shifts : shifts.filter((s: any) => myDeptGroup.includes(s.department)),
+    [isManager, shifts, myDeptGroup]
+  );
 
   // Group shifts by date for the grid
   const shiftsByDate = useMemo(() => {
@@ -107,12 +120,12 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
       const key = d.toISOString().split("T")[0];
       map[key] = [];
     }
-    for (const s of shifts) {
+    for (const s of filteredShifts) {
       const key = new Date(s.date).toISOString().split("T")[0];
       if (map[key]) map[key].push(s);
     }
     return map;
-  }, [shifts, weekDates]);
+  }, [filteredShifts, weekDates]);
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 flex flex-col screen-enter overscroll-contain">
@@ -171,6 +184,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
             staffUser={staffUser}
             allStaff={allStaff}
             isManager={isManager}
+            myDeptGroup={myDeptGroup}
             onEdit={(id) => setEditingShift(id)}
             onDelete={(id) => deleteShift.mutate({ id })}
             isLoading={scheduleQuery.isLoading}
@@ -231,18 +245,23 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
 }
 
 // ─── Schedule Grid ──────────────────────────────────────────────────────────
-function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, onEdit, onDelete, isLoading, isError }: {
+function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, myDeptGroup, onEdit, onDelete, isLoading, isError }: {
   weekDates: Date[];
   shiftsByDate: Record<string, any[]>;
   staffUser: SafeStaff;
   allStaff: SafeStaff[];
   isManager: boolean;
+  myDeptGroup: string[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   isLoading: boolean;
   isError: boolean;
 }) {
   const today = new Date().toISOString().split("T")[0];
+  const deptGroupStaff = useMemo(
+    () => isManager ? [] : allStaff.filter(s => myDeptGroup.includes(s.department)),
+    [allStaff, isManager, myDeptGroup]
+  );
 
   if (isLoading) {
     return (
@@ -287,6 +306,8 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
         const isPast = key < today;
         const dayLabel = date.toLocaleDateString("en-US", { weekday: "short" });
         const dateLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const scheduledIds = new Set(dayShifts.map((shift: any) => shift.staffId));
+        const offStaff = isManager ? [] : deptGroupStaff.filter(s => !scheduledIds.has(s.id));
 
         return (
           <div key={key} className={`rounded-xl p-4 transition-colors ${
@@ -303,7 +324,7 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
               <span className="type-micro text-zinc-600">{dayShifts.length} shift{dayShifts.length !== 1 ? "s" : ""}</span>
             </div>
 
-            {dayShifts.length === 0 ? (
+            {dayShifts.length === 0 && offStaff.length === 0 ? (
               <p className="type-caption text-zinc-600 italic">No shifts</p>
             ) : (
               <div className="space-y-1.5">
@@ -341,6 +362,25 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
                           </button>
                         </div>
                       )}
+                    </div>
+                  );
+                })}
+                {offStaff.map((staff) => {
+                  const isMe = staff.id === staffUser.id;
+                  return (
+                    <div key={`off-${key}-${staff.id}`} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-100/60 border border-slate-200/60">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center type-micro font-semibold bg-slate-200 text-slate-400">
+                          {staff.firstName?.charAt(0) || "?"}
+                        </div>
+                        <div>
+                          <p className={`type-caption font-medium ${isMe ? "text-slate-500" : "text-slate-400"}`}>
+                            {`${staff.firstName} ${staff.lastName || ""}`.trim()}
+                            {isMe && <span className="text-slate-400 ml-1">(You)</span>}
+                          </p>
+                          <p className="type-micro text-slate-400 normal-case">OFF</p>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
