@@ -1181,7 +1181,7 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
   // ============ WORKER TRAINING ============
   training: router({
     modules: publicProcedure.input(z.object({ track: z.string().optional() }).optional()).query(({ input }) => getTrainingModules(input?.track)),
-    createModule: adminProcedure.input(z.object({
+    createModule: staffOrAuthProcedure.input(z.object({
       name: z.string(),
       description: z.string().optional(),
       category: z.enum(["equipment", "food_prep", "service", "management", "safety"]),
