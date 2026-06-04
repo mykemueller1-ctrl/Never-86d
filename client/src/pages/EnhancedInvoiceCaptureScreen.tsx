@@ -27,6 +27,8 @@ type EditInvoiceForm = {
   totalAmount: string;
 };
 
+type InvoiceTab = "new" | "fix";
+
 const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"];
 
 function isManagerOrOwner(staffUser: SafeStaff | null): boolean {
@@ -105,6 +107,7 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
     invoiceNumber: "",
     totalAmount: "",
   });
+  const [activeTab, setActiveTab] = useState<InvoiceTab>("new");
 
   const invoicesQuery = trpc.invoices.list.useQuery(undefined, { enabled: isManagerOrOwner(staffUser), staleTime: 20_000 });
   const createInvoice = trpc.invoices.create.useMutation();
@@ -131,6 +134,7 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
   };
 
   const startEditingInvoice = (invoice: (typeof recentInvoices)[number]) => {
+    setActiveTab("fix");
     setEditingInvoiceId(invoice.id);
     setEditForm({
       vendorName: invoice.vendorName,
@@ -184,6 +188,7 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
       setPhotoFile(null);
       setNotes("");
       await utils.invoices.list.invalidate();
+      setActiveTab("fix");
       toast.success("Invoice logged for review");
     } catch {
       toast.error("Invoice could not be logged");
@@ -256,6 +261,30 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
           </div>
         </div>
 
+        <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+          <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Invoice workflow">
+            <button
+              type="button"
+              onClick={() => setActiveTab("new")}
+              className={`min-h-[52px] rounded-xl px-3 py-3 text-xs font-black tracking-wide border transition ${activeTab === "new" ? "bg-amber-500 text-black border-amber-500 shadow-sm" : "bg-slate-50 text-slate-600 border-slate-200"}`}
+              role="tab"
+              aria-selected={activeTab === "new"}
+            >
+              NEW INVOICE
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("fix")}
+              className={`min-h-[52px] rounded-xl px-3 py-3 text-xs font-black tracking-wide border transition ${activeTab === "fix" ? "bg-slate-900 text-white border-slate-900 shadow-sm" : "bg-amber-50 text-amber-800 border-amber-300"}`}
+              role="tab"
+              aria-selected={activeTab === "fix"}
+            >
+              FIX INVOICE
+            </button>
+          </div>
+        </div>
+
+        {activeTab === "new" && (
         <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-3">
           <p className="text-slate-900 text-xs font-bold flex items-center gap-2"><FileText size={14} className="text-amber-400" /> Log Invoice</p>
           <select value={vendorName} onChange={event => onVendorChange(event.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-900 text-xs focus:outline-none focus:border-amber-500/50">
@@ -300,9 +329,19 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
             Log Invoice
           </button>
         </div>
+        )}
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="p-3 border-b border-slate-200"><p className="text-slate-900 text-xs font-bold">Recent Invoice Log</p></div>
+        {activeTab === "fix" && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="p-3 border-b border-slate-200 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-slate-900 text-xs font-bold">Recent Invoice Log</p>
+              <p className="text-slate-500 text-[10px] mt-0.5">Tap the large Fix button to change vendor, category, invoice number, total, or delete a bad entry.</p>
+            </div>
+            <button type="button" onClick={() => setActiveTab("new")} className="shrink-0 min-h-[44px] px-3 rounded-lg bg-slate-50 text-slate-600 text-[10px] font-black border border-slate-200">
+              New
+            </button>
+          </div>
           <div className="divide-y divide-zinc-800/60">
             {recentInvoices.map(invoice => {
               const isEditing = editingInvoiceId === invoice.id;
@@ -321,12 +360,12 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
                       <button
                         type="button"
                         onClick={() => isEditing ? setEditingInvoiceId(null) : startEditingInvoice(invoice)}
-                        className="min-w-[44px] h-9 px-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-700 flex items-center justify-center gap-1 shadow-sm"
-                        aria-label={isEditing ? "Close invoice editor" : "Edit invoice"}
-                        title={isEditing ? "Close invoice editor" : "Edit invoice"}
+                        className={`min-w-[76px] min-h-[44px] px-3 rounded-xl border flex items-center justify-center gap-1.5 shadow-sm ${isEditing ? "bg-slate-100 border-slate-300 text-slate-700" : "bg-amber-500 border-amber-500 text-black"}`}
+                        aria-label={isEditing ? "Close invoice editor" : "Fix invoice"}
+                        title={isEditing ? "Close invoice editor" : "Fix invoice"}
                       >
-                        {isEditing ? <X size={14} /> : <Pencil size={14} />}
-                        <span className="text-[9px] font-black uppercase">{isEditing ? "Close" : "Edit"}</span>
+                        {isEditing ? <X size={15} /> : <Pencil size={15} />}
+                        <span className="text-[11px] font-black uppercase">{isEditing ? "Close" : "Fix"}</span>
                       </button>
                     </div>
                   </div>
@@ -361,6 +400,7 @@ export default function EnhancedInvoiceCaptureScreen({ staffUser, onBack }: Prop
             {recentInvoices.length === 0 && <p className="text-zinc-600 text-xs text-center py-8">No invoices logged yet.</p>}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
