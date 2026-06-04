@@ -46,6 +46,7 @@ import {
   getAnomalies, acknowledgeAnomaly,
   getUpcomingEvents, addLocalEvent,
   getScheduleIntelligence, saveScheduleIntelligence,
+  getStaffShiftProfiles, getStaffShiftProfile, getTeamScheduleInsights,
   getHourlySalesHeatmap,
   // Price Comparison & Event Briefing
   getPriceComparisons,
@@ -1432,6 +1433,9 @@ ${salesContext ? `## SALES DATA\n${salesContext}` : ""}
 
     // Schedule Intelligence
     scheduleIntel: staffOrAuthProcedure.input(z.object({ weekStart: z.string() })).query(({ input }) => getScheduleIntelligence(input.weekStart)),
+    staffShiftProfiles: staffOrAuthProcedure.query(() => getStaffShiftProfiles()),
+    staffShiftProfile: staffOrAuthProcedure.input(z.object({ staffId: z.number() })).query(({ input }) => getStaffShiftProfile(input.staffId)),
+    teamInsights: staffOrAuthProcedure.query(() => getTeamScheduleInsights()),
 
     // Generate schedule intelligence using LLM
     generateScheduleIntel: staffOrAuthProcedure.input(z.object({ weekStart: z.string(), weekEnd: z.string() })).mutation(async ({ input }) => {

@@ -5072,6 +5072,361 @@ export async function bulkCreateScheduleShifts(shifts: InsertScheduleShift[]) {
   return shifts;
 }
 
+type ShiftProfilePattern = { day: string; frequency: number };
+
+type StaffShiftProfile = {
+  staffId: number;
+  firstName: string;
+  lastName: string;
+  department: string;
+  shiftProfile: {
+    totalShiftsAnalyzed: number;
+    usualPosition: string | null;
+    typicalStartTime: string;
+    typicalEndTime: string;
+    avgHoursPerShift: number;
+    averageHoursPerWeek: number;
+    weeklyPattern: ShiftProfilePattern[];
+    reliabilityScore: number;
+    crossTraining: boolean;
+    lastShiftDate: string;
+    streak: number;
+  };
+};
+
+type StaffShiftInsightRow = {
+  id: number;
+  staffId: number;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  position: string | null;
+  department: string | null;
+  status: "scheduled" | "confirmed" | "completed" | "no_show" | "cancelled";
+};
+
+const SHIFT_INTEL_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function parseScheduleTime(value?: string | null): number | null {
+  if (!value) return null;
+  const [hourRaw, minuteRaw] = value.split(":");
+  const hours = Number(hourRaw);
+  const minutes = Number(minuteRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function formatScheduleTime(minutes: number | null): string {
+  if (minutes === null || !Number.isFinite(minutes)) return "N/A";
+  const normalized = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalized / 60).toString().padStart(2, "0");
+  const mins = (normalized % 60).toString().padStart(2, "0");
+  return `${hours}:${mins}`;
+}
+
+function shiftDurationHours(startTime: string, endTime: string): number {
+  const start = parseScheduleTime(startTime);
+  const end = parseScheduleTime(endTime);
+  if (start === null || end === null) return 0;
+  const minutes = end >= start ? end - start : end + 24 * 60 - start;
+  return Math.max(0, Math.round((minutes / 60) * 100) / 100);
+}
+
+function mostCommonValue(values: Array<string | null | undefined>): string | null {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized) continue;
+    counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+  }
+  let winner: string | null = null;
+  let winnerCount = 0;
+  for (const [value, count] of Array.from(counts.entries())) {
+    if (count > winnerCount) {
+      winner = value;
+      winnerCount = count;
+    }
+  }
+  return winner;
+}
+
+function businessWeekStart(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+  return start;
+}
+
+function weekKey(date: Date): string {
+  return businessWeekStart(date).toISOString().slice(0, 10);
+}
+
+function countConsecutiveShiftWeeks(shifts: StaffShiftInsightRow[]): number {
+  if (shifts.length === 0) return 0;
+  const weekStarts = Array.from(new Set(shifts.map((shift) => weekKey(new Date(shift.date)))))
+    .map((key) => new Date(`${key}T00:00:00`))
+    .sort((a, b) => b.getTime() - a.getTime());
+  if (weekStarts.length === 0) return 0;
+  let streak = 1;
+  let expected = new Date(weekStarts[0]);
+  expected.setDate(expected.getDate() - 7);
+  for (let i = 1; i < weekStarts.length; i += 1) {
+    if (weekStarts[i].toISOString().slice(0, 10) !== expected.toISOString().slice(0, 10)) break;
+    streak += 1;
+    expected.setDate(expected.getDate() - 7);
+  }
+  return streak;
+}
+
+function buildShiftProfile(staffMember: SafeStaff, shifts: StaffShiftInsightRow[]): StaffShiftProfile {
+  const completedCount = shifts.filter((shift) => shift.status === "completed").length;
+  const noShowCount = shifts.filter((shift) => shift.status === "no_show").length;
+  const denominator = completedCount + noShowCount;
+  const durations = shifts.map((shift) => shiftDurationHours(shift.startTime, shift.endTime));
+  const startMinutes = shifts
+    .map((shift) => parseScheduleTime(shift.startTime))
+    .filter((value): value is number => value !== null);
+  const endMinutes = shifts
+    .map((shift) => parseScheduleTime(shift.endTime))
+    .filter((value): value is number => value !== null);
+  const uniqueWeeks = new Set(shifts.map((shift) => weekKey(new Date(shift.date))));
+  const workedDepartments = new Set(shifts.map((shift) => shift.department ?? staffMember.department).filter(Boolean));
+  const totalHours = durations.reduce((sum, hours) => sum + hours, 0);
+  const avgHoursPerShift = shifts.length > 0 ? totalHours / shifts.length : 0;
+  const averageHoursPerWeek = uniqueWeeks.size > 0 ? totalHours / uniqueWeeks.size : 0;
+  const lastShift = shifts[0];
+
+  return {
+    staffId: staffMember.id,
+    firstName: staffMember.firstName,
+    lastName: staffMember.lastName,
+    department: staffMember.department,
+    shiftProfile: {
+      totalShiftsAnalyzed: shifts.length,
+      usualPosition: mostCommonValue(shifts.map((shift) => shift.position)),
+      typicalStartTime: formatScheduleTime(startMinutes.length ? startMinutes.reduce((sum, value) => sum + value, 0) / startMinutes.length : null),
+      typicalEndTime: formatScheduleTime(endMinutes.length ? endMinutes.reduce((sum, value) => sum + value, 0) / endMinutes.length : null),
+      avgHoursPerShift: Math.round(avgHoursPerShift * 100) / 100,
+      averageHoursPerWeek: Math.round(averageHoursPerWeek * 100) / 100,
+      weeklyPattern: SHIFT_INTEL_DAYS.map((day, index) => ({
+        day,
+        frequency: shifts.filter((shift) => new Date(shift.date).getDay() === index).length,
+      })),
+      reliabilityScore: denominator > 0 ? Math.round((completedCount / denominator) * 100) : 0,
+      crossTraining: workedDepartments.size > 1,
+      lastShiftDate: lastShift ? new Date(lastShift.date).toISOString().slice(0, 10) : "",
+      streak: countConsecutiveShiftWeeks(shifts),
+    },
+  };
+}
+
+async function getRecentAccountableShiftRows(staffId?: number): Promise<StaffShiftInsightRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [
+    or(eq(scheduleShifts.status, "completed"), eq(scheduleShifts.status, "no_show")),
+    lte(scheduleShifts.date, new Date()),
+  ];
+  if (staffId !== undefined) conditions.push(eq(scheduleShifts.staffId, staffId));
+
+  return db
+    .select({
+      id: scheduleShifts.id,
+      staffId: scheduleShifts.staffId,
+      date: scheduleShifts.date,
+      startTime: scheduleShifts.startTime,
+      endTime: scheduleShifts.endTime,
+      position: scheduleShifts.position,
+      department: scheduleShifts.department,
+      status: scheduleShifts.status,
+    })
+    .from(scheduleShifts)
+    .where(and(...conditions))
+    .orderBy(asc(scheduleShifts.staffId), desc(scheduleShifts.date), desc(scheduleShifts.startTime));
+}
+
+export async function getStaffShiftProfiles(): Promise<StaffShiftProfile[]> {
+  const staffRows = await getAllStaff();
+  const recentShiftRows = await getRecentAccountableShiftRows();
+  const shiftsByStaff = new Map<number, StaffShiftInsightRow[]>();
+  for (const shift of recentShiftRows) {
+    const staffShifts = shiftsByStaff.get(shift.staffId) ?? [];
+    if (staffShifts.length < 7) {
+      staffShifts.push(shift);
+      shiftsByStaff.set(shift.staffId, staffShifts);
+    }
+  }
+  return staffRows.map((staffMember) => buildShiftProfile(staffMember, shiftsByStaff.get(staffMember.id) ?? []));
+}
+
+export async function getStaffShiftProfile(staffId: number): Promise<StaffShiftProfile | null> {
+  const staffMember = await getStaffById(staffId);
+  if (!staffMember) return null;
+  const shifts = (await getRecentAccountableShiftRows(staffId)).slice(0, 7);
+  return buildShiftProfile(staffMember, shifts);
+}
+
+export async function getTeamScheduleInsights() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      generatedAt: new Date().toISOString(),
+      lookbackWeeks: 8,
+      departments: [],
+      coverageGaps: [],
+      crossTrainingOpportunities: [],
+      overtimeRisks: [],
+    };
+  }
+
+  const lookbackWeeks = 8;
+  const since = new Date();
+  since.setDate(since.getDate() - lookbackWeeks * 7);
+  since.setHours(0, 0, 0, 0);
+
+  const [staffRows, shiftRows, departmentStaffRows] = await Promise.all([
+    getAllStaff(),
+    db
+      .select({
+        id: scheduleShifts.id,
+        staffId: scheduleShifts.staffId,
+        date: scheduleShifts.date,
+        startTime: scheduleShifts.startTime,
+        endTime: scheduleShifts.endTime,
+        position: scheduleShifts.position,
+        department: scheduleShifts.department,
+        status: scheduleShifts.status,
+      })
+      .from(scheduleShifts)
+      .where(
+        and(
+          gte(scheduleShifts.date, since),
+          or(eq(scheduleShifts.status, "scheduled"), eq(scheduleShifts.status, "confirmed"), eq(scheduleShifts.status, "completed"))
+        )
+      ),
+    db
+      .select({
+        department: staff.department,
+        staffCount: sql<number>`COUNT(*)`,
+      })
+      .from(staff)
+      .where(eq(staff.status, "active"))
+      .groupBy(staff.department),
+  ]);
+
+  const staffById = new Map(staffRows.map((staffMember) => [staffMember.id, staffMember]));
+  const departments = Array.from(new Set([...staffRows.map((s) => s.department), ...shiftRows.map((s) => s.department).filter(Boolean) as string[]])).sort();
+  const staffCounts = new Map<string, number>(departmentStaffRows.map((row) => [row.department, Number(row.staffCount) || 0]));
+
+  const weekdayOccurrences = SHIFT_INTEL_DAYS.map((_, dayIndex) => {
+    let count = 0;
+    const cursor = new Date(since);
+    const today = new Date();
+    while (cursor <= today) {
+      if (cursor.getDay() === dayIndex) count += 1;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return Math.max(count, 1);
+  });
+
+  const perDepartment = departments.map((department) => {
+    const departmentShifts = shiftRows.filter((shift) => (shift.department ?? staffById.get(shift.staffId)?.department) === department);
+    const hoursByStaff = new Map<number, number>();
+    const departmentsByStaff = new Map<number, Set<string>>();
+    const weekdayStaff = SHIFT_INTEL_DAYS.map(() => new Map<string, Set<number>>());
+
+    for (const shift of departmentShifts) {
+      const staffMember = staffById.get(shift.staffId);
+      const shiftDepartment = shift.department ?? staffMember?.department ?? department;
+      hoursByStaff.set(shift.staffId, (hoursByStaff.get(shift.staffId) ?? 0) + shiftDurationHours(shift.startTime, shift.endTime));
+      const staffDepartments = departmentsByStaff.get(shift.staffId) ?? new Set<string>();
+      staffDepartments.add(shiftDepartment);
+      if (staffMember?.department) staffDepartments.add(staffMember.department);
+      departmentsByStaff.set(shift.staffId, staffDepartments);
+
+      const date = new Date(shift.date);
+      const dateKey = date.toISOString().slice(0, 10);
+      const dayBucket = weekdayStaff[date.getDay()];
+      const dayStaff = dayBucket.get(dateKey) ?? new Set<number>();
+      dayStaff.add(shift.staffId);
+      dayBucket.set(dateKey, dayStaff);
+    }
+
+    const averageHoursPerPersonPerWeek = hoursByStaff.size > 0
+      ? Array.from(hoursByStaff.values()).reduce((sum, hours) => sum + hours, 0) / hoursByStaff.size / lookbackWeeks
+      : 0;
+    const usualStaffByDay = SHIFT_INTEL_DAYS.map((day, dayIndex) => {
+      const totalStaffInstances = Array.from(weekdayStaff[dayIndex].values()).reduce((sum, staffSet) => sum + staffSet.size, 0);
+      return {
+        day,
+        averageStaff: Math.round((totalStaffInstances / weekdayOccurrences[dayIndex]) * 10) / 10,
+      };
+    });
+    const baselineStaff = usualStaffByDay.length > 0
+      ? usualStaffByDay.reduce((sum, item) => sum + item.averageStaff, 0) / usualStaffByDay.length
+      : 0;
+    const coverageGaps = usualStaffByDay
+      .filter((item) => baselineStaff >= 1 && item.averageStaff < baselineStaff * 0.75)
+      .map((item) => ({
+        department,
+        day: item.day,
+        averageStaff: item.averageStaff,
+        baselineStaff: Math.round(baselineStaff * 10) / 10,
+        severity: item.averageStaff < baselineStaff * 0.5 ? "high" : "medium",
+      }));
+
+    const crossTrainingCandidates = Array.from(departmentsByStaff.entries())
+      .filter(([, workedDepartments]) => workedDepartments.size > 1)
+      .map(([id, workedDepartments]) => {
+        const staffMember = staffById.get(id);
+        return {
+          staffId: id,
+          firstName: staffMember?.firstName ?? "Unknown",
+          lastName: staffMember?.lastName ?? "",
+          homeDepartment: staffMember?.department ?? "unknown",
+          workedDepartments: Array.from(workedDepartments).sort(),
+        };
+      });
+
+    const overtimeRisks = Array.from(hoursByStaff.entries())
+      .map(([id, totalHours]) => {
+        const staffMember = staffById.get(id);
+        const avgHoursPerWeek = totalHours / lookbackWeeks;
+        return {
+          staffId: id,
+          firstName: staffMember?.firstName ?? "Unknown",
+          lastName: staffMember?.lastName ?? "",
+          department: staffMember?.department ?? department,
+          avgHoursPerWeek: Math.round(avgHoursPerWeek * 10) / 10,
+          riskLevel: avgHoursPerWeek >= 35 ? "high" : avgHoursPerWeek >= 30 ? "medium" : "low",
+        };
+      })
+      .filter((risk) => risk.riskLevel !== "low")
+      .sort((a, b) => b.avgHoursPerWeek - a.avgHoursPerWeek);
+
+    return {
+      department,
+      activeStaffCount: staffCounts.get(department) ?? 0,
+      averageHoursPerPersonPerWeek: Math.round(averageHoursPerPersonPerWeek * 10) / 10,
+      usualStaffByDay,
+      coverageGaps,
+      crossTrainingOpportunities: crossTrainingCandidates,
+      overtimeRisks,
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    lookbackWeeks,
+    departments: perDepartment,
+    coverageGaps: perDepartment.flatMap((department) => department.coverageGaps),
+    crossTrainingOpportunities: perDepartment.flatMap((department) =>
+      department.crossTrainingOpportunities.map((candidate) => ({ department: department.department, ...candidate }))
+    ),
+    overtimeRisks: perDepartment.flatMap((department) => department.overtimeRisks),
+  };
+}
+
 // ============ AVAILABILITY HELPERS ============
 
 export async function setAvailability(data: InsertAvailabilityWindow) {

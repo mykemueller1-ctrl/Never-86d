@@ -22,6 +22,26 @@ const MANAGER_ROLES = ["owner", "key_manager", "kitchen_manager", "bar_manager"]
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DEPARTMENTS: Array<"bar" | "dining_room" | "kitchen_line" | "pizza_side" | "driver" | "dishwasher" | "management"> = ["bar", "dining_room", "kitchen_line", "pizza_side", "driver", "dishwasher", "management"];
 
+type StaffShiftProfileData = {
+  staffId: number;
+  firstName: string;
+  lastName: string;
+  department: string;
+  shiftProfile: {
+    totalShiftsAnalyzed: number;
+    usualPosition: string | null;
+    typicalStartTime: string;
+    typicalEndTime: string;
+    avgHoursPerShift: number;
+    averageHoursPerWeek: number;
+    weeklyPattern: { day: string; frequency: number }[];
+    reliabilityScore: number;
+    crossTraining: boolean;
+    lastShiftDate: string;
+    streak: number;
+  };
+};
+
 const DEPT_GROUPS: Record<string, string[]> = {
   bar: ["bar", "dining_room"],
   dining_room: ["bar", "dining_room"],
@@ -54,12 +74,18 @@ function formatWeekLabel(dates: Date[]): string {
   return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
+function formatDepartmentLabel(department?: string | null): string {
+  if (!department) return "Unassigned";
+  return department.split("_").map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+}
+
 export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
   const isManager = MANAGER_ROLES.includes(staffUser.jobRole);
   const [weekOffset, setWeekOffset] = useState(0);
   const [tab, setTab] = useState<"schedule" | "availability" | "requests" | "hours">(isManager ? "schedule" : "schedule");
   const [showAddShift, setShowAddShift] = useState(false);
   const [editingShift, setEditingShift] = useState<number | null>(null);
+  const [selectedProfileStaffId, setSelectedProfileStaffId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
@@ -187,6 +213,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
             myDeptGroup={myDeptGroup}
             onEdit={(id) => setEditingShift(id)}
             onDelete={(id) => deleteShift.mutate({ id })}
+            onViewStaffProfile={isManager ? setSelectedProfileStaffId : undefined}
             isLoading={scheduleQuery.isLoading}
             isError={scheduleQuery.isError}
           />
@@ -217,6 +244,14 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
         )}
       </div>
 
+      {/* Staff Shift Intelligence Modal */}
+      {selectedProfileStaffId !== null && (
+        <StaffProfileModal
+          staffId={selectedProfileStaffId}
+          onClose={() => setSelectedProfileStaffId(null)}
+        />
+      )}
+
       {/* Add Shift Modal */}
       {showAddShift && (
         <AddShiftModal
@@ -245,7 +280,7 @@ export default function ScheduleScreen({ staffUser, allStaff, onBack }: Props) {
 }
 
 // ─── Schedule Grid ──────────────────────────────────────────────────────────
-function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, myDeptGroup, onEdit, onDelete, isLoading, isError }: {
+function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager, myDeptGroup, onEdit, onDelete, onViewStaffProfile, isLoading, isError }: {
   weekDates: Date[];
   shiftsByDate: Record<string, any[]>;
   staffUser: SafeStaff;
@@ -254,6 +289,7 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
   myDeptGroup: string[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
+  onViewStaffProfile?: (staffId: number) => void;
   isLoading: boolean;
   isError: boolean;
 }) {
@@ -342,10 +378,22 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
                           {staff?.firstName?.charAt(0) || "?"}
                         </div>
                         <div>
-                          <p className={`type-caption font-medium ${isMe ? "text-amber-500" : "text-slate-700"}`}>
-                            {staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}
-                            {isMe && <span className="text-amber-600 ml-1">(You)</span>}
-                          </p>
+                          {onViewStaffProfile ? (
+                            <button
+                              type="button"
+                              onClick={() => onViewStaffProfile(shift.staffId)}
+                              className={`type-caption font-medium text-left hover:text-amber-500 transition-colors ${isMe ? "text-amber-500" : "text-slate-700"}`}
+                              title="View staff shift intelligence"
+                            >
+                              {staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}
+                              {isMe && <span className="text-amber-600 ml-1">(You)</span>}
+                            </button>
+                          ) : (
+                            <p className={`type-caption font-medium ${isMe ? "text-amber-500" : "text-slate-700"}`}>
+                              {staff ? `${staff.firstName} ${staff.lastName || ""}`.trim() : `Staff #${shift.staffId}`}
+                              {isMe && <span className="text-amber-600 ml-1">(You)</span>}
+                            </p>
+                          )}
                           <p className="type-micro text-slate-500 normal-case">
                             {shift.startTime} – {shift.endTime}
                             {shift.position && <span className="ml-2 text-zinc-600">· {shift.position}</span>}
@@ -389,6 +437,155 @@ function ScheduleGrid({ weekDates, shiftsByDate, staffUser, allStaff, isManager,
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Staff Shift Intelligence Modal ─────────────────────────────────────────
+function ProfileMetricCard({ label, value, helper }: { label: string; value: string | number; helper?: string }) {
+  return (
+    <div className="surface-base p-3 rounded-xl border border-slate-200/70">
+      <p className="type-micro text-slate-500 uppercase tracking-wide">{label}</p>
+      <p className="type-caption font-semibold text-slate-900 mt-1">{value}</p>
+      {helper && <p className="type-micro text-slate-400 mt-0.5 normal-case">{helper}</p>}
+    </div>
+  );
+}
+
+function StaffProfileModal({ staffId, onClose }: { staffId: number; onClose: () => void }) {
+  const profileQuery = trpc.intelligence.staffShiftProfile.useQuery({ staffId });
+  const profile = profileQuery.data as StaffShiftProfileData | null | undefined;
+  const shiftProfile = profile?.shiftProfile;
+  const reliabilityClass = !shiftProfile
+    ? "text-slate-900"
+    : shiftProfile.reliabilityScore >= 90
+      ? "text-emerald-600"
+      : shiftProfile.reliabilityScore >= 75
+        ? "text-amber-600"
+        : "text-red-500";
+  const favoriteDays = shiftProfile?.weeklyPattern
+    .filter((day) => day.frequency > 0)
+    .sort((a, b) => b.frequency - a.frequency)
+    .slice(0, 3) ?? [];
+
+  return (
+    <div className="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-t-2xl p-6 space-y-4 screen-enter max-h-[88dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="type-heading text-slate-900">Staff Shift Intelligence</h3>
+            <p className="type-micro text-slate-500 normal-case">Computed from the last 7 completed/no-show shifts.</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors"><X size={20} /></button>
+        </div>
+
+        {profileQuery.isLoading && (
+          <div className="flex items-center justify-center py-12 text-slate-500">
+            <Loader2 size={20} className="animate-spin mr-2" />
+            <span className="type-caption">Loading profile intelligence…</span>
+          </div>
+        )}
+
+        {profileQuery.isError && (
+          <div className="surface-base p-4 rounded-xl border border-red-200">
+            <p className="type-caption text-red-500 font-medium">Profile unavailable</p>
+            <p className="type-micro text-slate-500 normal-case mt-1">We could not load this staff member’s shift intelligence right now.</p>
+          </div>
+        )}
+
+        {!profileQuery.isLoading && !profileQuery.isError && !profile && (
+          <div className="surface-base p-4 rounded-xl">
+            <p className="type-caption text-slate-600 font-medium">No staff profile found</p>
+            <p className="type-micro text-slate-500 normal-case mt-1">This staff member may no longer exist or may not be visible to your account.</p>
+          </div>
+        )}
+
+        {profile && shiftProfile && (
+          <>
+            <div className="rounded-xl bg-amber-500/8 border border-amber-500/15 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-amber-500 text-black flex items-center justify-center type-caption font-bold">
+                  {profile.firstName.charAt(0)}{profile.lastName?.charAt(0) || ""}
+                </div>
+                <div>
+                  <p className="type-heading text-slate-900">{profile.firstName} {profile.lastName}</p>
+                  <p className="type-micro text-slate-500 normal-case">{formatDepartmentLabel(profile.department)} · {shiftProfile.usualPosition || "No usual station yet"}</p>
+                </div>
+              </div>
+            </div>
+
+            {shiftProfile.totalShiftsAnalyzed === 0 ? (
+              <div className="surface-base p-4 rounded-xl">
+                <p className="type-caption text-slate-600 font-medium">Not enough completed shift history yet</p>
+                <p className="type-micro text-slate-500 normal-case mt-1">Profile trends will appear after this staff member has completed scheduled shifts.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <ProfileMetricCard label="Typical Time" value={`${shiftProfile.typicalStartTime} – ${shiftProfile.typicalEndTime}`} helper="Average start/end" />
+                  <ProfileMetricCard label="Avg Shift" value={`${shiftProfile.avgHoursPerShift} hrs`} helper="Per analyzed shift" />
+                  <ProfileMetricCard label="Weekly Hours" value={`${shiftProfile.averageHoursPerWeek} hrs`} helper="From recent weeks" />
+                  <ProfileMetricCard label="Streak" value={`${shiftProfile.streak} week${shiftProfile.streak === 1 ? "" : "s"}`} helper="Consecutive weeks" />
+                </div>
+
+                <div className="surface-base p-4 rounded-xl border border-slate-200/70">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="type-caption font-semibold text-slate-900">Reliability</p>
+                      <p className="type-micro text-slate-500 normal-case">Completed shifts versus no-shows</p>
+                    </div>
+                    <p className={`type-heading ${reliabilityClass}`}>{shiftProfile.reliabilityScore}%</p>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, Math.max(0, shiftProfile.reliabilityScore))}%` }} />
+                  </div>
+                </div>
+
+                <div className="surface-base p-4 rounded-xl border border-slate-200/70">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="type-caption font-semibold text-slate-900">Work Pattern</p>
+                      <p className="type-micro text-slate-500 normal-case">Frequency by day in the analyzed shifts</p>
+                    </div>
+                    <span className="type-micro text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                      {shiftProfile.crossTraining ? "Cross-trained" : "Single department"}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {shiftProfile.weeklyPattern.map((day) => {
+                      const maxFrequency = Math.max(1, ...shiftProfile.weeklyPattern.map((d) => d.frequency));
+                      return (
+                        <div key={day.day} className="grid grid-cols-[72px_1fr_24px] items-center gap-2">
+                          <span className="type-micro text-slate-500">{day.day.slice(0, 3)}</span>
+                          <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="h-full bg-slate-700" style={{ width: `${(day.frequency / maxFrequency) * 100}%` }} />
+                          </div>
+                          <span className="type-micro text-slate-500 text-right">{day.frequency}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/70">
+                    <span className="type-micro text-slate-500">Usually works</span>
+                    <span className="type-micro text-slate-700 font-medium">{favoriteDays.length ? favoriteDays.map((day) => day.day.slice(0, 3)).join(", ") : "No pattern"}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/70">
+                    <span className="type-micro text-slate-500">Last shift</span>
+                    <span className="type-micro text-slate-700 font-medium">{shiftProfile.lastShiftDate || "No completed shifts"}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/70">
+                    <span className="type-micro text-slate-500">Shifts analyzed</span>
+                    <span className="type-micro text-slate-700 font-medium">{shiftProfile.totalShiftsAnalyzed} of 7</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
